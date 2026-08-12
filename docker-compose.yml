@@ -1,0 +1,181 @@
+version: "3.9"
+
+# ============================================================
+# Poshplex Full-Stack Local & Production Environment
+# ============================================================
+
+services:
+
+  # ----------------------------------------------------------
+  # PostgreSQL 16 — Primary Application Database
+  # ----------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: poshplex_postgres
+    restart: unless-stopped
+    command: postgres -c shared_buffers=1GB -c effective_cache_size=2GB
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: poshplex
+      # POSTGRES_USER and POSTGRES_PASSWORD should be in .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-poshplex_user} -d poshplex"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ----------------------------------------------------------
+  # Redis Stack Server — RediSearch, RedisJSON, Cache
+  # ----------------------------------------------------------
+  redis:
+    image: redis/redis-stack-server:latest
+    container_name: poshplex_redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ----------------------------------------------------------
+  # Django Ninja Backend — Gunicorn
+  # ----------------------------------------------------------
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: poshplex_backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    command: >
+      sh -c "
+        python manage.py collectstatic --noinput &&
+        python manage.py migrate --noinput &&
+        gunicorn poshplex.wsgi:application --bind 0.0.0.0:8000 --workers 4 --threads 2
+      "
+    volumes:
+      - .:/app
+      - media_files:/app/media
+      - static_files:/app/staticfiles
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ----------------------------------------------------------
+  # Celery Worker — Background Tasks (SMS, Courier, Webhooks)
+  # ----------------------------------------------------------
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: poshplex_worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    command: >
+      sh -c "
+        celery -A poshplex worker -l info --concurrency=2
+      "
+    volumes:
+      - .:/app
+      - media_files:/app/media
+    depends_on:
+      - backend
+      - redis
+
+  # ----------------------------------------------------------
+  # Celery Beat — Scheduled Maintenance (runs periodic tasks)
+  # ----------------------------------------------------------
+  beat:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: poshplex_beat
+    restart: unless-stopped
+    env_file:
+      - .env
+    command: >
+      sh -c "
+        celery -A poshplex beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+      "
+    volumes:
+      - .:/app
+    depends_on:
+      - backend
+      - redis
+      - worker
+
+  # ----------------------------------------------------------
+  # Nginx Reverse Proxy
+  # ----------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    container_name: poshplex_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - media_files:/usr/share/nginx/html/media:ro
+      - static_files:/usr/share/nginx/html/static:ro
+    depends_on:
+      - backend
+      - store
+      - admin
+
+  # ----------------------------------------------------------
+  # Next.js Storefront — Port 3000
+  # ----------------------------------------------------------
+  store:
+    build:
+      context: ./poshplex_store
+      dockerfile: Dockerfile
+    container_name: poshplex_store
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: "http://localhost/api/v1"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./poshplex_store:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - backend
+
+  # ----------------------------------------------------------
+  # Vite Admin Panel — Port 3001
+  # ----------------------------------------------------------
+  admin:
+    build:
+      context: ./poshplex_admin
+      dockerfile: Dockerfile
+    container_name: poshplex_admin
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: "http://localhost/api/v1"
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./poshplex_admin:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:
+  media_files:
+  static_files:
