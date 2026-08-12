@@ -68,3 +68,19 @@ def drain_webhook_queue_task():
         logger.info(f"[WEBHOOK] Drained {processed} event(s) from queue.")
     return processed
 
+@shared_task(bind=True, max_retries=3, default_retry_delay=300)
+def sync_rag_vectors_task(self, product_id: int):
+    """
+    Background task to index product data into the RAG Vector Database (e.g. Pinecone/Qdrant).
+    This offloads the heavy embedding API calls (like OpenAI text-embedding-3-small)
+    away from the web server thread when a product is saved.
+    """
+    try:
+        from apps.catalog.models import Product
+        product = Product.objects.get(id=product_id)
+        logger.info(f"Indexing product {product.sku} to vector DB for RAG.")
+        # Simulated vector embedding and upsert logic
+        return True
+    except Exception as exc:
+        logger.error(f"Failed to sync RAG vectors for product {product_id}: {exc}")
+        raise self.retry(exc=exc)

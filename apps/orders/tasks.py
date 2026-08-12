@@ -83,3 +83,33 @@ def sync_steadfast_status_task(self, order_id: int):
     except Exception as exc:
         logger.error(f"Steadfast sync failure for order {order_id}. Retrying... Error: {exc}")
         raise self.retry(exc=exc)
+
+@shared_task(bind=True, max_retries=2, default_retry_delay=60)
+def generate_invoice_pdf_task(self, order_id: int):
+    """
+    Background task to generate a PDF invoice for an order.
+    Offloads heavy I/O and CPU rendering from the web threads.
+    """
+    import os
+    from django.conf import settings
+    from apps.orders.models import Order
+    from reportlab.pdfgen import canvas
+    
+    try:
+        order = Order.objects.get(id=order_id)
+        # Setup path
+        invoices_dir = os.path.join(settings.MEDIA_ROOT, 'invoices')
+        os.makedirs(invoices_dir, exist_ok=True)
+        pdf_path = os.path.join(invoices_dir, f"{order.order_number}.pdf")
+        
+        # Extremely basic PDF generation for demo purposes
+        c = canvas.Canvas(pdf_path)
+        c.drawString(100, 750, f"Invoice for Order: {order.order_number}")
+        c.drawString(100, 730, f"Customer: {order.shipping_name}")
+        c.drawString(100, 710, f"Total Amount: {order.total_amount}")
+        c.save()
+        
+        return pdf_path
+    except Exception as exc:
+        logger.error(f"Failed to generate PDF for order {order_id}: {exc}")
+        raise self.retry(exc=exc)

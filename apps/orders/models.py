@@ -207,5 +207,16 @@ class Thana(models.Model):
     def __str__(self):
         return f"{self.name} ({self.district.name})"
 
+class DraftCart(models.Model):
+    """
+    High-churn data store for anonymous user carts.
+    Will be converted to an UNLOGGED table in PostgreSQL via migrations to disable WAL,
+    making inserts/updates extremely fast.
+    """
+    token = models.CharField(max_length=64, unique=True, db_index=True)
+    cart_data = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
-
+    def __str__(self):
+        return f"DraftCart {self.token}"

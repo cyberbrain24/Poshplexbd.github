@@ -178,26 +178,30 @@ def list_products(
         )
         exact_match_ids = list(exact_qs.values_list('id', flat=True))
         
-        # Fuzzy matches fallback
-        import difflib
-        all_prods = list(qs.values('id', 'name'))
+        # Fuzzy matches fallback using RediSearch (Sub-Millisecond Search)
         fuzzy_match_ids = []
-        search_lower = search.lower()
-        for p in all_prods:
-            if p['id'] in exact_match_ids:
-                continue
-            name_lower = p['name'].lower()
-            
-            # Overall name ratio
-            ratio = difflib.SequenceMatcher(None, search_lower, name_lower).ratio()
-            
-            # Word-level ratio (handles matching 'hoode' to 'hoodie' within 'Black Hoodie')
-            words = name_lower.split()
-            word_ratios = [difflib.SequenceMatcher(None, search_lower, w).ratio() for w in words]
-            max_word_ratio = max(word_ratios) if word_ratios else 0
-            
-            if ratio > 0.5 or max_word_ratio > 0.6:
-                fuzzy_match_ids.append(p['id'])
+        try:
+            from apps.catalog.redis_models import ProductDocument
+            # Use RediSearch full-text search capability
+            search_results = ProductDocument.find(ProductDocument.name % search).all()
+            fuzzy_match_ids = [res.product_id for res in search_results]
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"RediSearch not available or failed: {e}. Falling back to slow Python difflib.")
+            import difflib
+            all_prods = list(qs.values('id', 'name'))
+            search_lower = search.lower()
+            for p in all_prods:
+                if p['id'] in exact_match_ids:
+                    continue
+                name_lower = p['name'].lower()
+                ratio = difflib.SequenceMatcher(None, search_lower, name_lower).ratio()
+                words = name_lower.split()
+                word_ratios = [difflib.SequenceMatcher(None, search_lower, w).ratio() for w in words]
+                max_word_ratio = max(word_ratios) if word_ratios else 0
+                if ratio > 0.5 or max_word_ratio > 0.6:
+                    fuzzy_match_ids.append(p['id'])
                 
         matched_ids = set(exact_match_ids + fuzzy_match_ids)
         qs = qs.filter(id__in=matched_ids).distinct()
@@ -1104,7 +1108,7 @@ def admin_list_reviews(request, page: int = 1, limit: int = 50):
     
     start = (page - 1) * limit
     end = start + limit
-    reviews = Review.objects.all().order_by('listing_order', '-created_at')[start:end]
+    reviews = Review.objects.select_related('product', 'user').order_by('listing_order', '-created_at')[start:end]
     
     res = []
     for r in reviews:

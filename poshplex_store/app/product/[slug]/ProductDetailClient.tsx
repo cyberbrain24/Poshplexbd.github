@@ -36,7 +36,7 @@ type AccordionSection = "description" | "sizeGuide" | "care" | "reviews";
 function ProductCard({ product }: { product: any }) {
   const [imgHovered, setImgHovered] = useState(false);
   const mainImage = product.images?.find((i: any) => i.is_main) || product.images?.[0];
-  const imageUrl = mainImage?.url || `https://placehold.co/400x500/ebebeb/333?text=${encodeURIComponent(product.name || "Product")}`;
+  const imageUrl = mainImage?.url || `https://placehold.co/400x500/ebebeb/333.png?text=${encodeURIComponent(product.name || "Product")}`;
   const secondImage = product.images?.[1];
 
   const displayPrice = (() => {
@@ -62,6 +62,7 @@ function ProductCard({ product }: { product: any }) {
           src={imgHovered && secondImage ? secondImage.url : imageUrl}
           alt={product.name}
           fill
+          unoptimized={imageUrl.includes('placehold.co')}
           sizes="(max-width: 768px) 50vw, 25vw"
           style={{
             objectFit: "cover",
@@ -416,12 +417,13 @@ export default function ProductDetailClient({ product }: { product: any }) {
           >
             {images.length > 0 ? (
               images.map((img: any, idx: number) => (
-                <div key={idx} style={{ flex: "0 0 100%", scrollSnapAlign: "start", position: "relative", width: "100%", aspectRatio: "3/4" }}>
+                <div key={idx} suppressHydrationWarning style={{ flex: "0 0 100%", scrollSnapAlign: "start", position: "relative", width: "100%", aspectRatio: "3/4" }}>
                   <Image
                     src={img.url}
                     alt={`${product.name} view ${idx + 1}`}
                     fill
                     priority={idx === 0}
+                    unoptimized={true}
                     sizes="(max-width: 768px) 100vw, 50vw"
                     className="product-hero-img object-contain md:object-cover"
                     onClick={() => setLightboxUrl(img.url)}
@@ -429,12 +431,13 @@ export default function ProductDetailClient({ product }: { product: any }) {
                 </div>
               ))
             ) : (
-                <div style={{ flex: "0 0 100%", scrollSnapAlign: "start", position: "relative", width: "100%", aspectRatio: "3/4" }}>
+                <div suppressHydrationWarning style={{ flex: "0 0 100%", scrollSnapAlign: "start", position: "relative", width: "100%", aspectRatio: "3/4" }}>
                   <Image
-                    src={`https://placehold.co/600x600/f0f0f0/999?text=${encodeURIComponent(product.name)}`}
+                    src={`https://placehold.co/600x600/f0f0f0/999.png?text=${encodeURIComponent(product.name)}`}
                     alt={product.name}
                     fill
                     priority={true}
+                    unoptimized={true}
                     sizes="(max-width: 768px) 100vw, 50vw"
                     className="product-hero-img object-contain md:object-cover"
                   />

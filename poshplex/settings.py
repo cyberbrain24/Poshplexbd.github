@@ -182,8 +182,3 @@ else:
     }
 
 
-MIGRATION_MODULES = {
-    'finance': 'poshplex_migrations.finance',
-    'music': 'poshplex_migrations.music',
-    'printing': 'poshplex_migrations.printing',
-}

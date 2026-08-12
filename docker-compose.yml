@@ -95,27 +95,6 @@ services:
       - backend
       - redis
 
-  # ----------------------------------------------------------
-  # Celery Beat — Scheduled Maintenance (runs periodic tasks)
-  # ----------------------------------------------------------
-  beat:
-    build:
-      context: .
-      dockerfile: Dockerfile.backend
-    container_name: poshplex_beat
-    restart: unless-stopped
-    env_file:
-      - .env
-    command: >
-      sh -c "
-        celery -A poshplex beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
-      "
-    volumes:
-      - .:/app
-    depends_on:
-      - backend
-      - redis
-      - worker
 
   # ----------------------------------------------------------
   # Nginx Reverse Proxy
