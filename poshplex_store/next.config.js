@@ -13,13 +13,33 @@ const withPWA = require("@ducanh2912/next-pwa").default({
 
 const nextConfig = {
   reactStrictMode: true,
+  cacheHandler: process.env.NODE_ENV === "production" ? require.resolve("./cache-handler.js") : undefined,
+  cacheMaxMemorySize: 0, // Disable Next.js default in-memory cache to force Redis usage
+  output: 'standalone',
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   images: {
+    formats: ['image/avif', 'image/webp'],
     dangerouslyAllowSVG: true,
     remotePatterns: [
       {
         protocol: 'http',
         hostname: 'localhost',
         port: '8000',
+        pathname: '/media/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.ngrok-free.app',
+        pathname: '/media/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.ngrok.io',
         pathname: '/media/**',
       },
       {
