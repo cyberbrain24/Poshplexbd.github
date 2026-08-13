@@ -30,3 +30,21 @@ The production VPS code is NOT currently configured as a Git repository. Code sy
 - **`docker-compose.yml`**: This file is **strictly for production**. It does NOT contain local volume mounts (`.:/app`) that override the built images. It is pushed to the VPS.
 - **`docker-compose.override.yml`**: This file is **strictly for local development** and is `.gitignore`d. It contains the volume mounts to enable hot-reloading. When running `docker compose up` locally, Docker merges both files automatically.
 - **NEVER** add local source code `volumes` back into `docker-compose.yml`, or you will break the production VPS build.
+
+## Production RAM Allocation Breakdown (12 GB Total)
+To ensure maximum performance and prevent Out-Of-Memory (OOM) crashes, the VPS is strictly architected with the following memory constraints. Future agents MUST respect these boundaries:
+
+1. **PostgreSQL 16 Database**: `4.0 GB` 
+   - Uses `shared_buffers=4GB` and `pg_prewarm` to pin product catalogs and pgvector embeddings in system RAM, bypassing SSD read penalties.
+2. **Redis Stack Server**: `2.0 GB`
+   - Configured with `maxmemory 2000mb` and `allkeys-lru` eviction policy. Serves as a read-through REST API cache and Celery broker.
+3. **Django Ninja API (Gunicorn)**: `2.0 GB`
+   - Runs 8 worker processes with 2 threads each (`--worker-class gthread`). Capable of serving 500-700 dynamic requests/sec.
+4. **Next.js Storefront**: `1.5 GB`
+   - Uses Next.js `output: 'standalone'` configuration to run as a highly minimized Node.js microservice without bloated `node_modules`.
+5. **Celery Worker**: `0.8 GB`
+   - Strictly limited to `--concurrency=2` with `--max-tasks-per-child=100` to prevent Python memory leaks during background tasks.
+6. **OS & Nginx Overhead**: `0.8 GB`
+   - Required for the Ubuntu 24.04 kernel, Nginx TLS termination, and serving the static Vite Admin panel.
+7. **Free Safety Cushion**: `0.9 - 1.0 GB`
+   - A critical unassigned buffer to absorb temporary spikes (e.g., during `npm run build` or heavy database sorting) and prevent complete server lockups.

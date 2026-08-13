@@ -101,6 +101,7 @@ export default function CatalogPage() {
     return "";
   });
   const [sortBy, setSortBy] = useState("featured");
+  const [visibleCount, setVisibleCount] = useState(16);
 
   /* load categories */
   useEffect(() => {
@@ -447,11 +448,45 @@ export default function CatalogPage() {
 
             {/* Product Grid */}
             {sortedProducts.length > 0 ? (
-              <div className="catalog-grid-6">
-                {sortedProducts.map((p, idx) => (
-                  <ProductCard key={p.id} product={p} priority={idx < 8} />
-                ))}
-              </div>
+              <>
+                <div className="catalog-grid-6">
+                  {sortedProducts.slice(0, visibleCount).map((p, idx) => (
+                    <ProductCard key={p.id} product={p} priority={idx < 8} />
+                  ))}
+                </div>
+
+                {/* Load More */}
+                {visibleCount < sortedProducts.length && (
+                  <div style={{ textAlign: "center", marginTop: 56 }}>
+                    <button
+                      onClick={() => setVisibleCount((n) => n + 16)}
+                      style={{
+                        padding: "14px 48px",
+                        border: "1px solid #ccc",
+                        background: "#fff",
+                        fontSize: 13,
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        letterSpacing: "1px",
+                        cursor: "pointer",
+                        transition: "all 0.2s"
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.background = "#111";
+                        e.currentTarget.style.color = "#fff";
+                        e.currentTarget.style.borderColor = "#111";
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.background = "#fff";
+                        e.currentTarget.style.color = "#111";
+                        e.currentTarget.style.borderColor = "#ccc";
+                      }}
+                    >
+                      Load More ({sortedProducts.length - visibleCount} remaining)
+                    </button>
+                  </div>
+                )}
+              </>
             ) : (
               <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "80px 0" }}>
                 <p style={{ fontSize: 13, color: "#999" }}>No drops found matching the filter criteria.</p>

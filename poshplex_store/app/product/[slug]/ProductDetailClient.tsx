@@ -422,7 +422,8 @@ export default function ProductDetailClient({ product }: { product: any }) {
                     src={img.url || "https://placehold.co/600x600/f0f0f0/999.png?text=No+Image"}
                     alt={`${product.name} view ${idx + 1}`}
                     fill
-                    priority={idx === 0}
+                    priority
+                    unoptimized
                     sizes="(max-width: 768px) 100vw, 50vw"
                     className="product-hero-img object-contain"
                     style={{ objectFit: 'contain' }}
@@ -436,7 +437,8 @@ export default function ProductDetailClient({ product }: { product: any }) {
                     src={`https://placehold.co/600x600/f0f0f0/999.png?text=${encodeURIComponent(product.name)}`}
                     alt={product.name}
                     fill
-                    priority={true}
+                    priority
+                    unoptimized
                     sizes="(max-width: 768px) 100vw, 50vw"
                     className="product-hero-img object-contain"
                     style={{ objectFit: 'contain' }}

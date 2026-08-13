@@ -13,7 +13,7 @@ services:
     image: postgres:16-alpine
     container_name: poshplex_postgres
     restart: unless-stopped
-    command: postgres -c shared_buffers=1GB -c effective_cache_size=2GB
+    command: postgres -c shared_buffers=4GB -c effective_cache_size=8GB -c shared_preload_libraries='pg_prewarm'
     env_file:
       - .env
     environment:
@@ -36,6 +36,8 @@ services:
     image: redis/redis-stack-server:latest
     container_name: poshplex_redis
     restart: unless-stopped
+    environment:
+      REDIS_ARGS: "--maxmemory 2000mb --maxmemory-policy allkeys-lru"
     volumes:
       - redis_data:/data
     ports:
@@ -61,7 +63,7 @@ services:
       sh -c "
         python manage.py collectstatic --noinput &&
         python manage.py migrate --noinput &&
-        gunicorn poshplex.wsgi:application --bind 0.0.0.0:8000 --workers 4 --threads 2
+        gunicorn poshplex.wsgi:application --bind 0.0.0.0:8000 --workers 8 --threads 2 --worker-class gthread
       "
     ports:
       - "127.0.0.1:8000:8000"
@@ -87,7 +89,7 @@ services:
       - .env
     command: >
       sh -c "
-        celery -A poshplex worker -l info --concurrency=2
+        celery -A poshplex worker -l info --concurrency=2 --max-tasks-per-child=100
       "
     volumes:
       - media_files:/app/media
