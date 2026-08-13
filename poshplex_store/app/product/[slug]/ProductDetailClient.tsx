@@ -59,10 +59,10 @@ function ProductCard({ product }: { product: any }) {
         onMouseLeave={() => setImgHovered(false)}
       >
         <Image
-          src={imgHovered && secondImage ? secondImage.url : imageUrl}
-          alt={product.name}
+          src={imgHovered && secondImage?.url ? secondImage.url : (imageUrl || "https://placehold.co/400x500/ebebeb/333.png?text=Product")}
+          alt={product.name || "Product"}
           fill
-          unoptimized={imageUrl.includes('placehold.co')}
+          unoptimized={(imageUrl || "").includes('placehold.co')}
           sizes="(max-width: 768px) 50vw, 25vw"
           style={{
             objectFit: "cover",
@@ -419,7 +419,7 @@ export default function ProductDetailClient({ product }: { product: any }) {
               images.map((img: any, idx: number) => (
                 <div key={idx} suppressHydrationWarning style={{ flex: "0 0 100%", scrollSnapAlign: "start", position: "relative", width: "100%", aspectRatio: "3/4" }}>
                   <Image
-                    src={img.url}
+                    src={img.url || "https://placehold.co/600x600/f0f0f0/999.png?text=No+Image"}
                     alt={`${product.name} view ${idx + 1}`}
                     fill
                     priority={idx === 0}
