@@ -132,7 +132,7 @@ export default async function Home() {
                   }}
                 >
                   {cat.image ? (
-                    <Image src={cat.image} alt={cat.name} fill sizes="160px" style={{ objectFit: "cover" }} />
+                    <Image src={cat.image} alt={cat.name} fill sizes="160px" priority style={{ objectFit: "cover" }} />
                   ) : (
                     <span style={{ color: "#777", fontSize: 10, textTransform: "uppercase" }}>No Image</span>
                   )}

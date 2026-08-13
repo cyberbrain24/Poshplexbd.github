@@ -430,10 +430,11 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        border: "1px solid rgba(255, 255, 255, 0.15)"
+                        border: "1px solid rgba(255, 255, 255, 0.15)",
+                        position: "relative"
                       }}>
                         {child.image ? (
-                          <img src={child.image} alt={child.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          <Image src={child.image} alt={child.name} fill sizes="72px" style={{ objectFit: "cover" }} />
                         ) : (
                           <span style={{ color: "#666", fontSize: 8, textTransform: "uppercase", fontWeight: 700 }}>Street</span>
                         )}

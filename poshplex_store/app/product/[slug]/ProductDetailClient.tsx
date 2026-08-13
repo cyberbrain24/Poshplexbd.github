@@ -423,7 +423,6 @@ export default function ProductDetailClient({ product }: { product: any }) {
                     alt={`${product.name} view ${idx + 1}`}
                     fill
                     priority={idx === 0}
-                    unoptimized={true}
                     sizes="(max-width: 768px) 100vw, 50vw"
                     className="product-hero-img object-contain"
                     style={{ objectFit: 'contain' }}
@@ -438,7 +437,6 @@ export default function ProductDetailClient({ product }: { product: any }) {
                     alt={product.name}
                     fill
                     priority={true}
-                    unoptimized={true}
                     sizes="(max-width: 768px) 100vw, 50vw"
                     className="product-hero-img object-contain"
                     style={{ objectFit: 'contain' }}

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Lock, ArrowRight, CheckCircle2, ChevronDown, Search } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { fetchWithAuth } from "../utils/fetchWithAuth";
@@ -515,8 +516,8 @@ export default function CheckoutPage() {
                 {cart.map((item, i) => (
                   <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-                      <div style={{ width: 64, height: 64, backgroundColor: "#111", borderRadius: 6, overflow: "hidden", border: "1px solid rgba(255,255,255,0.05)" }}>
-                        {item.image && <img src={item.image} alt={item.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+                      <div style={{ width: 64, height: 64, position: "relative", backgroundColor: "#111", borderRadius: 6, overflow: "hidden", border: "1px solid rgba(255,255,255,0.05)" }}>
+                        {item.image && <Image src={item.image} alt={item.name} fill sizes="64px" priority={i < 4} style={{ objectFit: "cover" }} />}
                       </div>
                       <div>
                         <div style={{ fontSize: 15, fontWeight: 700, color: "#ffffff", marginBottom: 4 }}>{item.name}</div>

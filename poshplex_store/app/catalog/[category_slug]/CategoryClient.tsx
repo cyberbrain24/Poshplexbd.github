@@ -83,7 +83,7 @@ function SubcategoryNav({
         marginBottom: 4,
       }}
     >
-      {children.map((sub) => {
+      {children.map((sub, idx) => {
         const isActive =
           activeSlug?.toLowerCase() === sub.slug.toLowerCase();
         return (
@@ -111,11 +111,12 @@ function SubcategoryNav({
                 justifyContent: "center",
                 fontSize: 36,
                 border: isActive ? "2.5px solid #c8102e" : "2.5px solid transparent",
-                overflow: "hidden"
+                overflow: "hidden",
+                position: "relative"
               }}
             >
               {sub.image ? (
-                <img src={sub.image} alt={sub.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <Image src={sub.image} alt={sub.name} fill sizes="84px" priority={idx < 6} style={{ objectFit: "cover" }} />
               ) : (
                 getCategoryIcon(sub.name)
               )}

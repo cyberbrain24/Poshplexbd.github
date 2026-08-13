@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Minimize2, Maximize2, Music } from "lucide-react";
 import { useMusic } from "../../context/MusicContext";
 
@@ -80,15 +81,15 @@ export const FloatingPlayer: React.FC = () => {
         onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
       >
         {currentTrack.cover_url ? (
-          <img 
+          <Image 
             src={currentTrack.cover_url} 
             alt="disc" 
+            fill
+            sizes="60px"
             style={{ 
-              width: "100%", 
-              height: "100%", 
               borderRadius: "50%", 
               objectFit: "cover",
-              animation: isPlaying ? "spin 6s linear infinite" : "none" 
+              animation: isPlaying ? "spin 4s linear infinite" : "none"
             }} 
           />
         ) : (

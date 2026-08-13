@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Star, Filter, Camera, X, MessageSquare, ExternalLink } from "lucide-react";
 
 export default function ReviewsDirectory() {
@@ -183,22 +184,16 @@ export default function ReviewsDirectory() {
                 {rev.images && rev.images.length > 0 && (
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
                     {rev.images.map((imgUrl: string, imgIdx: number) => (
-                      <img
-                        key={imgIdx}
-                        src={imgUrl}
-                        alt="Fit check"
-                        onClick={() => setActivePhoto(imgUrl)}
-                        style={{
-                          width: 64,
-                          height: 64,
-                          objectFit: "cover",
-                          border: "1px solid var(--border-glass)",
-                          cursor: "zoom-in",
-                          transition: "opacity 0.2s"
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.opacity = "0.8"}
-                        onMouseLeave={(e) => e.currentTarget.style.opacity = "1"}
-                      />
+                      <div key={imgIdx} style={{ position: "relative", width: 64, height: 64, cursor: "pointer", border: "1px solid var(--border-glass)", borderRadius: 4, overflow: "hidden" }}>
+                        <Image
+                          src={imgUrl}
+                          alt="Fit check"
+                          fill
+                          sizes="64px"
+                          onClick={() => setActivePhoto(imgUrl)}
+                          style={{ objectFit: "cover" }}
+                        />
+                      </div>
                     ))}
                   </div>
                 )}
@@ -256,17 +251,19 @@ export default function ReviewsDirectory() {
             <X size={32} />
           </button>
           
-          <img 
-            src={activePhoto} 
-            alt="Zoomed fit check" 
-            style={{ 
-              maxWidth: "90%", 
-              maxHeight: "85%", 
-              objectFit: "contain",
-              border: "1px solid rgba(255, 255, 255, 0.15)"
-            }} 
-            onClick={(e) => e.stopPropagation()}
-          />
+          <div style={{ position: "relative", width: "90vw", height: "85vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
+            <Image 
+              src={activePhoto} 
+              alt="Zoomed fit check" 
+              fill
+              sizes="90vw"
+              style={{ 
+                objectFit: "contain",
+                borderRadius: 8,
+                filter: "drop-shadow(0 25px 50px rgba(0, 0, 0, 0.5))"
+              }} 
+            />
+          </div>
         </div>
       )}
 

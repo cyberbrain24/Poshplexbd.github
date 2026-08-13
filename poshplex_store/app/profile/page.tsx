@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { User, Package, MapPin, Award, CheckCircle, Clock, Star, Edit, Trash2, ShieldCheck, AlertCircle, X, Lock, Phone, Calendar, Home } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Select from "react-select";
 import { fetchWithAuth } from "../utils/fetchWithAuth";
 
@@ -884,10 +885,12 @@ export default function ProfilePage() {
                 {isUploadingImage ? (
                   <span style={{ fontSize: 11, fontWeight: "bold" }}>UPDATING...</span>
                 ) : userProfile.profile_image ? (
-                  <img 
+                  <Image 
                     src={userProfile.profile_image} 
                     alt="Profile" 
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }} 
+                    fill
+                    sizes="100px"
+                    style={{ objectFit: "cover" }} 
                   />
                 ) : (
                   <User size={44} className="profile-avatar-icon" />
@@ -1154,7 +1157,9 @@ export default function ProfilePage() {
                         {rev.images && rev.images.length > 0 && (
                           <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
                             {rev.images.map((url: string, i: number) => (
-                              <img key={i} src={url} alt="fit detail" style={{ width: 50, height: 50, objectFit: "cover", border: "1px solid var(--border-glass)" }} />
+                              <div key={i} style={{ width: 50, height: 50, position: "relative", border: "1px solid var(--border-glass)" }}>
+                                <Image src={url} alt="fit detail" fill sizes="50px" style={{ objectFit: "cover" }} />
+                              </div>
                             ))}
                           </div>
                         )}
