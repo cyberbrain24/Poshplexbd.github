@@ -26,7 +26,8 @@ jobs:
           strip_components: 0
           # We ignore large directories since we build inside Docker on VPS
           # We also ignore .env so we don't accidentally overwrite VPS secrets with local env
-          exclude: ".git,.github,node_modules,poshplex_store/.next,poshplex_admin/node_modules,poshplex_admin/dist,media,db.sqlite3,.env,*.zip"
+          # We don't need 'exclude' because GitHub Actions only checks out tracked files.
+          # Since .env and media are in .gitignore, they are naturally protected on the VPS!
 
       - name: 🚀 Rebuild & Restart Docker Containers
         uses: appleboy/ssh-action@v1.0.3
