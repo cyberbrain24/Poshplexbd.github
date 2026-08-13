@@ -417,7 +417,7 @@ export default function ProductDetailClient({ product }: { product: any }) {
           >
             {images.length > 0 ? (
               images.map((img: any, idx: number) => (
-                <div key={idx} suppressHydrationWarning style={{ flex: "0 0 100%", scrollSnapAlign: "start", position: "relative", width: "100%", aspectRatio: "3/4" }}>
+                <div key={idx} suppressHydrationWarning style={{ flex: "0 0 100%", scrollSnapAlign: "start", position: "relative", width: "100%", aspectRatio: "1/1" }}>
                   <Image
                     src={img.url || "https://placehold.co/600x600/f0f0f0/999.png?text=No+Image"}
                     alt={`${product.name} view ${idx + 1}`}
@@ -425,13 +425,14 @@ export default function ProductDetailClient({ product }: { product: any }) {
                     priority={idx === 0}
                     unoptimized={true}
                     sizes="(max-width: 768px) 100vw, 50vw"
-                    className="product-hero-img object-contain md:object-cover"
+                    className="product-hero-img object-contain"
+                    style={{ objectFit: 'contain' }}
                     onClick={() => setLightboxUrl(img.url)}
                   />
                 </div>
               ))
             ) : (
-                <div suppressHydrationWarning style={{ flex: "0 0 100%", scrollSnapAlign: "start", position: "relative", width: "100%", aspectRatio: "3/4" }}>
+                <div suppressHydrationWarning style={{ flex: "0 0 100%", scrollSnapAlign: "start", position: "relative", width: "100%", aspectRatio: "1/1" }}>
                   <Image
                     src={`https://placehold.co/600x600/f0f0f0/999.png?text=${encodeURIComponent(product.name)}`}
                     alt={product.name}
@@ -439,7 +440,8 @@ export default function ProductDetailClient({ product }: { product: any }) {
                     priority={true}
                     unoptimized={true}
                     sizes="(max-width: 768px) 100vw, 50vw"
-                    className="product-hero-img object-contain md:object-cover"
+                    className="product-hero-img object-contain"
+                    style={{ objectFit: 'contain' }}
                   />
                 </div>
             )}
