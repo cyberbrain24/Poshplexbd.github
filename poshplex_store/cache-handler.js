@@ -3,6 +3,10 @@ const createRedisHandler = require('@neshca/cache-handler/redis-strings').defaul
 const { createClient } = require('redis');
 
 CacheHandler.onCreation(async () => {
+    if (process.env.DISABLE_REDIS_CACHE === 'true') {
+        return { handlers: [] };
+    }
+
     let client;
 
     try {
@@ -31,19 +35,16 @@ CacheHandler.onCreation(async () => {
         }
     }
 
-    /**
-     * Use the custom Redis Cache Handler.
-     * The `redis-strings` adapter stringifies and stores JSON cache data directly in Redis keys.
-     */
-    const handler = client
-        ? createRedisHandler({
-              client,
-              keyPrefix: 'next_pwa_cache:',
-          })
-        : undefined; // Fallback to Next.js default if Redis is down
+    let handler;
+    if (client && client.isOpen) {
+        handler = createRedisHandler({
+            client,
+            keyPrefix: 'next_pwa_cache:',
+        });
+    }
 
     return {
-        handlers: [handler],
+        handlers: handler ? [handler] : [],
     };
 });
 

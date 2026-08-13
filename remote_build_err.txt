@@ -1,0 +1,100 @@
+#24 218.1     Error: connect ECONNREFUSED 127.0.0.1:6379
+#24 218.1         at createConnectionError (node:net:1652:14)
+#24 218.1         at afterConnectMultiple (node:net:1682:16)
+#24 218.1         at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+#24 218.1       errno: -111,
+#24 218.1       code: 'ECONNREFUSED',
+#24 218.1       syscall: 'connect',
+#24 218.1       address: '127.0.0.1',
+#24 218.1       port: 6379
+#24 218.1     }
+#24 218.1   ]
+#24 218.1 }
+#24 218.4 Redis Error: AggregateError [ECONNREFUSED]: 
+#24 218.4     at internalConnectMultiple (node:net:1122:18)
+#24 218.4     at afterConnectMultiple (node:net:1689:7)
+#24 218.4     at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+#24 218.4   code: 'ECONNREFUSED',
+#24 218.4   [errors]: [
+#24 218.4     Error: connect ECONNREFUSED ::1:6379
+#24 218.4         at createConnectionError (node:net:1652:14)
+#24 218.4         at afterConnectMultiple (node:net:1682:16)
+#24 218.4         at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+#24 218.4       errno: -111,
+#24 218.4       code: 'ECONNREFUSED',
+#24 218.4       syscall: 'connect',
+#24 218.4       address: '::1',
+#24 218.4       port: 6379
+#24 218.4     },
+#24 218.4     Error: connect ECONNREFUSED 127.0.0.1:6379
+#24 218.4         at createConnectionError (node:net:1652:14)
+#24 218.4         at afterConnectMultiple (node:net:1682:16)
+#24 218.4         at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+#24 218.4       errno: -111,
+#24 218.4       code: 'ECONNREFUSED',
+#24 218.4       syscall: 'connect',
+#24 218.4       address: '127.0.0.1',
+#24 218.4       port: 6379
+#24 218.4     }
+#24 218.4   ]
+#24 218.4 }
+#24 218.5  ⨯ Next.js build worker exited with code: null and signal: SIGTERM
+#24 218.5  ⨯ Next.js build worker exited with code: null and signal: SIGTERM
+#24 218.5  ⨯ Next.js build worker exited with code: null and signal: SIGTERM
+#24 218.5  ⨯ Next.js build worker exited with code: null and signal: SIGTERM
+#24 218.5  ⨯ Next.js build worker exited with code: null and signal: SIGTERM
+#24 218.6 
+#24 218.6 > Build error occurred
+#24 218.6 Error: Static page generation for /brand is still timing out after 3 attempts. See more info here https://nextjs.org/docs/messages/static-page-generation-timeout
+#24 218.6     at onRestart (/app/node_modules/next/dist/build/index.js:292:27)
+#24 218.6     at /app/node_modules/next/dist/lib/worker.js:104:40
+#24 218.6     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+#24 218.6     at async /app/node_modules/next/dist/export/index.js:450:20
+#24 218.6     at async Span.traceAsyncFn (/app/node_modules/next/dist/trace/trace.js:154:20)
+#24 218.6     at async /app/node_modules/next/dist/export/index.js:448:24
+#24 218.6     at async Promise.all (index 2)
+#24 218.6     at async exportAppImpl (/app/node_modules/next/dist/export/index.js:440:21)
+#24 218.6     at async /app/node_modules/next/dist/export/index.js:623:16
+#24 218.6     at async Span.traceAsyncFn (/app/node_modules/next/dist/trace/trace.js:154:20)
+#24 218.6     at async /app/node_modules/next/dist/build/index.js:1699:42
+#24 218.6     at async Span.traceAsyncFn (/app/node_modules/next/dist/trace/trace.js:154:20)
+#24 218.6     at async /app/node_modules/next/dist/build/index.js:1546:17
+#24 218.6     at async Span.traceAsyncFn (/app/node_modules/next/dist/trace/trace.js:154:20)
+#24 218.6     at async build (/app/node_modules/next/dist/build/index.js:368:9)
+#24 218.8 npm notice
+#24 218.8 npm notice New major version of npm available! 10.8.2 -> 12.0.2
+#24 218.8 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.0.2
+#24 218.8 npm notice To update run: npm install -g npm@12.0.2
+#24 218.8 npm notice
+#24 ERROR: process "/bin/sh -c npm run build" did not complete successfully: exit code: 1
+------
+ > [store builder 5/5] RUN npm run build:
+218.6     at async /app/node_modules/next/dist/build/index.js:1699:42
+218.6     at async Span.traceAsyncFn (/app/node_modules/next/dist/trace/trace.js:154:20)
+218.6     at async /app/node_modules/next/dist/build/index.js:1546:17
+218.6     at async Span.traceAsyncFn (/app/node_modules/next/dist/trace/trace.js:154:20)
+218.6     at async build (/app/node_modules/next/dist/build/index.js:368:9)
+218.8 npm notice
+218.8 npm notice New major version of npm available! 10.8.2 -> 12.0.2
+218.8 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.0.2
+218.8 npm notice To update run: npm install -g npm@12.0.2
+218.8 npm notice
+------
+Dockerfile:12
+
+--------------------
+
+  10 |     COPY --from=deps /app/node_modules ./node_modules
+
+  11 |     COPY . .
+
+  12 | >>> RUN npm run build
+
+  13 |     
+
+  14 |     # Runner stage
+
+--------------------
+
+target store: failed to solve: process "/bin/sh -c npm run build" did not complete successfully: exit code: 1
+

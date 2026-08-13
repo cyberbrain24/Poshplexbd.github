@@ -119,6 +119,7 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: "${PUBLIC_API_URL:-http://localhost/api/v1}"
       REDIS_URL: "redis://redis:6379/1"
+      DISABLE_REDIS_CACHE: "true"
     ports:
       # Exposed exclusively to host loopback for host-Nginx to reverse proxy
       - "127.0.0.1:3000:3000"

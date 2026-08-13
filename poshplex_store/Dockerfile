@@ -9,6 +9,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+ENV DISABLE_REDIS_CACHE=true
 RUN npm run build
 
 # Runner stage
