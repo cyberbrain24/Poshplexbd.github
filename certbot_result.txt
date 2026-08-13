@@ -1,0 +1,10 @@
+
+ERRORS:
+Saving debug log to /var/log/letsencrypt/letsencrypt.log
+Error while running nginx -c /etc/nginx/nginx.conf -t.
+
+2026/08/13 17:26:04 [emerg] 19289#19289: unknown "proxy_addrs_x_forwarded_for" variable
+nginx: configuration file /etc/nginx/nginx.conf test failed
+
+The nginx plugin is not working; there may be problems with your existing configuration.
+The error was: MisconfigurationError('Error while running nginx -c /etc/nginx/nginx.conf -t.\n\n2026/08/13 17:26:04 [emerg] 19289#19289: unknown "proxy_addrs_x_forwarded_for" variable\nnginx: configuration file /etc/nginx/nginx.conf test failed\n')
