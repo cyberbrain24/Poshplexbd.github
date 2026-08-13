@@ -56,7 +56,7 @@ export const viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   let categories: any[] = [];
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/categories/tree`, { cache: 'no-store' });
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/categories/tree`, { next: { revalidate: 3600 } });
     if (res.ok) {
       const data = await res.json();
       categories = Array.isArray(data) ? data : [];

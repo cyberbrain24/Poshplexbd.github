@@ -23,7 +23,7 @@ async function getFeaturedProducts() {
 // within a render pass, but we keep the same options so the cache entry is shared.
 async function getCategories() {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/categories/tree`, { cache: 'no-store' });
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/categories/tree`, { next: { revalidate: 60 } });
     if (res.ok) {
       const data = await res.json();
       return Array.isArray(data) ? data : [];
@@ -41,7 +41,7 @@ const formatPrice = (bdt: string | number) => {
 async function getGeneralSettings() {
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/general`, {
-      cache: 'no-store',
+      next: { revalidate: 60 },
     });
     if (res.ok) {
       const data = await res.json();
@@ -94,6 +94,7 @@ export default async function Home() {
           alt="Streetwear Hero"
           fill
           priority
+          unoptimized
           sizes="100vw"
           style={{ objectFit: "cover" }}
         />
@@ -132,7 +133,7 @@ export default async function Home() {
                   }}
                 >
                   {cat.image ? (
-                    <Image src={cat.image} alt={cat.name} fill sizes="160px" priority style={{ objectFit: "cover" }} />
+                    <Image src={cat.image} alt={cat.name} fill sizes="160px" priority unoptimized style={{ objectFit: "cover" }} />
                   ) : (
                     <span style={{ color: "#777", fontSize: 10, textTransform: "uppercase" }}>No Image</span>
                   )}
@@ -214,6 +215,7 @@ export default async function Home() {
                     alt={product.name}
                     fill
                     priority={i < 4}
+                    unoptimized
                     sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 240px"
                     style={{ objectFit: "cover" }}
                   />
