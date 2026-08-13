@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { Menu, X, Search, Heart, User } from "lucide-react";
 import { HeaderCartCounter } from "./HeaderCartCounter";
@@ -85,6 +86,7 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
         <div className="mobile-menu-btn" style={{ display: "none" }}>
           <button 
             onClick={toggleMenu}
+            aria-label="Toggle mobile menu"
             style={{ 
               background: "transparent", 
               border: "none", 
@@ -185,6 +187,7 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
                             <div style={{
                               width: 140,
                               height: 140,
+                              position: "relative",
                               borderRadius: 8,
                               overflow: "hidden",
                               background: "#f7f7f7",
@@ -194,9 +197,9 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
                               border: "1px solid #f0f0f0"
                             }}>
                               {child.image ? (
-                                <img src={child.image} alt={child.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                <Image src={child.image} alt={child.name} fill sizes="140px" style={{ objectFit: "cover" }} />
                               ) : (
-                                <span style={{ color: "#aaa", fontSize: 10, textTransform: "uppercase" }}>No Image</span>
+                                <span style={{ color: "#777", fontSize: 10, textTransform: "uppercase" }}>No Image</span>
                               )}
                             </div>
                             <span style={{ color: "var(--text-main, #333)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px" }}>
@@ -271,6 +274,7 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
                   setIsSearchOpen(false);
                   router.push(`/catalog?q=${encodeURIComponent(searchQuery.trim())}`);
                 }}
+                aria-label="Submit Search"
                 style={{ background: "transparent", border: "none", color: "var(--text-main)", cursor: "pointer", display: "flex", alignItems: "center", padding: 0, marginRight: 8 }}
                 title="Go to Search Results"
               >
@@ -284,6 +288,7 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
                 setIsSearchOpen(!isSearchOpen);
                 if (isSearchOpen) setSearchQuery("");
               }} 
+              aria-label="Toggle Search"
               style={{ background: "transparent", border: "none", color: "var(--text-main)", cursor: "pointer", display: "flex", alignItems: "center", padding: 0 }}
             >
               {isSearchOpen ? <X size={18} /> : <Search size={18} />}
@@ -318,8 +323,8 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
                           onClick={() => { setIsSearchOpen(false); setSearchQuery(""); }}
                           style={{ display: "flex", gap: 12, alignItems: "center", textDecoration: "none" }}
                         >
-                          <div style={{ width: 40, height: 40, borderRadius: 6, overflow: "hidden", background: "#222" }}>
-                            {mainImage && <img src={mainImage.url} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+                          <div style={{ width: 40, height: 40, position: "relative", borderRadius: 6, overflow: "hidden", background: "#222" }}>
+                            {mainImage && <Image src={mainImage.url} alt={product.name} fill sizes="40px" style={{ objectFit: "cover" }} />}
                           </div>
                           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                             <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-main)", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{product.name}</span>

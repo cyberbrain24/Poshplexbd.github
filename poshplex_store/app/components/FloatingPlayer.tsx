@@ -194,6 +194,7 @@ export const FloatingPlayer: React.FC = () => {
         {/* Previous */}
         <button 
           onClick={skipPrev}
+          aria-label="Previous Track"
           style={{ background: "transparent", border: "none", color: "#ffffff", cursor: "pointer", display: "flex", padding: 4 }}
         >
           <SkipBack size={14} fill="currentColor" />
@@ -202,6 +203,7 @@ export const FloatingPlayer: React.FC = () => {
         {/* Play / Pause */}
         <button 
           onClick={isPlaying ? pause : play}
+          aria-label={isPlaying ? "Pause Music" : "Play Music"}
           style={{ 
             background: "#ffffff", 
             color: "#1e1e1e", 
@@ -221,6 +223,7 @@ export const FloatingPlayer: React.FC = () => {
         {/* Next */}
         <button 
           onClick={skipNext}
+          aria-label="Next Track"
           style={{ background: "transparent", border: "none", color: "#ffffff", cursor: "pointer", display: "flex", padding: 4 }}
         >
           <SkipForward size={14} fill="currentColor" />
@@ -234,6 +237,7 @@ export const FloatingPlayer: React.FC = () => {
         >
           <button 
             onClick={toggleMute}
+            aria-label={isMuted ? "Unmute Volume" : "Mute Volume"}
             style={{ background: "transparent", border: "none", color: "#ffffff", cursor: "pointer", display: "flex", padding: 4 }}
           >
             {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}

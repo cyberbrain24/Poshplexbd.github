@@ -121,6 +121,7 @@ export default async function Home() {
                   style={{
                     width: 160,
                     height: 160,
+                    position: "relative",
                     background: "#f1f1f1",
                     display: "flex",
                     alignItems: "center",
@@ -131,9 +132,9 @@ export default async function Home() {
                   }}
                 >
                   {cat.image ? (
-                    <img src={cat.image} alt={cat.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    <Image src={cat.image} alt={cat.name} fill sizes="160px" style={{ objectFit: "cover" }} />
                   ) : (
-                    <span style={{ color: "#aaa", fontSize: 10, textTransform: "uppercase" }}>No Image</span>
+                    <span style={{ color: "#777", fontSize: 10, textTransform: "uppercase" }}>No Image</span>
                   )}
                 </div>
                 <span

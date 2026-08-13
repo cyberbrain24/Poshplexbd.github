@@ -117,7 +117,7 @@ export default function FeaturedReviewsCarousel() {
                 href={`/product/${currentReview.product_slug}`} 
                 style={{ display: "block", position: "relative", width: "100%", aspectRatio: "3/4" }}
               >
-                <Image src={currentReview.images[0] || "https://placehold.co/600x600/f0f0f0/999.png?text=No+Image"} alt="Review" fill style={{ objectFit: "cover" }} />
+                <Image src={currentReview.images[0] || "https://placehold.co/600x600/f0f0f0/999.png?text=No+Image"} alt={`Review by ${currentReview.username}`} fill style={{ objectFit: "cover" }} />
               </Link>
             )}
 
@@ -165,6 +165,7 @@ export default function FeaturedReviewsCarousel() {
         >
           <button 
             onClick={() => setActivePhoto(null)}
+            aria-label="Close Lightbox"
             style={{
               position: "absolute",
               top: 24,
