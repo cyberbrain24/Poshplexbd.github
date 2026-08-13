@@ -1,0 +1,44 @@
+name: Deploy Poshplex to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 🚚 Get latest code
+        uses: actions/checkout@v4
+        
+      - name: 📂 Copy source files to VPS via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_IP }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASS }}
+          source: "."
+          target: "/root/poshplex_store"
+          # Strictly prevent copying over live production secrets or DBs
+          rm: false
+          strip_components: 0
+          # We ignore large directories since we build inside Docker on VPS
+          # We also ignore .env so we don't accidentally overwrite VPS secrets with local env
+          exclude: ".git,.github,node_modules,poshplex_store/.next,poshplex_admin/node_modules,poshplex_admin/dist,media,db.sqlite3,.env,*.zip"
+
+      - name: 🚀 Rebuild & Restart Docker Containers
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_IP }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASS }}
+          script: |
+            cd /root/poshplex_store
+            echo "Building and restarting services..."
+            # Using -d runs in background, --build forces it to catch the new source code changes
+            docker compose up -d --build store backend admin
+            echo "Removing dangling Next.js images to save space..."
+            docker image prune -f
+            echo "Deployment successful! 🚀"

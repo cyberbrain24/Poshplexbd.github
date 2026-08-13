@@ -13,12 +13,14 @@ This document contains rules, architecture details, and deployment best practice
 The production VPS code is NOT currently configured as a Git repository. Code syncs and deployments must be handled carefully:
 
 1. **Local Changes First:** All development, testing, and debugging should be done on the local PC first.
-2. **Push to GitHub:** Once local changes are verified, the user will commit and push the code to GitHub.
-3. **VPS Syncing (Agent Workflow):**
-   - If you (the agent) need to modify or debug the VPS environment directly, **DO NOT** make changes on the VPS without also applying those exact same changes to the local codebase.
-   - You can connect to the VPS via SSH to run docker commands, check logs, or sync files. The preferred way to do this on Windows is to write and execute a temporary Python script utilizing the `paramiko` library.
-   - **Credentials:** VPS credentials (IP, Username, Password) are stored securely in `.env.vps` at the root of the local workspace. **Never** hardcode or expose these credentials in your scripts or responses. Parse `.env.vps` to read them.
-4. **Rebuilding Containers:** After syncing code to the VPS, you must rebuild the corresponding Docker container (`docker compose up -d --build backend`, `store`, or `admin`).
+2. **Push to GitHub:** Once local changes are verified, commit and push the code to GitHub (`main` branch).
+3. **VPS Syncing (Automated CI/CD):**
+   - We have implemented a **GitHub Actions CI/CD pipeline** (`.github/workflows/deploy.yml`).
+   - Pushing to the `main` branch will automatically trigger GitHub servers to SCP the new code to `/root/poshplex_store` on the VPS and run `docker compose up -d --build`.
+   - **DO NOT** write custom Python/Paramiko deployment scripts unless the CI/CD pipeline is broken or you need to run a one-off database migration/maintenance script.
+4. **Manual Fallback / Diagnostics:**
+   - If you (the agent) must connect to the VPS manually to debug, write a temporary Python script utilizing the `paramiko` library and save it in `agent_scripts/`.
+   - **Credentials:** VPS credentials (IP, Username, Password) are stored securely in `.env.vps` at the root of the local workspace. **Never** hardcode or expose these credentials.
 
 ## Important Best Practices
 - **Temporary Scripts (agent_scripts/):** Do NOT create temporary testing or deployment scripts in the root directory where they might get pushed to GitHub. Always save any temporary Python scripts (like those used for SSH/Paramiko deployments) or data files into the `agent_scripts/` directory, which is gitignored.
