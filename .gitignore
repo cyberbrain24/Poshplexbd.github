@@ -56,6 +56,12 @@ faqs.json
 # Logs
 *.log
 
+# Docker Overrides
+docker-compose.override.yml
+
+# Agent Scripts
+agent_scripts/
+
 # Compiled Go binaries (build via Docker at deploy time)
 *.exe
 *.out

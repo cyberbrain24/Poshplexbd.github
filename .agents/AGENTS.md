@@ -21,6 +21,12 @@ The production VPS code is NOT currently configured as a Git repository. Code sy
 4. **Rebuilding Containers:** After syncing code to the VPS, you must rebuild the corresponding Docker container (`docker compose up -d --build backend`, `store`, or `admin`).
 
 ## Important Best Practices
+- **Temporary Scripts (agent_scripts/):** Do NOT create temporary testing or deployment scripts in the root directory where they might get pushed to GitHub. Always save any temporary Python scripts (like those used for SSH/Paramiko deployments) or data files into the `agent_scripts/` directory, which is gitignored.
 - **CORS & Domains:** Next.js `next.config.js` `remotePatterns` and Django's `CORS_ALLOWED_ORIGINS` must correctly whitelist production domains (`store.poshplexbd.com`, etc.). If images are broken, it is almost always a `next.config.js` issue or a database artifact containing `localhost`.
 - **Nginx Configuration:** The production Nginx config is located at `/etc/nginx/sites-available/poshplex` on the VPS. If you modify it, be sure to mirror the final version to `nginx.host.conf` in the local repository so it is backed up in version control.
 - **Database Drift:** Remember that the local SQLite database and production PostgreSQL database are entirely separate. Fixing a data issue (like a broken image URL saved in a `JSONField`) on the VPS will not fix it locally, and vice versa. Always clarify with the user which database you are operating on.
+
+## Docker Compose Architecture (Local vs Prod)
+- **`docker-compose.yml`**: This file is **strictly for production**. It does NOT contain local volume mounts (`.:/app`) that override the built images. It is pushed to the VPS.
+- **`docker-compose.override.yml`**: This file is **strictly for local development** and is `.gitignore`d. It contains the volume mounts to enable hot-reloading. When running `docker compose up` locally, Docker merges both files automatically.
+- **NEVER** add local source code `volumes` back into `docker-compose.yml`, or you will break the production VPS build.
