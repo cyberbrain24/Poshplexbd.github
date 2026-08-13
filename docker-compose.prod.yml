@@ -114,6 +114,8 @@ services:
     build:
       context: ./poshplex_store
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: https://store.poshplexbd.com
     container_name: poshplex_store
     restart: always
     environment:
