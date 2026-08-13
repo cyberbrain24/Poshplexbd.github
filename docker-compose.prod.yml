@@ -42,7 +42,7 @@ services:
     container_name: poshplex_redis
     restart: always
     # Configured as a pure LRU cache with exactly 2GB RAM
-    command: redis-server --maxmemory 2000mb --maxmemory-policy allkeys-lru --save ""
+    command: redis-server --protected-mode no --maxmemory 2000mb --maxmemory-policy allkeys-lru --save ""
     volumes:
       - redis_data:/data
     ports:

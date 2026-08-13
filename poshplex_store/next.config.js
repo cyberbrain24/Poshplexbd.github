@@ -34,6 +34,11 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'store.poshplexbd.com',
+        pathname: '/media/**',
+      },
+      {
+        protocol: 'https',
         hostname: '*.ngrok-free.app',
         pathname: '/media/**',
       },
