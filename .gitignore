@@ -62,3 +62,10 @@ faqs.json
 
 # Debug & scratch scripts
 check_api.py
+
+# VPS Credentials
+.env.vps
+
+# Additional Environment Files
+*.env
+.env.*
