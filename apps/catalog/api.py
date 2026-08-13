@@ -413,6 +413,13 @@ def post_product_endpoint(request, data: ProductCreateInputSchema):
 
             # Perform product save at the end to run full validation with variants created
             product.save()
+            
+            from django.core.cache import cache
+            if hasattr(cache, 'delete_pattern'):
+                cache.delete_pattern("products_list_*")
+            else:
+                cache.clear()
+                
             return get_product_details(product.slug)
     except ValidationError as ve:
         raise HttpError(400, ve.messages[0] if hasattr(ve, 'messages') else str(ve))
@@ -587,6 +594,13 @@ def update_product_endpoint(request, slug: str, data: ProductCreateInputSchema):
 
             # Save product at the end to trigger model clean check on active variants
             product.save()
+            
+            from django.core.cache import cache
+            if hasattr(cache, 'delete_pattern'):
+                cache.delete_pattern("products_list_*")
+            else:
+                cache.clear()
+                
             return get_product_details(product.slug)
     except ValidationError as ve:
         raise HttpError(400, ve.messages[0] if hasattr(ve, 'messages') else str(ve))
@@ -603,6 +617,13 @@ def delete_product_endpoint(request, slug: str):
         product = get_object_or_404(Product, slug=slug)
     try:
         product.delete()
+        
+        from django.core.cache import cache
+        if hasattr(cache, 'delete_pattern'):
+            cache.delete_pattern("products_list_*")
+        else:
+            cache.clear()
+            
         return {"success": True}
     except ValidationError as ve:
         raise HttpError(400, ve.messages[0] if hasattr(ve, 'messages') else str(ve))

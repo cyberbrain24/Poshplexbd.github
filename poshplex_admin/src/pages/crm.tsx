@@ -769,7 +769,7 @@ export const CRM: React.FC = () => {
 
       // Open the storefront impersonation page in a new tab
       const storefrontUrl = import.meta.env.VITE_STOREFRONT_URL || "http://localhost:3001";
-      const impersonationUrl = `${storefrontUrl}/impersonate?token=${res.data.token}`;
+      const impersonationUrl = `${storefrontUrl}/impersonate?token=${res.data.token.access_token}`;
       window.open(impersonationUrl, "_blank");
 
       message.success(`Impersonating customer ${res.data.impersonated_username} in a new tab.`);
