@@ -300,8 +300,14 @@ def request_otp(request, data: RequestOtpSchema):
     otp = str(random.randint(100000, 999999))
     cache.set(f"otp_{data.phone}", otp, timeout=180) # 3 minutes expiry
     
-    # In a real application, we would send this via SMS here
-    print(f"MOCK SMS TO {data.phone}: Your Poshplex password reset code is {otp}. Valid for 3 minutes.")
+    # Send the OTP via SMS using the BulkSMSBD template format requested by the user
+    otp_message = f"Your Poshplex OTP is {otp}"
+    try:
+        from apps.integration.interfaces import send_customer_sms
+        send_customer_sms(data.phone, otp_message)
+    except Exception as e:
+        # We don't fail the API request if SMS fails, but we should log it
+        print(f"Failed to send OTP SMS to {data.phone}: {e}")
     
     return {"success": True, "message": "OTP sent successfully."}
 

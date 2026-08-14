@@ -1,6 +1,6 @@
 import logging
 from apps.core.interfaces import get_setting_value
-from apps.integration.providers.sms import MockSMSProvider, TwilioSMSProvider
+from apps.integration.providers.sms import MockSMSProvider, TwilioSMSProvider, BulkSMSBDProvider
 from apps.integration.providers.email import MockEmailProvider, SendGridEmailProvider
 from apps.integration.providers.courier import MockCourierProvider, DHLCourierProvider
 
@@ -9,9 +9,15 @@ logger = logging.getLogger(__name__)
 def get_sms_provider():
     """Dynamically resolves the active SMS provider based on active site settings."""
     config = get_setting_value("integration_providers", {})
-    provider_type = config.get("sms_provider", "mock").lower()
+    provider_type = config.get("sms_provider", "bulksmsbd").lower() # Default to bulksmsbd as requested
     
-    if provider_type == "twilio":
+    if provider_type == "bulksmsbd":
+        params = config.get("bulksmsbd_credentials", {})
+        return BulkSMSBDProvider(
+            api_key=params.get("api_key"),
+            sender_id=params.get("sender_id")
+        )
+    elif provider_type == "twilio":
         params = config.get("twilio_credentials", {})
         return TwilioSMSProvider(
             account_sid=params.get("account_sid"),
