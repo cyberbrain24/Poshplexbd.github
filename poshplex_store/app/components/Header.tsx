@@ -85,6 +85,7 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
         {/* Left: Mobile Hamburger / Desktop hidden */}
         <div className="mobile-menu-btn" style={{ display: "none" }}>
           <button 
+            suppressHydrationWarning
             onClick={toggleMenu}
             aria-label="Toggle mobile menu"
             style={{ 
@@ -270,6 +271,7 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
 
             {isSearchOpen && searchQuery.trim() !== "" && (
               <button
+                suppressHydrationWarning
                 onClick={() => {
                   setIsSearchOpen(false);
                   router.push(`/catalog?q=${encodeURIComponent(searchQuery.trim())}`);
@@ -283,6 +285,7 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
             )}
 
             <button 
+              suppressHydrationWarning
               onClick={() => {
                 setIsOpen(false);
                 setIsSearchOpen(!isSearchOpen);

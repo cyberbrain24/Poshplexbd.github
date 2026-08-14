@@ -26,7 +26,7 @@ class BulkSMSBDProvider(BaseSMSProvider):
     """BulkSMSBD Gateway implementation."""
     def __init__(self, api_key: str = None, sender_id: str = None):
         self.api_key = api_key or "JC59LubvFuo7pxEOMHL9"
-        self.sender_id = sender_id or ""
+        self.sender_id = "09617" # Hardcoded for OTP Non-Mask route as requested
         self.base_url = "http://bulksmsbd.net/api/smsapi"
 
     def send_sms(self, to_number: str, message: str) -> bool:

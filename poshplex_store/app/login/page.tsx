@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Lock, Phone, Key, ArrowRight } from "lucide-react";
+import { Lock, Phone, Key, ArrowRight, Eye, EyeOff } from "lucide-react";
 
 function LoginContent() {
   const router = useRouter();
@@ -11,6 +11,7 @@ function LoginContent() {
 
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -103,8 +104,9 @@ function LoginContent() {
           </div>
         )}
 
-        <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          
+        <div suppressHydrationWarning>
+          <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>
               Phone Number
@@ -138,7 +140,7 @@ function LoginContent() {
             <div style={{ position: "relative" }}>
               <Key size={16} style={{ position: "absolute", left: 16, top: 15, color: "var(--text-muted)" }} />
               <input 
-                type="password" 
+                type={showPassword ? "text" : "password"}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -154,10 +156,19 @@ function LoginContent() {
                   outline: "none"
                 }}
               />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: "absolute", right: 16, top: 15, background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: 0 }}>
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
-          </div>
 
-          <button 
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "-12px" }}>
+              <a href="/forgot-password" style={{ color: "var(--text-muted)", fontSize: 13, textDecoration: "none", fontWeight: 600 }}>
+                Forgot Password?
+              </a>
+            </div>
+
+            <button 
             type="submit" 
             disabled={isLoading}
             style={{ 
@@ -183,6 +194,7 @@ function LoginContent() {
             )}
           </button>
         </form>
+        </div>
 
         <div style={{ marginTop: 24, textAlign: "center", borderTop: "1px solid var(--border-glass)", paddingTop: 24 }}>
           <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 12 }}>

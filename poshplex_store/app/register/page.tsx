@@ -47,11 +47,9 @@ function RegisterContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           full_name: fullName, 
-          fullName: fullName,
           phone: formattedPhone, 
           password
         }),
-        credentials: "include"
       });
 
       if (res.ok) {
@@ -62,25 +60,7 @@ function RegisterContent() {
         router.push("/profile");
       } else {
         const errorData = await res.json().catch(() => ({}));
-        let errorMessage = "Registration failed. Please check your details.";
-        
-        if (errorData.detail) {
-          if (typeof errorData.detail === 'string') {
-            errorMessage = errorData.detail;
-          } else if (Array.isArray(errorData.detail)) {
-            errorMessage = errorData.detail.map((e: any) => {
-              const field = e.loc ? e.loc[e.loc.length - 1] : '';
-              const msg = e.msg || JSON.stringify(e);
-              return field ? `${field}: ${msg}` : msg;
-            }).join(", ");
-          }
-        } else if (errorData.message) {
-          if (typeof errorData.message === 'string') {
-            errorMessage = errorData.message;
-          }
-        }
-        
-        setError(errorMessage);
+        setError(errorData.detail || errorData.message || "Registration failed. Please check your details.");
       }
     } catch (err) {
       setError("Could not connect to authentication server.");
@@ -142,12 +122,10 @@ function RegisterContent() {
           </div>
         )}
 
+        <div suppressHydrationWarning>
         <form onSubmit={handleRegister} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>
-              Full Name
-            </label>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>Full Name</label>
             <div style={{ position: "relative" }}>
               <User size={16} style={{ position: "absolute", left: 16, top: 15, color: "var(--text-muted)" }} />
               <input 
@@ -156,23 +134,13 @@ function RegisterContent() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="John Doe"
-                style={{ 
-                  width: "100%",
-                  background: "var(--bg-secondary)", 
-                  border: "1px solid var(--border-glass)", 
-                  color: "var(--text-main)", 
-                  padding: "12px 16px 12px 44px",
-                  fontSize: 14,
-                  outline: "none"
-                }}
+                style={{ width: "100%", background: "var(--bg-secondary)", border: "1px solid var(--border-glass)", color: "var(--text-main)", padding: "12px 16px 12px 44px", fontSize: 14, outline: "none" }}
               />
             </div>
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>
-              Phone Number
-            </label>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>Phone Number</label>
             <div style={{ position: "relative" }}>
               <Phone size={16} style={{ position: "absolute", left: 16, top: 15, color: "var(--text-muted)" }} />
               <input 
@@ -181,25 +149,13 @@ function RegisterContent() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="e.g. 01700000000"
-                style={{ 
-                  width: "100%",
-                  background: "var(--bg-secondary)", 
-                  border: "1px solid var(--border-glass)", 
-                  color: "var(--text-main)", 
-                  padding: "12px 16px 12px 44px",
-                  fontSize: 14,
-                  outline: "none"
-                }}
+                style={{ width: "100%", background: "var(--bg-secondary)", border: "1px solid var(--border-glass)", color: "var(--text-main)", padding: "12px 16px 12px 44px", fontSize: 14, outline: "none" }}
               />
             </div>
           </div>
 
-
-
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>
-              Password
-            </label>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>Password</label>
             <div style={{ position: "relative" }}>
               <Key size={16} style={{ position: "absolute", left: 16, top: 15, color: "var(--text-muted)" }} />
               <input 
@@ -208,30 +164,16 @@ function RegisterContent() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                style={{ 
-                  width: "100%",
-                  background: "var(--bg-secondary)", 
-                  border: "1px solid var(--border-glass)", 
-                  color: "var(--text-main)", 
-                  padding: "12px 44px 12px 44px",
-                  fontSize: 14,
-                  outline: "none"
-                }}
+                style={{ width: "100%", background: "var(--bg-secondary)", border: "1px solid var(--border-glass)", color: "var(--text-main)", padding: "12px 44px 12px 44px", fontSize: 14, outline: "none" }}
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{ position: "absolute", right: 16, top: 15, background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: 0 }}
-              >
+              <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: "absolute", right: 16, top: 15, background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: 0 }}>
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>
-              Confirm Password
-            </label>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>Confirm Password</label>
             <div style={{ position: "relative" }}>
               <Key size={16} style={{ position: "absolute", left: 16, top: 15, color: "var(--text-muted)" }} />
               <input 
@@ -240,67 +182,23 @@ function RegisterContent() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
-                style={{ 
-                  width: "100%",
-                  background: "var(--bg-secondary)", 
-                  border: "1px solid var(--border-glass)", 
-                  color: "var(--text-main)", 
-                  padding: "12px 44px 12px 44px",
-                  fontSize: 14,
-                  outline: "none"
-                }}
+                style={{ width: "100%", background: "var(--bg-secondary)", border: "1px solid var(--border-glass)", color: "var(--text-main)", padding: "12px 44px 12px 44px", fontSize: 14, outline: "none" }}
               />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                style={{ position: "absolute", right: 16, top: 15, background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: 0 }}
-              >
+              <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} style={{ position: "absolute", right: 16, top: 15, background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: 0 }}>
                 {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
           </div>
 
-          <button 
-            type="submit" 
-            disabled={isLoading}
-            style={{ 
-              background: "var(--text-main)", 
-              color: "var(--bg-primary)", 
-              border: "none", 
-              padding: "14px 28px", 
-              fontWeight: 700, 
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              transition: "all 0.3s ease",
-              marginTop: 8
-            }}
-          >
-            {isLoading ? "CREATING..." : (
-              <>
-                CREATE ACCOUNT <ArrowRight size={16} />
-              </>
-            )}
+          <button type="submit" disabled={isLoading} style={{ background: "var(--text-main)", color: "var(--bg-primary)", border: "none", padding: "14px 28px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 8 }}>
+            {isLoading ? "CREATING ACCOUNT..." : <>CREATE ACCOUNT <ArrowRight size={16} /></>}
           </button>
         </form>
+        </div>
 
         <div style={{ marginTop: 24, textAlign: "center", borderTop: "1px solid var(--border-glass)", paddingTop: 24 }}>
-          <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 12 }}>
-            Already have an account?
-          </p>
-          <a href="/login" style={{ 
-            color: "var(--text-main)", 
-            fontWeight: 800, 
-            fontSize: 14, 
-            textDecoration: "none",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6
-          }}>
+          <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 12 }}>Already have an account?</p>
+          <a href="/login" style={{ color: "var(--text-main)", fontWeight: 800, fontSize: 14, textDecoration: "none", textTransform: "uppercase", letterSpacing: "0.5px", display: "inline-flex", alignItems: "center", gap: 6 }}>
             SIGN IN <ArrowRight size={14} />
           </a>
         </div>

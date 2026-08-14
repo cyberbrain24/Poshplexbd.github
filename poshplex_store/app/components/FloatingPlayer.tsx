@@ -194,6 +194,7 @@ export const FloatingPlayer: React.FC = () => {
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         {/* Previous */}
         <button 
+          suppressHydrationWarning
           onClick={skipPrev}
           aria-label="Previous Track"
           style={{ background: "transparent", border: "none", color: "#ffffff", cursor: "pointer", display: "flex", padding: 4 }}
@@ -203,6 +204,7 @@ export const FloatingPlayer: React.FC = () => {
 
         {/* Play / Pause */}
         <button 
+          suppressHydrationWarning
           onClick={isPlaying ? pause : play}
           aria-label={isPlaying ? "Pause Music" : "Play Music"}
           style={{ 
@@ -223,6 +225,7 @@ export const FloatingPlayer: React.FC = () => {
 
         {/* Next */}
         <button 
+          suppressHydrationWarning
           onClick={skipNext}
           aria-label="Next Track"
           style={{ background: "transparent", border: "none", color: "#ffffff", cursor: "pointer", display: "flex", padding: 4 }}
@@ -237,6 +240,7 @@ export const FloatingPlayer: React.FC = () => {
           onMouseLeave={() => setShowVolumeSlider(false)}
         >
           <button 
+            suppressHydrationWarning
             onClick={toggleMute}
             aria-label={isMuted ? "Unmute Volume" : "Mute Volume"}
             style={{ background: "transparent", border: "none", color: "#ffffff", cursor: "pointer", display: "flex", padding: 4 }}

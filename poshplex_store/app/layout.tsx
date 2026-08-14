@@ -3,6 +3,7 @@ import React from "react";
 import { Outfit } from "next/font/google";
 import { CartProvider } from "../context/CartContext";
 import { MusicProvider } from "../context/MusicContext";
+import { GlobalErrorBoundary } from "./components/GlobalErrorBoundary";
 import FloatingPlayer from "./components/FloatingPlayer";
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
@@ -67,30 +68,32 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" className={outfit.className} suppressHydrationWarning>
       <body suppressHydrationWarning>
-        <CartProvider>
-          <MusicProvider>
-            <div className="flex flex-col min-h-screen w-full md:w-[80%] mx-auto relative bg-white">
-            
-            {/* Sticky Navigation Bar */}
-            <Header categories={categories} />
+        <GlobalErrorBoundary>
+          <CartProvider>
+            <MusicProvider>
+              <div className="flex flex-col min-h-screen w-full md:w-[80%] mx-auto relative bg-white">
+              
+              {/* Sticky Navigation Bar */}
+              <Header categories={categories} />
 
-            {/* Cart Slide-in Drawer (global, available on all pages) */}
-            <CartDrawer />
+              {/* Cart Slide-in Drawer (global, available on all pages) */}
+              <CartDrawer />
 
-            {/* Core Page Content */}
-            <main style={{ flex: 1 }}>{children}</main>
+              {/* Core Page Content */}
+              <main style={{ flex: 1 }}>{children}</main>
 
-            {/* Modular responsive footer */}
-            <Footer />
+              {/* Modular responsive footer */}
+              <Footer />
 
-            {/* Persistent Audio Loop Player */}
-            <FloatingPlayer />
+              {/* Persistent Audio Loop Player */}
+              <FloatingPlayer />
 
-            {/* Sticky Mobile/Tablet Bottom Menu */}
-            <BottomNav />
-          </div>
-          </MusicProvider>
-        </CartProvider>
+              {/* Sticky Mobile/Tablet Bottom Menu */}
+              <BottomNav />
+            </div>
+            </MusicProvider>
+          </CartProvider>
+        </GlobalErrorBoundary>
       </body>
     </html>
   );

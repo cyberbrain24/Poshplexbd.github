@@ -210,6 +210,39 @@ def register(request, data: RegisterSchema, response: HttpResponse):
         }
     }
 
+def check_otp_rate_limit(request):
+    """Enforces 3 OTP requests per 30 minutes per IP address."""
+    from django.core.cache import cache
+    
+    # Try to get the real IP if behind a proxy like Nginx
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0].strip()
+    else:
+        ip = request.META.get('REMOTE_ADDR', 'unknown')
+        
+    cache_key = f"otp_rate_limit_{ip}"
+    attempts = cache.get(cache_key, 0)
+    
+    if attempts >= 3:
+        raise HttpError(429, "Too many OTP requests from this IP. Please try again after 30 minutes.")
+        
+    # Increment attempts and set 30-min expiry if it's the first attempt
+    if attempts == 0:
+        cache.set(cache_key, 1, timeout=1800) # 30 mins
+    else:
+        cache.incr(cache_key)
+
+class RequestOtpSchema(Schema):
+    phone: str
+
+class ResetPasswordSchema(Schema):
+    phone: str
+    otp: str
+    new_password: str
+
+
+
 @router.post("/customer-login", response=TokenResponseSchema)
 def customer_login(request, data: CustomerLoginSchema, response: HttpResponse):
     """Authenticate storefront customer via phone and password."""
@@ -233,6 +266,12 @@ def customer_login(request, data: CustomerLoginSchema, response: HttpResponse):
             "role": user.role,
         }
     }
+
+class CustomerRegisterSchema(Schema):
+    full_name: str
+    phone: str
+    password: str
+    birthdate: str = None
 
 @router.post("/customer-register", response=TokenResponseSchema)
 def customer_register(request, data: CustomerRegisterSchema, response: HttpResponse):
@@ -267,6 +306,7 @@ def customer_register(request, data: CustomerRegisterSchema, response: HttpRespo
             
             tokens = generate_jwt_token(user)
             set_refresh_cookie(response, tokens['refresh_token'])
+            
             return {
                 "access_token": tokens['access_token'],
                 "user": {
@@ -279,19 +319,14 @@ def customer_register(request, data: CustomerRegisterSchema, response: HttpRespo
     except Exception as e:
         raise HttpError(400, str(e))
 
-class RequestOtpSchema(Schema):
-    phone: str
-
-class ResetPasswordSchema(Schema):
-    phone: str
-    otp: str
-    new_password: str
-
 @router.post("/customer-forgot-password/request-otp")
 def request_otp(request, data: RequestOtpSchema):
     from apps.crm.models import CustomerProfile
     from django.core.cache import cache
     import random
+    from apps.integration.tasks import send_customer_sms_task
+    
+    check_otp_rate_limit(request)
     
     profile = CustomerProfile.objects.filter(phone=data.phone).first()
     if not profile:
@@ -300,14 +335,9 @@ def request_otp(request, data: RequestOtpSchema):
     otp = str(random.randint(100000, 999999))
     cache.set(f"otp_{data.phone}", otp, timeout=180) # 3 minutes expiry
     
-    # Send the OTP via SMS using the BulkSMSBD template format requested by the user
+    # Send the OTP via SMS using Celery
     otp_message = f"Your Poshplex OTP is {otp}"
-    try:
-        from apps.integration.interfaces import send_customer_sms
-        send_customer_sms(data.phone, otp_message)
-    except Exception as e:
-        # We don't fail the API request if SMS fails, but we should log it
-        print(f"Failed to send OTP SMS to {data.phone}: {e}")
+    send_customer_sms_task.delay(data.phone, otp_message)
     
     return {"success": True, "message": "OTP sent successfully."}
 

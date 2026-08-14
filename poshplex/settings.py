@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'apps.music.apps.MusicConfig',
     'apps.printing.apps.PrintingConfig',
     'apps.image_optimizer.apps.ImageOptimizerConfig',
+    'apps.monitor.apps.MonitorConfig',
 ]
 
 MIDDLEWARE = [
@@ -161,8 +162,43 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 
+if DEBUG:
+    # Run tasks synchronously locally to prevent freezing if Redis is down
+    CELERY_TASK_ALWAYS_EAGER = True
+
 
 # Caching Configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+        'redis_monitor': {
+            'class': 'apps.monitor.logging.RedisListHandler',
+            'key': 'poshplex_error_logs',
+            'max_logs': 1000,
+            'level': 'WARNING',
+        },
+    },
+    'root': {
+        'handlers': ['console', 'redis_monitor'],
+        'level': 'WARNING',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'redis_monitor'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'celery': {
+            'handlers': ['console', 'redis_monitor'],
+            'level': 'INFO',
+            'propagate': False,
+        }
+    },
+}
 if env('REDIS_URL'):
     CACHES = {
         'default': {

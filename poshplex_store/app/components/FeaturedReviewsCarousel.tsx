@@ -164,6 +164,7 @@ export default function FeaturedReviewsCarousel() {
           }}
         >
           <button 
+            suppressHydrationWarning
             onClick={() => setActivePhoto(null)}
             aria-label="Close Lightbox"
             style={{

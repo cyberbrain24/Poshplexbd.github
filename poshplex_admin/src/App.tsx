@@ -20,6 +20,7 @@ import MusicLibrary from "./pages/music";
 import SettingsPage from "./pages/settings";
 import PrintingQueue from "./pages/printing";
 import ImageOptimizer from "./pages/imageOptimizer";
+import SystemMonitor from "./pages/system-monitor";
 
 // Curated administrative dark-theme tokens matching streetwear aesthetics
 const customTheme = {
@@ -72,6 +73,7 @@ export const App: React.FC = () => {
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/printing" element={<PrintingQueue />} />
                 <Route path="/image-optimizer" element={<ImageOptimizer />} />
+                <Route path="/system-monitor" element={<SystemMonitor />} />
               </Route>
               
               {/* Fallbacks */}

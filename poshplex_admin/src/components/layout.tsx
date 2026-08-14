@@ -4,7 +4,7 @@ import {
   DashboardOutlined, ShoppingCartOutlined, AppstoreOutlined, AuditOutlined,
   TeamOutlined, ApiOutlined, FolderOpenOutlined, LogoutOutlined, UserOutlined,
   CarOutlined, GiftOutlined, SoundOutlined, SettingOutlined, PrinterOutlined,
-  MenuOutlined, EllipsisOutlined, PictureOutlined
+  MenuOutlined, EllipsisOutlined, PictureOutlined, DesktopOutlined
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useLogout, useGetIdentity } from "@refinedev/core";
@@ -32,6 +32,7 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
     { key: "/music", icon: <SoundOutlined />, label: "Music Library" },
     { key: "/image-optimizer", icon: <PictureOutlined />, label: "Image Optimizer" },
     { key: "/settings", icon: <SettingOutlined />, label: "Site Settings" },
+    { key: "/system-monitor", icon: <DesktopOutlined />, label: "System Monitor" },
   ];
 
   const bottomNavItems = [
