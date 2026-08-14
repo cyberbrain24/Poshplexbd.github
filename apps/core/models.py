@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.core.cache import cache
@@ -24,12 +25,56 @@ class User(AbstractUser):
         if self.is_superuser:
             return True
             
+        # Standardize modules (UI sometimes uses core instead of admin)
+        module_mapping = {
+            "admin": "core"
+        }
+        std_module = module_mapping.get(module_name, module_name)
+        
+        # Map specific backend verbs to standard UI matrix verbs
+        action_mapping = {
+            "view_ledger": "view",
+            "view_orders": "view",
+            "view_catalog": "view",
+            "view_customers": "view",
+            "view_audit": "view",
+            "record_transaction": "create",
+            "edit_orders": "edit",
+            "edit_catalog": "edit",
+            "edit_customers": "edit",
+            "manage_campaigns": "edit",
+            "manage_integrations": "edit",
+            "edit_settings": "edit",
+            "is_admin": "edit",
+            "view": "view",
+            "edit": "edit"
+        }
+        std_action = action_mapping.get(action, action)
+            
+        if hasattr(self, 'staff_profile') and self.staff_profile and self.staff_profile.role:
+            perms = self.staff_profile.role.permissions
+            if isinstance(perms, str):
+                import json
+                try:
+                    perms = json.loads(perms)
+                except Exception:
+                    perms = {}
+                    
+            module_perms = perms.get(std_module, {})
+            # Check the standardized action first
+            if std_action in module_perms:
+                return bool(module_perms.get(std_action, False))
+                
+            # Fallback to the raw action if it wasn't standardized
+            return bool(module_perms.get(action, False))
+            
+        # Fallback to legacy hardcoded roles if staff profile not found
         role_permissions = {
             'admin': {'*'},
-            'accountant': {'finance.view_ledger', 'finance.record_transaction', 'core.view_settings'},
-            'catalog_manager': {'catalog.view_catalog', 'catalog.edit_catalog', 'core.upload_media'},
-            'customer_service': {'crm.view_customers', 'crm.edit_customers', 'orders.view_orders', 'orders.edit_orders'},
-            'marketer': {'marketing.manage_campaigns', 'catalog.view_catalog'},
+            'accountant': {'finance.view', 'finance.create', 'core.view'},
+            'catalog_manager': {'catalog.view', 'catalog.edit', 'core.view'},
+            'customer_service': {'crm.view', 'crm.edit', 'orders.view', 'orders.edit'},
+            'marketer': {'marketing.view', 'catalog.view'},
             'customer': set(),
         }
         
@@ -37,6 +82,24 @@ class User(AbstractUser):
         if '*' in perms:
             return True
         return f"{module_name}.{action}" in perms
+
+class Role(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True, null=True)
+    permissions = models.JSONField(default=dict, help_text="JSON matrix of module permissions e.g. {'orders': {'view': true, 'edit': false}}")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+class StaffProfile(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='staff_profile')
+    role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, related_name='staff_members')
+    internal_notes = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"Staff: {self.user.username} ({self.role.name if self.role else 'No Role'})"
 
 class SiteSetting(models.Model):
     key = models.CharField(max_length=100, unique=True)

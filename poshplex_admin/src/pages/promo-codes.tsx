@@ -22,14 +22,12 @@ export const PromoCodes: React.FC = () => {
   const fetchPromos = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       const res = await axios.get(API_URL, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setPromos(res.data);
-    } catch (err) {
-      message.error("Failed to load promo codes list.");
-    } finally {
+    } catch (err: any) { if (err?.response?.status !== 403) message.error("Failed to load promo codes list."); } finally {
       setLoading(false);
     }
   };
@@ -41,7 +39,7 @@ export const PromoCodes: React.FC = () => {
   // Save / Edit campaign promo
   const handleSave = async (values: any) => {
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       
       const payload = {
         ...values,
@@ -64,15 +62,13 @@ export const PromoCodes: React.FC = () => {
       setIsModalOpen(false);
       form.resetFields();
       fetchPromos();
-    } catch (err) {
-      message.error("Failed to save campaign promo code.");
-    }
+    } catch (err: any) { if (err?.response?.status !== 403) message.error("Failed to save campaign promo code."); }
   };
 
   // Toggle promo status
   const handleToggleActive = async (record: any, checked: boolean) => {
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       const payload = {
         ...record,
         is_active: checked
@@ -82,9 +78,7 @@ export const PromoCodes: React.FC = () => {
       });
       message.success(`Promo campaign ${checked ? "Activated" : "Paused"}`);
       fetchPromos();
-    } catch (err) {
-      message.error("Status toggle failed.");
-    }
+    } catch (err: any) { if (err?.response?.status !== 403) message.error("Status toggle failed."); }
   };
 
   // Delete promo campaign
@@ -96,15 +90,13 @@ export const PromoCodes: React.FC = () => {
       okType: "danger",
       onOk: async () => {
         try {
-          const token = localStorage.getItem("poshplex_token") || "admin_imran";
+          const token = localStorage.getItem("poshplex_access_token");
           await axios.delete(`${API_URL}/${id}`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           message.success("Promo code campaign removed.");
           fetchPromos();
-        } catch (err: any) {
-          message.error(err.response?.data?.message || "Failed to remove campaign code.");
-        }
+        } catch (err: any) { if (err?.response?.status !== 403) message.error(err.response?.data?.message || "Failed to remove campaign code."); }
       }
     });
   };

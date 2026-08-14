@@ -189,9 +189,11 @@ export const Integrations: React.FC = () => {
         <p style={{ margin: 0, color: "var(--text-muted)", fontSize: 14 }}>Configure external provider keys, setup analytics pixels, and issue SMS/Email marketing broadcasts.</p>
       </div>
 
-      <Tabs type="card">
-        {/* Tab 1: API Mappings */}
-        <Tabs.TabPane tab={<span><ApiOutlined /> Active Provider Mappings</span>} key="1">
+      <Tabs type="card" items={[
+        {
+          key: "1",
+          label: <span><ApiOutlined /> Active Provider Mappings</span>,
+          children: (
           <Card title="Poshplex Courier & Communication Channels">
             <Form form={form} onFinish={handleSaveConfig} layout="vertical">
               <Row gutter={24}>
@@ -296,10 +298,12 @@ export const Integrations: React.FC = () => {
               </Button>
             </Form>
           </Card>
-        </Tabs.TabPane>
-
-        {/* Tab 2: Automated Notifications Console */}
-        <Tabs.TabPane tab={<span><MessageOutlined /> Automated Notifications</span>} key="2">
+          )
+        },
+        {
+          key: "2",
+          label: <span><MessageOutlined /> Automated Notifications</span>,
+          children: (
           <Row gutter={24}>
             <Col xs={24} md={16}>
               <Card title="Automated System Notifications (Triggers & Templates)">
@@ -373,8 +377,9 @@ export const Integrations: React.FC = () => {
               </Card>
             </Col>
           </Row>
-        </Tabs.TabPane>
-      </Tabs>
+          )
+        }
+      ]} />
     </Space>
   );
 };

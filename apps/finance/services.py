@@ -8,7 +8,6 @@ from apps.finance.models import Account, Transaction, Entry
 
 class LedgerUnbalancedError(ValidationError):
     """Raised when the sum of debits does not equal the sum of credits."""
-    pass
 
 
 @db_transaction.atomic
@@ -310,7 +309,6 @@ def bulk_add_bank_transactions(statement_id: int, transactions: list[dict]):
     }
     """
     from apps.finance.models import BankStatement, BankTransaction as BankTx
-    import datetime
 
     try:
         statement = BankStatement.objects.get(id=statement_id)

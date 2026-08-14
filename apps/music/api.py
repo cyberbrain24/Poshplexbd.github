@@ -1,7 +1,6 @@
 from ninja import Router, Schema, File
 from ninja.files import UploadedFile
 from django.shortcuts import get_object_or_404
-from django.conf import settings
 from django.core.files.storage import default_storage
 from apps.music.models import Track
 from apps.core.api import BearerAuth, enforce_permission
@@ -61,14 +60,14 @@ def get_active_tracks(request):
 @router.get("/admin/tracks", response=List[TrackSchema], auth=BearerAuth())
 def admin_get_tracks(request):
     """Admin: list all tracks including inactive ones."""
-    enforce_permission(request, "catalog", "edit_catalog")
+    enforce_permission(request, "music", "edit_catalog")
     return [_serialize_track(t) for t in Track.objects.all()]
 
 
 @router.post("/admin/tracks", response=TrackSchema, auth=BearerAuth())
 def admin_create_track(request, data: TrackInputSchema):
     """Admin: add a new track (with optional external URL or after file upload)."""
-    enforce_permission(request, "catalog", "edit_catalog")
+    enforce_permission(request, "music", "edit_catalog")
     t = Track.objects.create(
         title=data.title,
         audio_url=data.audio_url,
@@ -81,7 +80,7 @@ def admin_create_track(request, data: TrackInputSchema):
 @router.put("/admin/tracks/{track_id}", response=TrackSchema, auth=BearerAuth())
 def admin_update_track(request, track_id: int, data: TrackInputSchema):
     """Admin: update track metadata. Does not clear uploaded audio_file."""
-    enforce_permission(request, "catalog", "edit_catalog")
+    enforce_permission(request, "music", "edit_catalog")
     t = get_object_or_404(Track, id=track_id)
     t.title = data.title
     t.audio_url = data.audio_url
@@ -94,7 +93,7 @@ def admin_update_track(request, track_id: int, data: TrackInputSchema):
 @router.delete("/admin/tracks/{track_id}", auth=BearerAuth())
 def admin_delete_track(request, track_id: int):
     """Admin: remove a track and its associated files from storage."""
-    enforce_permission(request, "catalog", "edit_catalog")
+    enforce_permission(request, "music", "edit_catalog")
     t = get_object_or_404(Track, id=track_id)
     # Clean up stored files from MEDIA_ROOT
     if t.audio_file:
@@ -112,7 +111,7 @@ def upload_audio_track(request, track_id: Optional[int] = None, file: UploadedFi
     Upload an MP3/OGG file to internal Django media storage.
     Optionally attach directly to an existing Track by passing track_id.
     """
-    enforce_permission(request, "catalog", "edit_catalog")
+    enforce_permission(request, "music", "edit_catalog")
     import uuid
     ext = os.path.splitext(file.name)[1].lower()
     if ext not in ('.mp3', '.ogg', '.wav', '.aac', '.m4a'):

@@ -38,14 +38,12 @@ const Reviews: React.FC = () => {
   const fetchReviews = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       const res = await axios.get(`${CATALOG_URL}/admin/reviews`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setReviews(res.data);
-    } catch (err) {
-      message.error("Failed to load reviews.");
-    } finally {
+    } catch (err: any) { if (err?.response?.status !== 403) message.error("Failed to load reviews."); } finally {
       setLoading(false);
     }
   };
@@ -56,28 +54,24 @@ const Reviews: React.FC = () => {
 
   const handleModerate = async (id: number, action: any) => {
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       await axios.post(`${CATALOG_URL}/admin/reviews/${id}/moderate`, action, {
         headers: { Authorization: `Bearer ${token}` }
       });
       message.success("Review updated successfully.");
       fetchReviews();
-    } catch (err) {
-      message.error("Failed to moderate review.");
-    }
+    } catch (err: any) { if (err?.response?.status !== 403) message.error("Failed to moderate review."); }
   };
 
   const handleDelete = async (id: number) => {
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       await axios.delete(`${CATALOG_URL}/admin/reviews/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       message.success("Review deleted successfully.");
       fetchReviews();
-    } catch (err) {
-      message.error("Failed to delete review.");
-    }
+    } catch (err: any) { if (err?.response?.status !== 403) message.error("Failed to delete review."); }
   };
 
   const openEditModal = (review: any) => {
@@ -112,7 +106,7 @@ const Reviews: React.FC = () => {
     setCreateImageList([]);
     setIsCreateModalOpen(true);
     
-    const token = localStorage.getItem("poshplex_token") || "admin_imran";
+    const token = localStorage.getItem("poshplex_access_token");
     try {
       const [custRes, prodRes] = await Promise.all([
         axios.get(`${CRM_URL}/profiles`, { headers: { Authorization: `Bearer ${token}` } }),
@@ -125,7 +119,7 @@ const Reviews: React.FC = () => {
 
   const handleCreateSubmit = async (values: any) => {
     const finalImages = createImageList.map(f => f.url || (f.response && f.response.url)).filter(Boolean);
-    const token = localStorage.getItem("poshplex_token") || "admin_imran";
+    const token = localStorage.getItem("poshplex_access_token");
     try {
       await axios.post(`${CATALOG_URL}/admin/reviews/create`, {
         ...values,
@@ -134,13 +128,11 @@ const Reviews: React.FC = () => {
       message.success("Review created successfully.");
       setIsCreateModalOpen(false);
       fetchReviews();
-    } catch (err) {
-      message.error("Failed to create review.");
-    }
+    } catch (err: any) { if (err?.response?.status !== 403) message.error("Failed to create review."); }
   };
 
   const handleCreateUploadChange = ({ fileList }: any) => setCreateImageList(fileList);
-  const uploadToken = localStorage.getItem("poshplex_token") || "admin_imran";
+  const uploadToken = localStorage.getItem("poshplex_access_token");
 
   return (
     <Card 
@@ -166,7 +158,7 @@ const Reviews: React.FC = () => {
                 </Popconfirm>
               }
               style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
-              bodyStyle={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 12 }}
+              styles={{ body: { flex: 1, display: 'flex', flexDirection: 'column', padding: 12 } }}
             >
               <div style={{ marginBottom: 8 }}>
                 <Rate disabled defaultValue={item.rating} style={{ fontSize: 14 }} />
@@ -272,14 +264,12 @@ const MembershipTiers: React.FC = () => {
   const fetchTiers = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       const res = await axios.get(`${CRM_URL}/tiers`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setTiers(res.data);
-    } catch (err) {
-      message.error("Failed to load membership tiers.");
-    } finally {
+    } catch (err: any) { if (err?.response?.status !== 403) message.error("Failed to load membership tiers."); } finally {
       setLoading(false);
     }
   };
@@ -300,7 +290,7 @@ const MembershipTiers: React.FC = () => {
 
   const handleSave = async (values: any) => {
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       if (selectedTier) {
         await axios.put(`${CRM_URL}/tiers/${selectedTier.id}`, values, {
           headers: { Authorization: `Bearer ${token}` }
@@ -316,22 +306,18 @@ const MembershipTiers: React.FC = () => {
       form.resetFields();
       setSelectedTier(null);
       fetchTiers();
-    } catch (err: any) {
-      message.error(err.response?.data?.detail || "Failed to save tier.");
-    }
+    } catch (err: any) { if (err?.response?.status !== 403) message.error(err.response?.data?.detail || "Failed to save tier."); }
   };
 
   const handleDeleteTier = async (id: number) => {
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       await axios.delete(`${CRM_URL}/tiers/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       message.success("Membership Tier deleted successfully.");
       fetchTiers();
-    } catch (err: any) {
-      message.error(err.response?.data?.detail || "Failed to delete tier.");
-    }
+    } catch (err: any) { if (err?.response?.status !== 403) message.error(err.response?.data?.detail || "Failed to delete tier."); }
   };
 
   const columns = [
@@ -442,7 +428,7 @@ export const CRM: React.FC = () => {
   const fetchCustomers = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       const params: any = {};
       if (searchText) params.search = searchText;
       if (filterTier) params.tier_id = filterTier;
@@ -454,9 +440,7 @@ export const CRM: React.FC = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setCustomers(res.data);
-    } catch (err) {
-      message.error("Failed to load customer CRM profiles.");
-    } finally {
+    } catch (err: any) { if (err?.response?.status !== 403) message.error("Failed to load customer CRM profiles."); } finally {
       setLoading(false);
     }
   };
@@ -566,7 +550,7 @@ export const CRM: React.FC = () => {
   const executeCrmBulkImport = async () => {
     setImportLoading(true);
     setImportProgress({ current: 0, total: previewRows.length });
-    const token = localStorage.getItem("poshplex_token") || "admin_imran";
+    const token = localStorage.getItem("poshplex_access_token");
     let successCount = 0;
     let failCount = 0;
 
@@ -634,7 +618,7 @@ export const CRM: React.FC = () => {
   // Load Metadata
   const loadMetadata = async () => {
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       const [tiersRes, distsRes, thanasRes] = await Promise.all([
         axios.get(`${CRM_URL}/tiers`),
         axios.get(`${ORDERS_URL}/locations/districts`),
@@ -662,15 +646,13 @@ export const CRM: React.FC = () => {
   // Load Detailed Card profile
   const fetchCustomerDetail = async (id: number) => {
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       const res = await axios.get(`${CRM_URL}/customers/${id}/detail`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setDetailData(res.data);
       setIsDetailOpen(true);
-    } catch (err) {
-      message.error("Failed to load customer profile details.");
-    }
+    } catch (err: any) { if (err?.response?.status !== 403) message.error("Failed to load customer profile details."); }
   };
 
   // District select cascading dropdown trigger
@@ -683,7 +665,7 @@ export const CRM: React.FC = () => {
   // Create / Update Customer profile
   const handleSave = async (values: any) => {
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
 
       const payload = {
         ...values,
@@ -714,7 +696,7 @@ export const CRM: React.FC = () => {
   // Soft Deactivate status inline
   const handleToggleActive = async (record: any, checked: boolean) => {
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       const payload = {
         name: record.username,
         phone: record.phone,
@@ -732,9 +714,7 @@ export const CRM: React.FC = () => {
       });
       message.success(`User status changed to: ${checked ? "Active" : "Inactive (Soft-Disabled)"}`);
       fetchCustomers();
-    } catch (err) {
-      message.error("Failed to toggle status.");
-    }
+    } catch (err: any) { if (err?.response?.status !== 403) message.error("Failed to toggle status."); }
   };
 
   // Delete Customer
@@ -746,15 +726,13 @@ export const CRM: React.FC = () => {
       okType: "danger",
       onOk: async () => {
         try {
-          const token = localStorage.getItem("poshplex_token") || "admin_imran";
+          const token = localStorage.getItem("poshplex_access_token");
           await axios.delete(`${CRM_URL}/customers/${id}`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           message.success("Customer deleted successfully.");
           fetchCustomers();
-        } catch (err: any) {
-          message.error(err.response?.data?.message || "Cannot delete customer with linked orders.");
-        }
+        } catch (err: any) { if (err?.response?.status !== 403) message.error(err.response?.data?.message || "Cannot delete customer with linked orders."); }
       }
     });
   };
@@ -762,7 +740,7 @@ export const CRM: React.FC = () => {
   // Impersonate User Session
   const handleImpersonate = async (id: number) => {
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       const res = await axios.post(`${CRM_URL}/customers/${id}/impersonate`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -783,7 +761,7 @@ export const CRM: React.FC = () => {
   const handlePostNote = async (values: any) => {
     if (!detailData) return;
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       const res = await axios.post(`${CRM_URL}/customers/${detailData.profile.id}/notes`, values, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -796,9 +774,7 @@ export const CRM: React.FC = () => {
         ...detailData,
         notes: updatedNotes
       });
-    } catch (err) {
-      message.error("Failed to save timeline note.");
-    }
+    } catch (err: any) { if (err?.response?.status !== 403) message.error("Failed to save timeline note."); }
   };
 
   // CSV Export filtered list with all requested CRM customer profile fields (only Name, no Username)
@@ -906,9 +882,11 @@ export const CRM: React.FC = () => {
         </div>
       </div>
 
-      <Tabs activeKey={activeTab} onChange={setActiveTab} type="card">
-        {/* Tab 1: Customer Profile List */}
-        <Tabs.TabPane tab={<span><UserOutlined /> CRM Profiles</span>} key="1">
+      <Tabs activeKey={activeTab} onChange={setActiveTab} type="card" items={[
+        {
+          key: "1",
+          label: <span><UserOutlined /> CRM Profiles</span>,
+          children: (
           <Card>
           <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
               <Input
@@ -933,22 +911,26 @@ export const CRM: React.FC = () => {
 
             <Table scroll={{ x: 'max-content' }} loading={loading} dataSource={customers} columns={customerColumns} rowKey="id" />
           </Card>
-        </Tabs.TabPane>
-
-        {/* Tab 2: Reviews Moderation */}
-        <Tabs.TabPane tab={<span><MessageOutlined /> Product Reviews</span>} key="2">
+          )
+        },
+        {
+          key: "2",
+          label: <span><MessageOutlined /> Product Reviews</span>,
+          children: (
           <Reviews />
-        </Tabs.TabPane>
-
-        {/* Tab 3: Membership Tiers */}
-        <Tabs.TabPane tab={<span><SolutionOutlined /> Membership Tiers</span>} key="3">
+          )
+        },
+        {
+          key: "3",
+          label: <span><SolutionOutlined /> Membership Tiers</span>,
+          children: (
           <MembershipTiers />
-        </Tabs.TabPane>
-
-
-
-        {/* Tab 5: Bulk Customer Import */}
-        <Tabs.TabPane tab={<span><DownloadOutlined /> Bulk CSV Import</span>} key="5">
+          )
+        },
+        {
+          key: "5",
+          label: <span><DownloadOutlined /> Bulk CSV Import</span>,
+          children: (
           <Card title="CSV Client-Side Column Mapper Uploader">
             {!parsedCsvData ? (
               <div>
@@ -1232,8 +1214,9 @@ export const CRM: React.FC = () => {
               </div>
             )}
           </Card>
-        </Tabs.TabPane>
-      </Tabs>
+          )
+        }
+      ]} />
 
       {/* Add / Edit Form Modal */}
       <Modal

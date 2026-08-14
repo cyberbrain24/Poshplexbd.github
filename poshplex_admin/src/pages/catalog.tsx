@@ -1106,10 +1106,10 @@ export const Catalog: React.FC = () => {
         <p style={{ margin: "4px 0 0", color: "var(--text-muted)", fontSize: 13 }}>Manage streetwear drop entries, configure variants, and upload spreadsheets.</p>
       </div>
 
-      <Tabs activeKey={activeTab} onChange={setActiveTab} type="card">
+      <Tabs activeKey={activeTab} onChange={setActiveTab} type="card" items={[
         
-        {/* TAB 1: Product Listings */}
-        <Tabs.TabPane tab={<span><BuildOutlined /> Drop Listings</span>} key="1">
+        /* TAB 1: Product Listings */
+        { label: <span><BuildOutlined /> Drop Listings</span>, key: "1", children: (
           <Card
             title={
               <Space wrap size="middle">
@@ -1182,10 +1182,10 @@ export const Catalog: React.FC = () => {
               }}
             />
           </Card>
-        </Tabs.TabPane>
+        ) },
 
-        {/* TAB 2: Categories tree hierarchy */}
-        <Tabs.TabPane tab={<span><FolderOpenOutlined /> Structure Tree</span>} key="2">
+        /* TAB 2: Categories tree hierarchy */
+        { label: <span><FolderOpenOutlined /> Structure Tree</span>, key: "2", children: (
           <Card 
             title="Structural Categories Tree"
             extra={
@@ -1205,10 +1205,10 @@ export const Catalog: React.FC = () => {
               <span style={{ color: "var(--text-muted)" }}>No Category configurations defined.</span>
             )}
           </Card>
-        </Tabs.TabPane>
+        ) },
 
-        {/* TAB 3: Attributes Setup */}
-        <Tabs.TabPane tab={<span><TagsOutlined /> Specification Attributes</span>} key="3">
+        /* TAB 3: Attributes Setup */
+        { label: <span><TagsOutlined /> Specification Attributes</span>, key: "3", children: (
           <Card
             title="Global Attributes Configuration"
             extra={
@@ -1239,10 +1239,10 @@ export const Catalog: React.FC = () => {
               ]}
             />
           </Card>
-        </Tabs.TabPane>
+        ) },
 
-        {/* TAB 4: Spreadsheet CSV Import */}
-        <Tabs.TabPane tab={<span><UploadOutlined /> Excel / CSV Bulk Import</span>} key="4">
+        /* TAB 4: Spreadsheet CSV Import */
+        { label: <span><UploadOutlined /> Excel / CSV Bulk Import</span>, key: "4", children: (
           <Card title="Spreadsheet Inventory Uploader">
             {!parsedCsvData ? (
               <div>
@@ -1608,10 +1608,10 @@ export const Catalog: React.FC = () => {
               </div>
             )}
           </Card>
-        </Tabs.TabPane>
+        ) },
 
-        {/* TAB 5: Brands */}
-        <Tabs.TabPane tab={<span><TagsOutlined /> Brands</span>} key="5">
+        /* TAB 5: Brands */
+        { label: <span><TagsOutlined /> Brands</span>, key: "5", children: (
           <Card
             title="Brand Management"
             extra={
@@ -1641,10 +1641,10 @@ export const Catalog: React.FC = () => {
               ]}
             />
           </Card>
-        </Tabs.TabPane>
+        ) },
 
-        {/* TAB 6: Size Guides */}
-        <Tabs.TabPane tab={<span><BuildOutlined /> Size Guides</span>} key="6">
+        /* TAB 6: Size Guides */
+        { label: <span><BuildOutlined /> Size Guides</span>, key: "6", children: (
           <Card
             title="Size Guide Templates"
             extra={
@@ -1673,10 +1673,10 @@ export const Catalog: React.FC = () => {
               ]}
             />
           </Card>
-        </Tabs.TabPane>
+        ) },
 
-        {/* TAB 7: Wash & Care Templates */}
-        <Tabs.TabPane tab={<span><TagsOutlined /> Wash & Care Templates</span>} key="7">
+        /* TAB 7: Wash & Care Templates */
+        { label: <span><TagsOutlined /> Wash & Care Templates</span>, key: "7", children: (
           <Card
             title="Wash & Care Templates"
             extra={
@@ -1705,8 +1705,8 @@ export const Catalog: React.FC = () => {
               ]}
             />
           </Card>
-        </Tabs.TabPane>
-      </Tabs>
+        ) }
+      ]} />
 
       {/* Unified Add / Edit Product Modal */}
       <Modal
@@ -1715,13 +1715,14 @@ export const Catalog: React.FC = () => {
         onCancel={() => setIsProductModalOpen(false)}
         width="min(900px, 96vw)"
         onOk={() => productForm.submit()}
-        bodyStyle={{ paddingTop: 16 }}
+        styles={{ body: { paddingTop: 16 } }}
       >
         <Form form={productForm} onFinish={handleProductSubmit} layout="vertical">
-          <Tabs defaultActiveKey="basic" type="line">
-            
-            {/* Tab A: Basic Information */}
-            <Tabs.TabPane tab="Basic Info" key="basic">
+          <Tabs defaultActiveKey="basic" type="line" items={[
+          
+          /* Tab A: Basic Information */
+          { label: "Basic Info", key: "basic", children: (
+              <>
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item name="name" label="Product Name" rules={[{ required: true, message: "Please enter product name!" }]}>
@@ -1765,10 +1766,12 @@ export const Catalog: React.FC = () => {
               <Form.Item name="description" label="Full Rich Description">
                 <Input.TextArea placeholder="Enter rich specifications details..." rows={4} style={{ borderRadius: 0 }} />
               </Form.Item>
-            </Tabs.TabPane>
+              </>
+            ) },
 
-            {/* Tab B: Media Uploads */}
-            <Tabs.TabPane tab="Media Gallery" key="media" forceRender>
+          /* Tab B: Media Uploads */
+          { label: "Media Gallery", key: "media", forceRender: true, children: (
+              <>
               <Upload
                 listType="picture-card"
                 fileList={fileList}
@@ -1822,10 +1825,12 @@ export const Catalog: React.FC = () => {
                   </Form.Item>
                 </Col>
               </Row>
-            </Tabs.TabPane>
+              </>
+            ) },
 
-            {/* Tab C: Categorization */}
-            <Tabs.TabPane tab="Categorization & Tags" key="categorization" forceRender>
+          /* Tab C: Categorization */
+          { label: "Categorization & Tags", key: "categorization", forceRender: true, children: (
+              <>
               <Form.Item name="category_ids" label="Linked Drop Categories (Multi-select)" rules={[{ required: true, message: "Select at least one category!" }]}>
                 <Select mode="multiple" placeholder="Select multiple collections mapping">
                   {flatCategories.map((c: any) => <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>)}
@@ -1840,11 +1845,12 @@ export const Catalog: React.FC = () => {
                   </Form.Item>
                 </Col>
               </Row>
-            </Tabs.TabPane>
+              </>
+            ) },
 
-            {/* Tab C: Pricing & Variants Builder */}
-            <Tabs.TabPane tab="Pricing & Variants" key="pricing" forceRender>
-              {productType === "simple" ? (
+          /* Tab C: Pricing & Variants Builder */
+          { label: "Pricing & Variants", key: "pricing", forceRender: true, children: (
+              productType === "simple" ? (
                 <div>
                   <Form.Item name="base_price" label="Base Retail Price (৳)" rules={[{ required: true, message: "Please input base price!" }]}>
                     <InputNumber style={{ width: "100%", borderRadius: 0 }} min={0} precision={2} />
@@ -1889,7 +1895,7 @@ export const Catalog: React.FC = () => {
                     </Col>
                   </Row>
 
-                  {/* â”€â”€ Apply to All Bulk Price Row â”€â”€ */}
+                  {/* ── Apply to All Bulk Price Row ── */}
                   {variantsList.length > 0 && (
                     <div style={{
                       display: 'flex',
@@ -1953,7 +1959,7 @@ export const Catalog: React.FC = () => {
                   <Table scroll={{ x: 'max-content' }}
                     size="small"
                     dataSource={variantsList}
-                    rowKey={(record, idx) => record.sku + idx}
+                    rowKey={(record) => record.sku}
                     pagination={false}
                     columns={[
                       {
@@ -2109,13 +2115,12 @@ export const Catalog: React.FC = () => {
                     ]}
                   />
                 </div>
-              )}
-            </Tabs.TabPane>
+              )
+            ) },
 
-
-
-            {/* Tab E: Reusable Templates Content Blocks */}
-            <Tabs.TabPane tab="Content Templates" key="templates" forceRender>
+          /* Tab E: Reusable Templates Content Blocks */
+          { label: "Content Templates", key: "templates", forceRender: true, children: (
+              <>
               <Form.Item name="size_guide_template_id" label="Size Guide Template Block">
                 <Select placeholder="Attach reusable size chart guide template" allowClear>
                   {sizeTemplates.map((t: any) => <Select.Option key={t.id} value={t.id}>{t.name}</Select.Option>)}
@@ -2127,8 +2132,9 @@ export const Catalog: React.FC = () => {
                 </Select>
               </Form.Item>
               <Alert message="Editing these attached templates from settings will automatically refresh layouts across all catalog items." type="warning" showIcon />
-            </Tabs.TabPane>
-          </Tabs>
+              </>
+            ) }
+        ]} />
         </Form>
       </Modal>
 

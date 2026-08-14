@@ -1,7 +1,6 @@
 from ninja import Router, Form, File
 from ninja.files import UploadedFile
 from ninja.errors import HttpError
-from typing import Optional
 from apps.core.api import BearerAuth, enforce_permission
 from apps.image_optimizer.services import optimize_and_save_image
 

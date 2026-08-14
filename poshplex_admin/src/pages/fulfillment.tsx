@@ -86,7 +86,7 @@ export const Fulfillment: React.FC = () => {
       if (filterStatus) params.status = filterStatus;
       if (filterPayment) params.payment_status = filterPayment;
 
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       const res = await axios.get(`${API_URL}/fulfillment/queue`, {
         params,
         headers: { Authorization: `Bearer ${token}` }
@@ -96,9 +96,7 @@ export const Fulfillment: React.FC = () => {
       const countsRes = await axios.get(`${API_URL}/counts`, { headers: { Authorization: `Bearer ${token}` } });
       setOrderCounts(countsRes.data);
 
-    } catch (err) {
-      message.error("Failed to load active fulfillment queue.");
-    } finally {
+    } catch (err: any) { if (err?.response?.status !== 403) message.error("Failed to load active fulfillment queue."); } finally {
       setLoading(false);
     }
   };
@@ -117,7 +115,7 @@ export const Fulfillment: React.FC = () => {
     let successCount = 0;
     let failCount = 0;
     
-    const token = localStorage.getItem("poshplex_token") || "admin_imran";
+    const token = localStorage.getItem("poshplex_access_token");
     
     for (const orderId of selectedRowKeys) {
       try {
@@ -144,7 +142,7 @@ export const Fulfillment: React.FC = () => {
     setSyncProgress(0);
     setLoading(true);
 
-    const token = localStorage.getItem("poshplex_token") || "admin_imran";
+    const token = localStorage.getItem("poshplex_access_token");
     let count = 0;
 
     for (const orderId of selectedRowKeys) {
@@ -179,7 +177,7 @@ export const Fulfillment: React.FC = () => {
   const handleCODReconcile = async (values: any) => {
     if (!selectedOrder) return;
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       const res = await axios.post(`${API_URL}/${selectedOrder.id}/cod-approve`, values, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -188,16 +186,14 @@ export const Fulfillment: React.FC = () => {
       codForm.resetFields();
       setIsDetailDrawerOpen(false);
       fetchFulfillmentQueue();
-    } catch (err) {
-      message.error("Failed to approve COD collection.");
-    }
+    } catch (err: any) { if (err?.response?.status !== 403) message.error("Failed to approve COD collection."); }
   };
 
   // Update Decoupled tracking numbers
   const handleUpdateTracking = async (values: any) => {
     if (!selectedOrder) return;
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       // Perform decoupled update by PUTing tracking changes
       const updatedData = {
         ...selectedOrder,
@@ -218,16 +214,14 @@ export const Fulfillment: React.FC = () => {
       setIsEditTrackingOpen(false);
       setSelectedOrder(res.data);
       fetchFulfillmentQueue();
-    } catch (err) {
-      message.error("Tracking update failed.");
-    }
+    } catch (err: any) { if (err?.response?.status !== 403) message.error("Tracking update failed."); }
   };
 
   // Manual status override
   const handleStatusOverride = async (newStatus: string) => {
     if (!selectedOrder) return;
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       const updatedData = {
         ...selectedOrder,
         status: newStatus,
@@ -243,9 +237,7 @@ export const Fulfillment: React.FC = () => {
       message.success(`Manual override set order status to: ${newStatus.toUpperCase()}`);
       setSelectedOrder(res.data);
       fetchFulfillmentQueue();
-    } catch (err) {
-      message.error("Override failed.");
-    }
+    } catch (err: any) { if (err?.response?.status !== 403) message.error("Override failed."); }
   };
 
   const getStatusBadge = (status: string) => {
@@ -324,7 +316,7 @@ export const Fulfillment: React.FC = () => {
           const isReady = order.status !== 'review';
           
           return (
-            <Card key={order.id} bodyStyle={{ padding: '24px 16px' }} style={{ borderRadius: 8, borderColor: '#e5e5e5' }}>
+            <Card key={order.id} styles={{ body: { padding: '24px 16px' } }} style={{ borderRadius: 8, borderColor: '#e5e5e5' }}>
               <Row gutter={[24, 24]} align="middle">
                 {/* Left: Products list */}
                 <Col xs={24} md={10} lg={8}>

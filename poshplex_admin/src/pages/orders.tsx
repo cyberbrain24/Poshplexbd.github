@@ -37,15 +37,13 @@ export const Orders: React.FC = () => {
     const note = callNotes[id];
     if (note === undefined) return;
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       await axios.patch(`${API_URL}/${id}/notes`, { internal_notes: note }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       message.success("Call note saved.");
       fetchOrders();
-    } catch (err) {
-      message.error("Failed to save note.");
-    }
+    } catch (err: any) { if (err?.response?.status !== 403) message.error("Failed to save note."); }
   };
 
 
@@ -121,7 +119,7 @@ export const Orders: React.FC = () => {
       if (filterPaymentMethod) params.payment_method = filterPaymentMethod;
       if (filterCourier) params.courier = filterCourier;
 
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       const res = await axios.get(`${API_URL}`, {
         params,
         headers: { Authorization: `Bearer ${token}` }
@@ -132,9 +130,7 @@ export const Orders: React.FC = () => {
       const countsRes = await axios.get(`${API_URL}/counts`, { headers: { Authorization: `Bearer ${token}` } });
       setOrderCounts(countsRes.data);
 
-    } catch (err) {
-      message.error("Failed to load orders.");
-    } finally {
+    } catch (err: any) { if (err?.response?.status !== 403) message.error("Failed to load orders."); } finally {
       setLoading(false);
     }
   };
@@ -142,7 +138,7 @@ export const Orders: React.FC = () => {
   // Load configuration metadata
   const loadMetadata = async () => {
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       const [locRes, prodRes, pmRes, bankRes] = await Promise.all([
         axios.get(`${API_URL}/shipping-locations/rates`),
         axios.get(`${CATALOG_API_URL}/products`, { params: { limit: 100 } }),
@@ -161,7 +157,7 @@ export const Orders: React.FC = () => {
   // Search CRM customers
   const fetchCrmCustomers = async (search: string) => {
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       const res = await axios.get(`${API_URL}/customers`, {
         params: { search },
         headers: { Authorization: `Bearer ${token}` }
@@ -228,7 +224,7 @@ export const Orders: React.FC = () => {
   // Manual Order Submit handler
   const handleManualOrderSubmit = async (values: any) => {
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       
       // Parse dynamic form items fields
       const itemsPayload = modalDraftItems.map((item: any) => ({
@@ -255,15 +251,13 @@ export const Orders: React.FC = () => {
       setIsCreateModalOpen(false);
       orderForm.resetFields();
       fetchOrders();
-    } catch (err: any) {
-      message.error(err.response?.data?.message || "Failed to create order.");
-    }
+    } catch (err: any) { if (err?.response?.status !== 403) message.error(err.response?.data?.message || "Failed to create order."); }
   };
 
   // Steadfast Courier actions
   const handleBookShipment = async (id: number) => {
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       const res = await axios.post(`${API_URL}/${id}/ship`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -272,15 +266,13 @@ export const Orders: React.FC = () => {
       if (selectedOrder && selectedOrder.id === id) {
         setSelectedOrder(res.data);
       }
-    } catch (err: any) {
-      message.error(err.response?.data?.message || "Courier booking failed.");
-    }
+    } catch (err: any) { if (err?.response?.status !== 403) message.error(err.response?.data?.message || "Courier booking failed."); }
   };
 
   // Sync courier status
   const handleSyncCourier = async (id: number) => {
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       const res = await axios.post(`${API_URL}/${id}/sync-courier`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -289,25 +281,21 @@ export const Orders: React.FC = () => {
       if (selectedOrder && selectedOrder.id === id) {
         setSelectedOrder(res.data);
       }
-    } catch (err) {
-      message.error("Sync failed.");
-    }
+    } catch (err: any) { if (err?.response?.status !== 403) message.error("Sync failed."); }
   };
 
   // Bulk Steadfast sync
   const handleBulkCourierSync = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       const res = await axios.post(`${API_URL}/bulk-sync-courier`, selectedRowKeys, {
         headers: { Authorization: `Bearer ${token}` }
       });
       message.success(`Successfully synchronized ${res.data.synced_count} orders.`);
       setSelectedRowKeys([]);
       fetchOrders();
-    } catch (err) {
-      message.error("Bulk sync failed.");
-    } finally {
+    } catch (err: any) { if (err?.response?.status !== 403) message.error("Bulk sync failed."); } finally {
       setLoading(false);
     }
   };
@@ -323,12 +311,10 @@ export const Orders: React.FC = () => {
     orderForm.resetFields();
     if (catalogCategories.length === 0) {
       try {
-        const token = localStorage.getItem("poshplex_token") || "admin_imran";
+        const token = localStorage.getItem("poshplex_access_token");
         const res = await axios.get(`${CATALOG_API_URL}/categories/tree`, { headers: { Authorization: `Bearer ${token}` }});
         setCatalogCategories(res.data);
-      } catch (e) {
-        message.error("Failed to fetch categories");
-      }
+      } catch (e: any) { if (e?.response?.status !== 403) message.error("Failed to fetch categories"); }
     }
   };
 
@@ -336,15 +322,13 @@ export const Orders: React.FC = () => {
     if (catId) setModalSubcategoryId(catId);
     setModalSelectedProduct(null);
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       const params: any = {};
       if (catId) params.category_id = catId;
       if (search) params.search = search;
       const res = await axios.get(`${CATALOG_API_URL}/products`, { params, headers: { Authorization: `Bearer ${token}` }});
       setModalGridProducts(res.data.results);
-    } catch (e) {
-      message.error("Failed to fetch products");
-    }
+    } catch (e: any) { if (e?.response?.status !== 403) message.error("Failed to fetch products"); }
   };
 
   const handleAddModalDraftItem = () => {
@@ -389,24 +373,20 @@ export const Orders: React.FC = () => {
   const handleOpenAddProduct = async () => {
     setIsAddingProduct(true);
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       const res = await axios.get(`${CATALOG_API_URL}/categories/tree`, { headers: { Authorization: `Bearer ${token}` }});
       setCatalogCategories(res.data);
-    } catch (e) {
-      message.error("Failed to fetch categories");
-    }
+    } catch (e: any) { if (e?.response?.status !== 403) message.error("Failed to fetch categories"); }
   };
 
   const fetchCategoryProducts = async (catId: number) => {
     setSelectedSubcategoryId(catId);
     setSelectedGridProduct(null);
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       const res = await axios.get(`${CATALOG_API_URL}/products?category_id=${catId}`, { headers: { Authorization: `Bearer ${token}` }});
       setGridProducts(res.data.results);
-    } catch (e) {
-      message.error("Failed to fetch products");
-    }
+    } catch (e: any) { if (e?.response?.status !== 403) message.error("Failed to fetch products"); }
   };
 
   const handleAddDraftItem = () => {
@@ -430,7 +410,7 @@ export const Orders: React.FC = () => {
     if (!selectedOrder) return;
     setIsSavingDraft(true);
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       const payload = {
         user_id: selectedOrder.user_id,
         items: draftItems.map(i => ({ sku: i.sku, quantity: i.quantity, price: i.price })),
@@ -453,9 +433,7 @@ export const Orders: React.FC = () => {
       setSelectedOrder(res.data);
       setDraftItems(res.data.items);
       fetchOrders();
-    } catch (e: any) {
-      message.error(e.response?.data?.detail || "Failed to update order.");
-    } finally {
+    } catch (e: any) { if (e?.response?.status !== 403) message.error(e.response?.data?.detail || "Failed to update order."); } finally {
       setIsSavingDraft(false);
     }
   };
@@ -465,7 +443,7 @@ export const Orders: React.FC = () => {
   const handlePaymentSubmit = async (values: any) => {
     if (!selectedOrder) return;
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       const res = await axios.post(`${API_URL}/${selectedOrder.id}/payments`, values, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -474,16 +452,14 @@ export const Orders: React.FC = () => {
       paymentForm.resetFields();
       setSelectedOrder(res.data);
       fetchOrders();
-    } catch (err) {
-      message.error("Failed to record payment.");
-    }
+    } catch (err: any) { if (err?.response?.status !== 403) message.error("Failed to record payment."); }
   };
 
   // Record Return Submit
   const handleReturnSubmit = async (values: any) => {
     if (!selectedOrder) return;
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       const res = await axios.post(`${API_URL}/${selectedOrder.id}/returns`, values, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -492,9 +468,7 @@ export const Orders: React.FC = () => {
       returnForm.resetFields();
       setSelectedOrder(res.data);
       fetchOrders();
-    } catch (err: any) {
-      message.error(err.response?.data?.message || "Failed to process return.");
-    }
+    } catch (err: any) { if (err?.response?.status !== 403) message.error(err.response?.data?.message || "Failed to process return."); }
   };
 
   // Delete Order
@@ -506,16 +480,14 @@ export const Orders: React.FC = () => {
       okType: "danger",
       onOk: async () => {
         try {
-          const token = localStorage.getItem("poshplex_token") || "admin_imran";
+          const token = localStorage.getItem("poshplex_access_token");
           await axios.delete(`${API_URL}/${id}`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           message.success("Order deleted.");
           setIsDetailDrawerOpen(false);
           fetchOrders();
-        } catch (err) {
-          message.error("Failed to delete order.");
-        }
+        } catch (err: any) { if (err?.response?.status !== 403) message.error("Failed to delete order."); }
       }
     });
   };
@@ -618,7 +590,7 @@ export const Orders: React.FC = () => {
         </Button>
       </div>
 
-      <Card bodyStyle={{ padding: '12px 14px' }}>
+      <Card styles={{ body: { padding: '12px 14px' } }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <Input
@@ -645,16 +617,16 @@ export const Orders: React.FC = () => {
           </div>
         </div>
 
-        <Tabs activeKey={activeTab} onChange={setActiveTab} type="card">
-          <Tabs.TabPane tab={<span>All <Badge count={orderCounts.all || 0} showZero style={{ backgroundColor: '#52c41a' }} /></span>} key="all" />
-          <Tabs.TabPane tab={<span>Placed <Badge count={orderCounts.placed || 0} showZero color="gold" /></span>} key="placed" />
-          <Tabs.TabPane tab={<span>Review <Badge count={orderCounts.review || 0} showZero color="cyan" /></span>} key="review" />
-          <Tabs.TabPane tab={<span>Pending <Badge count={orderCounts.pending || 0} showZero color="orange" /></span>} key="pending" />
-          <Tabs.TabPane tab={<span>Dispatched <Badge count={orderCounts.approval_pending || 0} showZero color="blue" /></span>} key="approval_pending" />
-          <Tabs.TabPane tab={<span>Delivered <Badge count={orderCounts.delivered || 0} showZero color="green" /></span>} key="delivered" />
-          <Tabs.TabPane tab={<span>Returned <Badge count={orderCounts.returned || 0} showZero color="purple" /></span>} key="returned" />
-          <Tabs.TabPane tab={<span>Cancelled <Badge count={orderCounts.cancelled || 0} showZero color="red" /></span>} key="cancelled" />
-        </Tabs>
+        <Tabs activeKey={activeTab} onChange={setActiveTab} type="card" items={[
+          { label: <span>All <Badge count={orderCounts.all || 0} showZero style={{ backgroundColor: '#52c41a' }} /></span>, key: "all" },
+          { label: <span>Placed <Badge count={orderCounts.placed || 0} showZero color="gold" /></span>, key: "placed" },
+          { label: <span>Review <Badge count={orderCounts.review || 0} showZero color="cyan" /></span>, key: "review" },
+          { label: <span>Pending <Badge count={orderCounts.pending || 0} showZero color="orange" /></span>, key: "pending" },
+          { label: <span>Dispatched <Badge count={orderCounts.approval_pending || 0} showZero color="blue" /></span>, key: "approval_pending" },
+          { label: <span>Delivered <Badge count={orderCounts.delivered || 0} showZero color="green" /></span>, key: "delivered" },
+          { label: <span>Returned <Badge count={orderCounts.returned || 0} showZero color="purple" /></span>, key: "returned" },
+          { label: <span>Cancelled <Badge count={orderCounts.cancelled || 0} showZero color="red" /></span>, key: "cancelled" }
+        ]} />
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
           {orders.map(order => {
@@ -664,7 +636,7 @@ export const Orders: React.FC = () => {
             const items = order.items || [];
             
             return (
-              <Card key={order.id} bodyStyle={{ padding: '12px', display: 'flex', flexDirection: 'column', height: '100%' }} style={{ borderRadius: 8, overflow: 'hidden', minWidth: 200 }}>
+              <Card key={order.id} styles={{ body: { padding: '12px', display: 'flex', flexDirection: 'column', height: '100%' } }} style={{ borderRadius: 8, overflow: 'hidden', minWidth: 200 }}>
                 {/* Images Top Section */}
                 <div style={{ margin: '-12px -12px 12px -12px', height: 160, display: 'flex', backgroundColor: '#f0f0f0' }}>
                   {items.length === 1 ? (
@@ -823,7 +795,7 @@ export const Orders: React.FC = () => {
                     showSearch
                     placeholder="Search by Name/Email"
                     defaultActiveFirstOption={false}
-                    showArrow={false}
+                    suffixIcon={null}
                     filterOption={false}
                     onSearch={setCustomerSearchQuery}
                     onChange={handleCustomerSelect}
@@ -1078,7 +1050,7 @@ export const Orders: React.FC = () => {
               size="small"
               dataSource={draftItems}
               pagination={false}
-              rowKey={(rec, index) => `${rec.sku}-${index}`}
+              rowKey={(rec) => rec.sku}
               columns={[
                 { title: "SKU Variant", dataIndex: "sku", key: "sku" },
                 { title: "Price", dataIndex: "price", key: "price", render: (val) => `৳${Math.round(val)}` },
@@ -1181,7 +1153,7 @@ export const Orders: React.FC = () => {
                       if (!promoCode) return;
                       const subtotal = draftItems.reduce((acc, item) => acc + (parseFloat(item.price || 0) * (item.quantity || 1)), 0);
                       try {
-                        const token = localStorage.getItem("poshplex_token") || "admin_imran";
+                        const token = localStorage.getItem("poshplex_access_token");
                         const res = await axios.post(`${(import.meta.env.VITE_SERVER_URL || 'http://localhost:8000')}/api/v1/marketing/promocodes/validate`, { code: promoCode, order_amount: subtotal }, {
                           headers: { Authorization: `Bearer ${token}` }
                         });

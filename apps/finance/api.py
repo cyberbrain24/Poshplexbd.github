@@ -6,14 +6,14 @@ from ninja import Router, Schema
 from ninja.errors import HttpError
 from django.shortcuts import get_object_or_404
 
-from apps.finance.models import Account, Transaction, Entry, BankAccount, BankStatement, BankTransaction
+from apps.finance.models import BankAccount, BankStatement, BankTransaction, Account, Transaction
 from apps.finance.services import (
-    record_transaction, void_transaction, get_account_balance,
-    reconcile_bank_transaction, create_bank_account, add_bank_statement, bulk_add_bank_transactions
+    reconcile_bank_transaction, create_bank_account, add_bank_statement,
+    bulk_add_bank_transactions, record_transaction, void_transaction, get_account_balance
 )
 from apps.finance.selectors import (
-    get_ledger_summary, get_trial_balance, get_pl_statement,
-    get_balance_sheet, get_ar_aging, get_cash_flow_statement
+    get_balance_sheet, get_ar_aging, get_cash_flow_statement,
+    get_ledger_summary, get_trial_balance, get_pl_statement
 )
 from apps.core.api import BearerAuth, enforce_permission
 
@@ -297,150 +297,7 @@ class ReconciliationStatusSchema(Schema):
 
 
 # ============================================================
-# EXISTING CHART OF ACCOUNTS ENDPOINTS
-# ============================================================
-
-@router.get("/accounts", response=List[AccountSchema], auth=BearerAuth())
-def list_accounts(request, type: Optional[str] = None, is_active: Optional[bool] = None):
-    """List all Chart of Accounts with optional type and active filters."""
-    enforce_permission(request, "finance", "view_ledger")
-    qs = Account.objects.all().order_by('code')
-    if type:
-        qs = qs.filter(type=type)
-    if is_active is not None:
-        qs = qs.filter(is_active=is_active)
-    return list(qs)
-
-@router.post("/accounts", response=AccountSchema, auth=BearerAuth())
-def create_account(request, data: AccountCreateSchema):
-    """Create a new ledger account in the Chart of Accounts."""
-    enforce_permission(request, "finance", "record_transaction")
-    if Account.objects.filter(code=data.code).exists():
-        raise HttpError(400, f"Account with code '{data.code}' already exists.")
-    account = Account.objects.create(**data.dict())
-    return account
-
-@router.get("/accounts/{code}/balance", response=AccountBalanceSchema, auth=BearerAuth())
-def get_account_balance_view(request, code: str):
-    """Get the current running balance for a single account."""
-    enforce_permission(request, "finance", "view_ledger")
-    account = get_object_or_404(Account, code=code)
-    balance = get_account_balance(code)
-    return {"code": account.code, "name": account.name, "type": account.type, "balance": balance}
-
-# ============================================================
-# EXISTING TRANSACTION ENDPOINTS
-# ============================================================
-
-@router.post("/transactions", response=TransactionSchema, auth=BearerAuth())
-def post_transaction(request, data: TransactionCreateSchema):
-    """Post a new balanced double-entry transaction to the ledger."""
-    enforce_permission(request, "finance", "record_transaction")
-    entries_list = [e.dict() for e in data.entries]
-    try:
-        tx = record_transaction(
-            description=data.description,
-            entries_data=entries_list,
-            reference_id=data.reference_id
-        )
-        return {
-            "id": tx.id,
-            "timestamp": tx.timestamp.isoformat(),
-            "description": tx.description,
-            "reference_id": tx.reference_id,
-            "status": tx.status
-        }
-    except Exception as e:
-        raise HttpError(400, str(e))
-
-@router.get("/transactions", response=List[TransactionSchema], auth=BearerAuth())
-def list_transactions(request, reference_id: Optional[str] = None, status: Optional[str] = None):
-    """Paginated list of transactions with optional filters."""
-    enforce_permission(request, "finance", "view_ledger")
-    qs = Transaction.objects.order_by('-timestamp')
-    if reference_id:
-        qs = qs.filter(reference_id=reference_id)
-    if status:
-        qs = qs.filter(status=status)
-    return [
-        {"id": t.id, "timestamp": t.timestamp.isoformat(),
-         "description": t.description, "reference_id": t.reference_id, "status": t.status}
-        for t in qs[:200]
-    ]
-
-@router.get("/transactions/{tx_id}", response=TransactionDetailSchema, auth=BearerAuth())
-def get_transaction_detail(request, tx_id: int):
-    """Get a full transaction detail with all debit/credit entry lines."""
-    enforce_permission(request, "finance", "view_ledger")
-    tx = get_object_or_404(Transaction.objects.prefetch_related('entries__account'), id=tx_id)
-    entries = [
-        {
-            "id": e.id,
-            "account_code": e.account.code,
-            "account_name": e.account.name,
-            "debit": e.debit,
-            "credit": e.credit,
-            "memo": e.memo
-        }
-        for e in tx.entries.all()
-    ]
-    return {
-        "id": tx.id,
-        "timestamp": tx.timestamp.isoformat(),
-        "description": tx.description,
-        "reference_id": tx.reference_id,
-        "status": tx.status,
-        "void_reason": tx.void_reason,
-        "total_debits": tx.total_debits,
-        "total_credits": tx.total_credits,
-        "is_balanced": tx.is_balanced,
-        "entries": entries
-    }
-
-@router.post("/transactions/{tx_id}/void", response=TransactionSchema, auth=BearerAuth())
-def void_transaction_view(request, tx_id: int, data: VoidTransactionSchema):
-    """Void a posted transaction by creating an exact mirror reversal."""
-    enforce_permission(request, "finance", "record_transaction")
-    try:
-        reversal = void_transaction(transaction_id=tx_id, reason=data.reason)
-        return {
-            "id": reversal.id,
-            "timestamp": reversal.timestamp.isoformat(),
-            "description": reversal.description,
-            "reference_id": reversal.reference_id,
-            "status": reversal.status
-        }
-    except Exception as e:
-        raise HttpError(400, str(e))
-
-# ============================================================
-# EXISTING REPORTING ENDPOINTS
-# ============================================================
-
-@router.get("/summary", response=LedgerSummarySchema, auth=BearerAuth())
-def get_summary(request):
-    """Ledger summary grouped by account type for the dashboard Balance Sheet widget."""
-    enforce_permission(request, "finance", "view_ledger")
-    return get_ledger_summary()
-
-@router.get("/trial-balance", response=List[TrialBalanceRowSchema], auth=BearerAuth())
-def get_trial_balance_view(request):
-    """Generate a full Trial Balance report."""
-    enforce_permission(request, "finance", "view_ledger")
-    return get_trial_balance()
-
-@router.get("/pl-statement", response=PLStatementSchema, auth=BearerAuth())
-def get_pl_statement_view(
-    request,
-    start_date: Optional[datetime.date] = None,
-    end_date: Optional[datetime.date] = None
-):
-    """Generate a Profit & Loss statement for a given date range."""
-    enforce_permission(request, "finance", "view_ledger")
-    return get_pl_statement(start_date=start_date, end_date=end_date)
-
-# ============================================================
-# NEW — BALANCE SHEET
+# BALANCE SHEET
 # ============================================================
 
 @router.get("/balance-sheet", response=BalanceSheetSchema, auth=BearerAuth())
@@ -732,109 +589,9 @@ def get_reconciliation_status(request, bank_account_id: int):
         "unreconciled_transactions": unreconciled_list,
     }
 
-
-# --------------------------
-# SCHEMAS
-# --------------------------
-
-class AccountSchema(Schema):
-    id: int
-    name: str
-    code: str
-    type: str
-    pl_group: str
-    is_active: bool
-    description: str
-
-class AccountCreateSchema(Schema):
-    name: str
-    code: str
-    type: str
-    pl_group: str
-    description: str = ""
-
-class AccountBalanceSchema(Schema):
-    code: str
-    name: str
-    type: str
-    balance: Decimal
-
-class EntryInputSchema(Schema):
-    account_code: str
-    debit: Decimal
-    credit: Decimal
-    memo: str = ""
-
-class TransactionCreateSchema(Schema):
-    description: str
-    reference_id: Optional[str] = None
-    entries: List[EntryInputSchema]
-
-class VoidTransactionSchema(Schema):
-    reason: str
-
-class EntryOutputSchema(Schema):
-    id: int
-    account_code: str
-    account_name: str
-    debit: Decimal
-    credit: Decimal
-    memo: str
-
-class TransactionDetailSchema(Schema):
-    id: int
-    timestamp: str
-    description: str
-    reference_id: Optional[str] = None
-    status: str
-    void_reason: str
-    total_debits: Decimal
-    total_credits: Decimal
-    is_balanced: bool
-    entries: List[EntryOutputSchema]
-
-class TransactionSchema(Schema):
-    id: int
-    timestamp: str
-    description: str
-    reference_id: Optional[str] = None
-    status: str
-
-class LedgerSummarySchema(Schema):
-    asset: Decimal
-    liability: Decimal
-    equity: Decimal
-    revenue: Decimal
-    expense: Decimal
-    net_income: Decimal
-
-class TrialBalanceRowSchema(Schema):
-    account_code: str
-    account_name: str
-    account_type: str
-    total_debit: Decimal
-    total_credit: Decimal
-    debit_balance: Decimal
-    credit_balance: Decimal
-
-class PLLineSchema(Schema):
-    account: str
-    code: str
-    amount: Decimal
-
-class PLStatementSchema(Schema):
-    period_start: str
-    period_end: str
-    revenue_lines: List[PLLineSchema]
-    expense_lines: List[PLLineSchema]
-    total_revenue: Decimal
-    total_expenses: Decimal
-    gross_profit: Decimal
-    net_income: Decimal
-
-# --------------------------
+# ============================================================
 # CHART OF ACCOUNTS ENDPOINTS
-# --------------------------
+# ============================================================
 
 @router.get("/accounts", response=List[AccountSchema], auth=BearerAuth())
 def list_accounts(request, type: Optional[str] = None, is_active: Optional[bool] = None):
@@ -864,16 +621,13 @@ def get_account_balance_view(request, code: str):
     balance = get_account_balance(code)
     return {"code": account.code, "name": account.name, "type": account.type, "balance": balance}
 
-# --------------------------
+# ============================================================
 # TRANSACTION / JOURNAL ENTRY ENDPOINTS
-# --------------------------
+# ============================================================
 
 @router.post("/transactions", response=TransactionSchema, auth=BearerAuth())
 def post_transaction(request, data: TransactionCreateSchema):
-    """
-    Post a new balanced double-entry transaction to the ledger.
-    Returns HTTP 400 if the ledger is unbalanced.
-    """
+    """Post a new balanced double-entry transaction to the ledger."""
     enforce_permission(request, "finance", "record_transaction")
     entries_list = [e.dict() for e in data.entries]
     try:
@@ -938,10 +692,7 @@ def get_transaction_detail(request, tx_id: int):
 
 @router.post("/transactions/{tx_id}/void", response=TransactionSchema, auth=BearerAuth())
 def void_transaction_view(request, tx_id: int, data: VoidTransactionSchema):
-    """
-    Void a posted transaction by creating an exact mirror reversal.
-    The original entries remain immutable — the audit trail is preserved.
-    """
+    """Void a posted transaction by creating an exact mirror reversal."""
     enforce_permission(request, "finance", "record_transaction")
     try:
         reversal = void_transaction(transaction_id=tx_id, reason=data.reason)
@@ -955,22 +706,19 @@ def void_transaction_view(request, tx_id: int, data: VoidTransactionSchema):
     except Exception as e:
         raise HttpError(400, str(e))
 
-# --------------------------
-# ANALYTICS / REPORTING ENDPOINTS
-# --------------------------
+# ============================================================
+# REPORTING ENDPOINTS
+# ============================================================
 
 @router.get("/summary", response=LedgerSummarySchema, auth=BearerAuth())
 def get_summary(request):
-    """Get ledger summary grouped by account type for the dashboard Balance Sheet widget."""
+    """Ledger summary grouped by account type for the dashboard Balance Sheet widget."""
     enforce_permission(request, "finance", "view_ledger")
     return get_ledger_summary()
 
 @router.get("/trial-balance", response=List[TrialBalanceRowSchema], auth=BearerAuth())
 def get_trial_balance_view(request):
-    """
-    Generate a full Trial Balance report.
-    The sum of all debit balances must equal the sum of all credit balances.
-    """
+    """Generate a full Trial Balance report."""
     enforce_permission(request, "finance", "view_ledger")
     return get_trial_balance()
 
@@ -980,9 +728,6 @@ def get_pl_statement_view(
     start_date: Optional[datetime.date] = None,
     end_date: Optional[datetime.date] = None
 ):
-    """
-    Generate a Profit & Loss statement for a given date range.
-    Defaults to the current calendar month.
-    """
+    """Generate a Profit & Loss statement for a given date range."""
     enforce_permission(request, "finance", "view_ledger")
     return get_pl_statement(start_date=start_date, end_date=end_date)

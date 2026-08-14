@@ -5,4 +5,4 @@ class CatalogConfig(AppConfig):
     name = 'apps.catalog'
 
     def ready(self):
-        import apps.catalog.signals
+        pass

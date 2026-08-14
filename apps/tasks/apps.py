@@ -1,8 +1,5 @@
 from django.apps import AppConfig
 
-class CrmConfig(AppConfig):
+class TasksConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'apps.crm'
-
-    def ready(self):
-        pass
+    name = 'apps.tasks'

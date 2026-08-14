@@ -74,7 +74,6 @@ def duplicate_product(product_id: int) -> Product:
     Images and SKUs are regenerated to avoid conflicts.
     """
     import uuid
-    from django.utils.text import slugify
     
     orig = Product.objects.get(id=product_id)
     

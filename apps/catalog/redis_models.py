@@ -1,5 +1,4 @@
 from redis_om import JsonModel, Field
-import os
 
 class ProductDocument(JsonModel):
     # This acts as the RediSearch index schema for our products

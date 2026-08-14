@@ -59,7 +59,7 @@ function LedgerTab() {
       ]);
       setAccounts(accs);
       setSummary(sum);
-    } catch (e: any) { message.error(e.message); }
+    } catch (e: any) { if (e?.response?.status !== 403) message.error(e.message); }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -69,12 +69,12 @@ function LedgerTab() {
       await apiFetch("/accounts", { method: "POST", body: JSON.stringify(vals) });
       message.success("Account created.");
       setIsAccountModalOpen(false); accountForm.resetFields(); load();
-    } catch (e: any) { message.error(e.message); }
+    } catch (e: any) { if (e?.response?.status !== 403) message.error(e.message); }
   };
 
   const handlePostTx = async (vals: any) => {
-    const totalDebit = txEntries.reduce((s, e) => s + parseFloat(e.debit || 0), 0);
-    const totalCredit = txEntries.reduce((s, e) => s + parseFloat(e.credit || 0), 0);
+    const totalDebit = txEntries.reduce((s, e) => s + Number(e.debit || 0), 0);
+    const totalCredit = txEntries.reduce((s, e) => s + Number(e.credit || 0), 0);
     if (totalDebit <= 0) { message.error("Debit must be > 0"); return; }
     if (Math.abs(totalDebit - totalCredit) > 0.01) {
       message.error(`Unbalanced! DR: ${totalDebit.toFixed(2)}, CR: ${totalCredit.toFixed(2)}`); return;
@@ -85,7 +85,7 @@ function LedgerTab() {
       setIsTxModalOpen(false); txForm.resetFields();
       setTxEntries([{ account_code: "", debit: 0, credit: 0 }, { account_code: "", debit: 0, credit: 0 }]);
       load();
-    } catch (e: any) { message.error(e.message); }
+    } catch (e: any) { if (e?.response?.status !== 403) message.error(e.message); }
   };
 
   const updateEntry = (i: number, f: string, v: any) => {
@@ -108,11 +108,11 @@ function LedgerTab() {
           { label: "Equity", val: summary.equity, color: "#8b5cf6" },
           { label: "Revenue", val: summary.revenue, color: "#3b82f6" },
           { label: "Expenses", val: summary.expense, color: "#f59e0b" },
-          { label: "Net P&L", val: summary.net_income, color: parseFloat(summary.net_income || 0) >= 0 ? "#10b981" : "#e11d48" },
+          { label: "Net P&L", val: summary.net_income, color: Number(summary.net_income || 0) >= 0 ? "#10b981" : "#e11d48" },
         ].map(({ label, val, color }) => (
           <Col xs={12} sm={8} md={4} key={label}>
             <Card size="small">
-              <Statistic title={label} value={parseFloat(val || 0)} precision={2} prefix="৳" valueStyle={{ color, fontSize: 18 }} />
+              <Statistic title={label} value={Number(val || 0)} precision={2} prefix="৳" valueStyle={{ color, fontSize: 18 }} />
             </Card>
           </Col>
         ))}
@@ -161,7 +161,7 @@ function LedgerTab() {
               <Col span={2}><Button danger type="text" onClick={() => setTxEntries(txEntries.filter((_, idx) => idx !== i))}>âœ•</Button></Col>
             </Row>
           ))}
-          <Button dashed onClick={() => setTxEntries([...txEntries, { account_code: "", debit: 0, credit: 0 }])} block icon={<PlusOutlined />} style={{ marginTop: 8 }}>Add Row</Button>
+          <Button type="dashed" onClick={() => setTxEntries([...txEntries, { account_code: "", debit: 0, credit: 0 }])} block icon={<PlusOutlined />} style={{ marginTop: 8 }}>Add Row</Button>
         </Form>
       </Modal>
     </Space>
@@ -180,7 +180,7 @@ function BalanceSheetTab() {
       const q = asOf ? `?as_of=${asOf}` : "";
       const d = await apiFetch(`/balance-sheet${q}`);
       setData(d);
-    } catch (e: any) { message.error(e.message); }
+    } catch (e: any) { if (e?.response?.status !== 403) message.error(e.message); }
     finally { setLoading(false); }
   };
   useEffect(() => { load(); }, []);
@@ -194,7 +194,7 @@ function BalanceSheetTab() {
       columns={[
         { title: "Code", dataIndex: "code", render: (c: string) => <code style={{ color: "#e11d48" }}>{c}</code> },
         { title: "Account", dataIndex: "name" },
-        { title: "Balance (৳)", dataIndex: "balance", align: "right" as const, render: (v: number) => <b>{parseFloat(v).toFixed(2)}</b> },
+        { title: "Balance (৳)", dataIndex: "balance", align: "right" as const, render: (v: number) => <b>{Number(v).toFixed(2)}</b> },
       ]}
     />
   );
@@ -217,25 +217,25 @@ function BalanceSheetTab() {
           />
           <Row gutter={[16, 16]}>
             <Col xs={24} md={12}>
-              <Card title={<><ArrowUpOutlined style={{ color: "#10b981" }} /> Assets</>} extra={<b style={{ color: "#10b981" }}>৳ {parseFloat(data.assets.total).toFixed(2)}</b>}>
+              <Card title={<><ArrowUpOutlined style={{ color: "#10b981" }} /> Assets</>} extra={<b style={{ color: "#10b981" }}>৳ {Number(data.assets.total).toFixed(2)}</b>}>
                 {lineTable(data.assets.lines)}
               </Card>
             </Col>
             <Col xs={24} md={12}>
-              <Card title={<><ArrowDownOutlined style={{ color: "#e11d48" }} /> Liabilities</>} extra={<b style={{ color: "#e11d48" }}>৳ {parseFloat(data.liabilities.total).toFixed(2)}</b>}>
+              <Card title={<><ArrowDownOutlined style={{ color: "#e11d48" }} /> Liabilities</>} extra={<b style={{ color: "#e11d48" }}>৳ {Number(data.liabilities.total).toFixed(2)}</b>}>
                 {lineTable(data.liabilities.lines)}
               </Card>
             </Col>
             <Col xs={24}>
               <Card
                 title={<><WalletOutlined style={{ color: "#8b5cf6" }} /> Equity (incl. Retained Earnings)</>}
-                extra={<b style={{ color: "#8b5cf6" }}>৳ {parseFloat(data.equity.total).toFixed(2)}</b>}
+                extra={<b style={{ color: "#8b5cf6" }}>৳ {Number(data.equity.total).toFixed(2)}</b>}
               >
                 {lineTable(data.equity.lines)}
                 <Divider />
                 <Row justify="space-between" style={{ padding: "0 8px" }}>
                   <Text>Retained Earnings (Net Income)</Text>
-                  <b>৳ {parseFloat(data.equity.retained_earnings).toFixed(2)}</b>
+                  <b>৳ {Number(data.equity.retained_earnings).toFixed(2)}</b>
                 </Row>
               </Card>
             </Col>
@@ -244,7 +244,7 @@ function BalanceSheetTab() {
                 <Row justify="space-between" align="middle">
                   <Title level={4} style={{ margin: 0 }}>Total Liabilities + Equity</Title>
                   <Title level={3} style={{ margin: 0, color: data.is_balanced ? "#10b981" : "#e11d48" }}>
-                    ৳ {parseFloat(data.total_liabilities_and_equity).toFixed(2)}
+                    ৳ {Number(data.total_liabilities_and_equity).toFixed(2)}
                   </Title>
                 </Row>
               </Card>
@@ -264,7 +264,7 @@ function ARAgingTab() {
   const load = async () => {
     setLoading(true);
     try { setData(await apiFetch("/ar-aging")); }
-    catch (e: any) { message.error(e.message); }
+    catch (e: any) { if (e?.response?.status !== 403) message.error(e.message); }
     finally { setLoading(false); }
   };
   useEffect(() => { load(); }, []);
@@ -274,9 +274,9 @@ function ARAgingTab() {
     { title: "Customer", dataIndex: "customer" },
     { title: "Order Date", dataIndex: "order_date" },
     { title: "Age (days)", dataIndex: "age_days", render: (v: number) => <Tag color={v <= 30 ? "green" : v <= 60 ? "orange" : "red"}>{v}d</Tag> },
-    { title: "Total (৳)", dataIndex: "total_amount", align: "right" as const, render: (v: number) => parseFloat(v).toFixed(2) },
-    { title: "Paid (৳)", dataIndex: "paid_amount", align: "right" as const, render: (v: number) => parseFloat(v).toFixed(2) },
-    { title: "Outstanding (৳)", dataIndex: "outstanding", align: "right" as const, render: (v: number) => <b style={{ color: "#e11d48" }}>{parseFloat(v).toFixed(2)}</b> },
+    { title: "Total (৳)", dataIndex: "total_amount", align: "right" as const, render: (v: number) => Number(v).toFixed(2) },
+    { title: "Paid (৳)", dataIndex: "paid_amount", align: "right" as const, render: (v: number) => Number(v).toFixed(2) },
+    { title: "Outstanding (৳)", dataIndex: "outstanding", align: "right" as const, render: (v: number) => <b style={{ color: "#e11d48" }}>{Number(v).toFixed(2)}</b> },
   ];
 
   const buckets = data ? [
@@ -295,7 +295,7 @@ function ARAgingTab() {
               <Statistic title="Open Orders" value={data.summary.total_open_orders} prefix={<ClockCircleOutlined />} />
             </Col>
             <Col xs={12} md={6}>
-              <Statistic title="Total Outstanding" value={parseFloat(data.summary.total_outstanding)} precision={2} prefix="৳" valueStyle={{ color: "#e11d48" }} />
+              <Statistic title="Total Outstanding" value={Number(data.summary.total_outstanding)} precision={2} prefix="৳" valueStyle={{ color: "#e11d48" }} />
             </Col>
             <Col xs={12} md={6}>
               <Statistic title="Report Date" value={data.as_of_date} />
@@ -312,7 +312,7 @@ function ARAgingTab() {
             label: (
               <Space>
                 <b style={{ color }}>{label}</b>
-                <Tag color={color}>৳ {parseFloat(total).toFixed(2)}</Tag>
+                <Tag color={color}>৳ {Number(total).toFixed(2)}</Tag>
                 <Tag>{data.buckets[key].length} orders</Tag>
               </Space>
             ),
@@ -339,7 +339,7 @@ function CashFlowTab() {
       const end = dates?.[1] ? dayjs(dates[1]).format("YYYY-MM-DD") : "";
       const q = start && end ? `?start_date=${start}&end_date=${end}` : "";
       setData(await apiFetch(`/cash-flow${q}`));
-    } catch (e: any) { message.error(e.message); }
+    } catch (e: any) { if (e?.response?.status !== 403) message.error(e.message); }
     finally { setLoading(false); }
   };
   useEffect(() => { load(); }, []);
@@ -353,7 +353,7 @@ function CashFlowTab() {
       columns={[
         { title: "Code", dataIndex: "code", render: (c: string) => <code style={{ color: "#e11d48" }}>{c}</code> },
         { title: "Account", dataIndex: "account" },
-        { title: "Amount (৳)", dataIndex: "amount", align: "right" as const, render: (v: number) => <span style={{ color: isOutflow ? "#e11d48" : "#10b981" }}>{isOutflow ? "-" : "+"}{parseFloat(v).toFixed(2)}</span> },
+        { title: "Amount (৳)", dataIndex: "amount", align: "right" as const, render: (v: number) => <span style={{ color: isOutflow ? "#e11d48" : "#10b981" }}>{isOutflow ? "-" : "+"}{Number(v).toFixed(2)}</span> },
       ]}
     />
   );
@@ -379,8 +379,8 @@ function CashFlowTab() {
               <Col xs={12} md={6} key={label}>
                 <Card size="small">
                   <Statistic
-                    title={label} value={parseFloat(val).toFixed(2)} prefix={<>৳ {icon}</>}
-                    valueStyle={{ color: parseFloat(val) >= 0 ? "#10b981" : "#e11d48", fontSize: 18 }}
+                    title={label} value={Number(val).toFixed(2)} prefix={<>৳ {icon}</>}
+                    valueStyle={{ color: Number(val) >= 0 ? "#10b981" : "#e11d48", fontSize: 18 }}
                   />
                 </Card>
               </Col>
@@ -394,26 +394,26 @@ function CashFlowTab() {
             <b style={{ color: "#e11d48" }}>Outflows</b>
             {lineTable(data.operating.outflows, true)}
             <Divider />
-            <Row justify="space-between"><Text>Net Operating Cash Flow</Text><b style={{ color: parseFloat(data.operating.net) >= 0 ? "#10b981" : "#e11d48" }}>৳ {parseFloat(data.operating.net).toFixed(2)}</b></Row>
+            <Row justify="space-between"><Text>Net Operating Cash Flow</Text><b style={{ color: Number(data.operating.net) >= 0 ? "#10b981" : "#e11d48" }}>৳ {Number(data.operating.net).toFixed(2)}</b></Row>
           </Card>
 
           <Card title={<><BarChartOutlined /> Investing Activities</>}>
             {data.investing.lines.length > 0 ? lineTable(data.investing.lines) : <Empty description="No investing activities in this period" />}
             <Divider />
-            <Row justify="space-between"><Text>Net Investing Cash Flow</Text><b>৳ {parseFloat(data.investing.net).toFixed(2)}</b></Row>
+            <Row justify="space-between"><Text>Net Investing Cash Flow</Text><b>৳ {Number(data.investing.net).toFixed(2)}</b></Row>
           </Card>
 
           <Card title={<><BankOutlined /> Financing Activities</>}>
             {data.financing.lines.length > 0 ? lineTable(data.financing.lines) : <Empty description="No financing activities in this period" />}
             <Divider />
-            <Row justify="space-between"><Text>Net Financing Cash Flow</Text><b>৳ {parseFloat(data.financing.net).toFixed(2)}</b></Row>
+            <Row justify="space-between"><Text>Net Financing Cash Flow</Text><b>৳ {Number(data.financing.net).toFixed(2)}</b></Row>
           </Card>
 
           <Card>
             <Row justify="space-between" align="middle">
               <Title level={4} style={{ margin: 0 }}>Net Change in Cash</Title>
-              <Title level={3} style={{ margin: 0, color: parseFloat(data.net_cash_change) >= 0 ? "#10b981" : "#e11d48" }}>
-                ৳ {parseFloat(data.net_cash_change).toFixed(2)}
+              <Title level={3} style={{ margin: 0, color: Number(data.net_cash_change) >= 0 ? "#10b981" : "#e11d48" }}>
+                ৳ {Number(data.net_cash_change).toFixed(2)}
               </Title>
             </Row>
           </Card>
@@ -458,7 +458,7 @@ function BankReconciliationTab() {
       ]);
       setBankAccounts(accs);
       setLedgerAccounts(ledger);
-    } catch (e: any) { message.error(e.message); }
+    } catch (e: any) { if (e?.response?.status !== 403) message.error(e.message); }
     finally { setLoading(false); }
   };
 
@@ -475,7 +475,7 @@ function BankReconciliationTab() {
       ]);
       setStatements(stmts);
       setReconStatus(status);
-    } catch (e: any) { message.error(e.message); }
+    } catch (e: any) { if (e?.response?.status !== 403) message.error(e.message); }
   };
 
   const selectStatement = async (stmt: any) => {
@@ -483,7 +483,7 @@ function BankReconciliationTab() {
     try {
       const txs = await apiFetch(`/bank-accounts/${selectedBank.id}/statements/${stmt.id}/transactions`);
       setTransactions(txs);
-    } catch (e: any) { message.error(e.message); }
+    } catch (e: any) { if (e?.response?.status !== 403) message.error(e.message); }
   };
 
   const handleCreateBank = async (vals: any) => {
@@ -491,7 +491,7 @@ function BankReconciliationTab() {
       await apiFetch("/bank-accounts", { method: "POST", body: JSON.stringify(vals) });
       message.success("Bank account registered.");
       setBankModal(false); bankForm.resetFields(); loadBankAccounts();
-    } catch (e: any) { message.error(e.message); }
+    } catch (e: any) { if (e?.response?.status !== 403) message.error(e.message); }
   };
 
   const handleUpdateBank = async (vals: any) => {
@@ -500,7 +500,7 @@ function BankReconciliationTab() {
       await apiFetch(`/bank-accounts/${editingBank.id}`, { method: "PUT", body: JSON.stringify(vals) });
       message.success("Bank account updated.");
       setEditBankModal(false); editBankForm.resetFields(); setEditingBank(null); loadBankAccounts();
-    } catch (e: any) { message.error(e.message); }
+    } catch (e: any) { if (e?.response?.status !== 403) message.error(e.message); }
   };
 
   const handleCreateStatement = async (vals: any) => {
@@ -513,7 +513,7 @@ function BankReconciliationTab() {
       await apiFetch(`/bank-accounts/${selectedBank.id}/statements`, { method: "POST", body: JSON.stringify(payload) });
       message.success("Statement period created.");
       setStatementModal(false); statementForm.resetFields(); selectBank(selectedBank);
-    } catch (e: any) { message.error(e.message); }
+    } catch (e: any) { if (e?.response?.status !== 403) message.error(e.message); }
   };
 
   const handleAddTx = async (vals: any) => {
@@ -528,7 +528,7 @@ function BankReconciliationTab() {
         { method: "POST", body: JSON.stringify(payload) });
       message.success("Transaction added.");
       setTxModal(false); txForm.resetFields(); selectStatement(selectedStatement);
-    } catch (e: any) { message.error(e.message); }
+    } catch (e: any) { if (e?.response?.status !== 403) message.error(e.message); }
   };
 
   const handleReconcile = async () => {
@@ -542,7 +542,7 @@ function BankReconciliationTab() {
       setReconModal(false); setLedgerEntryId("");
       selectStatement(selectedStatement);
       selectBank(selectedBank);
-    } catch (e: any) { message.error(e.message); }
+    } catch (e: any) { if (e?.response?.status !== 403) message.error(e.message); }
   };
 
   const PROVIDERS = [
@@ -565,7 +565,7 @@ function BankReconciliationTab() {
     { title: "Date", dataIndex: "transaction_date" },
     { title: "Description", dataIndex: "description" },
     { title: "Type", dataIndex: "transaction_type", render: (t: string) => <Tag color={t === "credit" ? "green" : "red"}>{t === "credit" ? "â†‘ IN" : "â†“ OUT"}</Tag> },
-    { title: "Amount (৳)", dataIndex: "amount", align: "right" as const, render: (v: number) => <b>{parseFloat(v).toFixed(2)}</b> },
+    { title: "Amount (৳)", dataIndex: "amount", align: "right" as const, render: (v: number) => <b>{Number(v).toFixed(2)}</b> },
     { title: "Reference", dataIndex: "reference", render: (v: string) => v || "â€”" },
     { title: "Status", dataIndex: "is_reconciled", render: (v: boolean) => v ? <Badge status="success" text="Reconciled" /> : <Badge status="warning" text="Pending" /> },
     {
@@ -616,7 +616,7 @@ function BankReconciliationTab() {
                 </Row>
                 <Text type="secondary" style={{ fontSize: 12 }}>{ba.account_number}</Text>
                 <Text style={{ fontSize: 12 }}>Ledger: <code style={{ color: "#e11d48" }}>{ba.ledger_account_code}</code></Text>
-                <Text style={{ fontSize: 12 }}>Opening: ৳{parseFloat(ba.opening_balance).toFixed(2)}</Text>
+                <Text style={{ fontSize: 12 }}>Opening: ৳{Number(ba.opening_balance).toFixed(2)}</Text>
               </Space>
             </Card>
           </Col>
@@ -659,7 +659,7 @@ function BankReconciliationTab() {
               >
                 <List.Item.Meta
                   title={`${s.period_start} â†’ ${s.period_end}`}
-                  description={`Opening: ৳${parseFloat(s.opening_balance).toFixed(2)} | Closing: ৳${parseFloat(s.closing_balance).toFixed(2)} | ${s.total_transactions} transactions`}
+                  description={`Opening: ৳${Number(s.opening_balance).toFixed(2)} | Closing: ৳${Number(s.closing_balance).toFixed(2)} | ${s.total_transactions} transactions`}
                 />
               </List.Item>
             )}
@@ -749,7 +749,7 @@ function BankReconciliationTab() {
           <Space direction="vertical" style={{ width: "100%" }}>
             <Alert
               type="info"
-              message={`Bank Transaction: ${selectedBankTx.transaction_type === "credit" ? "â†‘" : "â†“"} ৳${parseFloat(selectedBankTx.amount).toFixed(2)} â€” ${selectedBankTx.description}`}
+              message={`Bank Transaction: ${selectedBankTx.transaction_type === "credit" ? "â†‘" : "â†“"} ৳${Number(selectedBankTx.amount).toFixed(2)} â€” ${selectedBankTx.description}`}
             />
             <Form layout="vertical">
               <Form.Item label="Ledger Entry ID" help="Enter the ledger Entry ID to match against this bank transaction">

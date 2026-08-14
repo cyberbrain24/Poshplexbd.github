@@ -19,7 +19,7 @@ const { Option } = Select;
 const { TabPane } = Tabs;
 
 function authHeaders() {
-  const token = localStorage.getItem("poshplex_token") || "admin_imran";
+  const token = localStorage.getItem("poshplex_access_token");
   return { Authorization: `Bearer ${token}` };
 }
 
@@ -271,7 +271,7 @@ const PrintFilesLibrary: React.FC = () => {
             <Col key={file.id} xs={12} sm={8} md={6} lg={4} xl={3} style={{ minWidth: 140 }}>
               <Card
                 hoverable
-                bodyStyle={{ padding: 0 }}
+                styles={{ body: { padding: 0 } }}
                 style={{
                   borderRadius: 8,
                   overflow: "hidden",
@@ -665,7 +665,7 @@ const PreparePrint: React.FC = () => {
   const downloadPdf = async (listId: number, listName: string) => {
     setDownloadingPdf(listId);
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       const response = await fetch(`${API}/lists/${listId}/pdf`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -766,7 +766,7 @@ const PreparePrint: React.FC = () => {
           <Col xs={24} lg={14}>
             <Card
               title={<Space><SearchOutlined /><span>Filter Orders</span></Space>}
-              bordered={false}
+              variant='borderless'
               style={{ background: "var(--bg-secondary)" }}
               extra={
                 <Button icon={<ReloadOutlined />} onClick={fetchOrderItems} loading={loadingOrderItems} size="small">
@@ -845,7 +845,7 @@ const PreparePrint: React.FC = () => {
 
             <Card
               title={<Space><AppstoreOutlined /><span>Add Print File by Search</span></Space>}
-              bordered={false}
+              variant='borderless'
               style={{ background: "var(--bg-secondary)", marginTop: 12 }}
             >
               <Input.Search
@@ -908,7 +908,7 @@ const PreparePrint: React.FC = () => {
                   <Badge count={buildItems.length} color="purple" />
                 </Space>
               }
-              bordered={false}
+              variant='borderless'
               style={{ background: "var(--bg-secondary)", position: "sticky", top: 20 }}
               extra={
                 <Button
@@ -1016,7 +1016,7 @@ const PreparePrint: React.FC = () => {
       {mode === "saved" && (
         <Card
           title={<Space><OrderedListOutlined style={{ color: "var(--accent-purple)" }} /><span>Saved Print Lists</span></Space>}
-          bordered={false}
+          variant='borderless'
           style={{ background: "var(--bg-secondary)" }}
           extra={
             <Button icon={<ReloadOutlined />} onClick={fetchSavedLists} loading={loadingLists} size="small">

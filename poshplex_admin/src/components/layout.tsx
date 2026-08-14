@@ -1,13 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Layout, Menu, Button, Avatar, Space, Drawer } from "antd";
 import {
   DashboardOutlined, ShoppingCartOutlined, AppstoreOutlined, AuditOutlined,
   TeamOutlined, ApiOutlined, FolderOpenOutlined, LogoutOutlined, UserOutlined,
   CarOutlined, GiftOutlined, SoundOutlined, SettingOutlined, PrinterOutlined,
-  MenuOutlined, EllipsisOutlined, PictureOutlined, DesktopOutlined
+  MenuOutlined, EllipsisOutlined, PictureOutlined, DesktopOutlined, CheckSquareOutlined
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useLogout, useGetIdentity } from "@refinedev/core";
+import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
+
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_SERVER_URL || 'http://localhost:8000') + "/api/v1";
 
 const { Header, Sider, Content } = Layout;
 
@@ -17,31 +21,67 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
   const { mutate: logout } = useLogout();
   const { data: identity } = useGetIdentity<any>();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const queryClient = useQueryClient();
 
-  const menuItems = [
-    { key: "/", icon: <DashboardOutlined />, label: "Dashboard" },
-    { key: "/orders", icon: <ShoppingCartOutlined />, label: "Orders Queue" },
-    { key: "/printing", icon: <PrinterOutlined />, label: "Printing Queue" },
-    { key: "/fulfillment", icon: <CarOutlined />, label: "Fulfillment Queue" },
-    { key: "/crm", icon: <TeamOutlined />, label: "CRM Profiles" },
-    { key: "/catalog", icon: <AppstoreOutlined />, label: "Catalog Manager" },
-    { key: "/promo-codes", icon: <GiftOutlined />, label: "Promo Codes" },
-    { key: "/finance", icon: <AuditOutlined />, label: "Financial Ledger" },
-    { key: "/integrations", icon: <ApiOutlined />, label: "Integration Setup" },
-    { key: "/media", icon: <FolderOpenOutlined />, label: "Media Library" },
-    { key: "/music", icon: <SoundOutlined />, label: "Music Library" },
-    { key: "/image-optimizer", icon: <PictureOutlined />, label: "Image Optimizer" },
-    { key: "/settings", icon: <SettingOutlined />, label: "Site Settings" },
-    { key: "/system-monitor", icon: <DesktopOutlined />, label: "System Monitor" },
+  useEffect(() => {
+    const token = localStorage.getItem("poshplex_access_token");
+    if (token) {
+      axios.get(`${API_URL}/core/me`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(({ data }) => {
+          const old = localStorage.getItem("poshplex_user");
+          const oldObj = old ? JSON.parse(old) : null;
+          
+          // Simple deep comparison for permissions
+          const oldPerms = oldObj?.permissions ? JSON.stringify(oldObj.permissions) : "";
+          const newPerms = data?.permissions ? JSON.stringify(data.permissions) : "";
+          
+          if (oldPerms !== newPerms || oldObj?.role_name !== data?.role_name) {
+            localStorage.setItem("poshplex_user", JSON.stringify(data));
+            window.location.reload();
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
+
+  const checkAccess = (module: string | null) => {
+    if (!module) return true;
+    if (!identity) return false;
+    if (identity.permissions?.superuser) return true;
+    if (!identity.permissions && identity.role === 'admin') return true;
+    return !!identity.permissions?.[module]?.view;
+  };
+
+  const rawMenuItems = [
+    { key: "/", icon: <DashboardOutlined />, label: "Dashboard", module: null },
+    { key: "/orders", icon: <ShoppingCartOutlined />, label: "Orders Queue", module: "orders" },
+    { key: "/printing", icon: <PrinterOutlined />, label: "Printing Queue", module: "orders" },
+    { key: "/fulfillment", icon: <CarOutlined />, label: "Fulfillment Queue", module: "orders" },
+    { key: "/crm", icon: <TeamOutlined />, label: "CRM Profiles", module: "crm" },
+    { key: "/catalog", icon: <AppstoreOutlined />, label: "Catalog Manager", module: "catalog" },
+    { key: "/promo-codes", icon: <GiftOutlined />, label: "Promo Codes", module: "marketing" },
+    { key: "/finance", icon: <AuditOutlined />, label: "Financial Ledger", module: "finance" },
+    { key: "/tasks", icon: <CheckSquareOutlined />, label: "Task Management", module: "tasks" },
+    { key: "/integrations", icon: <ApiOutlined />, label: "Integration Setup", module: "core" },
+    { key: "/media", icon: <FolderOpenOutlined />, label: "Media Library", module: "media" },
+    { key: "/music", icon: <SoundOutlined />, label: "Music Library", module: "music" },
+    { key: "/image-optimizer", icon: <PictureOutlined />, label: "Image Optimizer", module: "media" },
+    { key: "/settings", icon: <SettingOutlined />, label: "Site Settings", module: "core" },
+    { key: "/system-monitor", icon: <DesktopOutlined />, label: "System Monitor", module: "core" },
+    { key: "/roles", icon: <TeamOutlined />, label: "Roles & Permissions", module: "core" },
+    { key: "/staff", icon: <UserOutlined />, label: "Staff Profiles", module: "core" },
   ];
 
-  const bottomNavItems = [
-    { key: "/", icon: <DashboardOutlined />, label: "Dashboard" },
-    { key: "/orders", icon: <ShoppingCartOutlined />, label: "Orders" },
-    { key: "/fulfillment", icon: <CarOutlined />, label: "Fulfill" },
-    { key: "/crm", icon: <TeamOutlined />, label: "CRM" },
-    { key: "/catalog", icon: <AppstoreOutlined />, label: "Catalog" },
+  const rawBottomNavItems = [
+    { key: "/", icon: <DashboardOutlined />, label: "Dashboard", module: null },
+    { key: "/orders", icon: <ShoppingCartOutlined />, label: "Orders", module: "orders" },
+    { key: "/fulfillment", icon: <CarOutlined />, label: "Fulfill", module: "orders" },
+    { key: "/crm", icon: <TeamOutlined />, label: "CRM", module: "crm" },
+    { key: "/catalog", icon: <AppstoreOutlined />, label: "Catalog", module: "catalog" },
   ];
+
+  const menuItems = rawMenuItems.filter(item => checkAccess(item.module)).map(item => ({ key: item.key, icon: item.icon, label: item.label }));
+  const bottomNavItems = rawBottomNavItems.filter(item => checkAccess(item.module)).map(item => ({ key: item.key, icon: item.icon, label: item.label }));
 
   const isActive = (key: string) => location.pathname === key;
 

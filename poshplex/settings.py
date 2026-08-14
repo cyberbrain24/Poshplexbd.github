@@ -9,7 +9,7 @@ env = environ.Env(
     REDIS_URL=(str, ''),
     CORS_ALLOWED_ORIGINS=(list, ['http://localhost:3000', 'http://localhost:3001']),
     RATE_LIMIT_PER_MINUTE=(int, 100),
-    JWT_EXPIRATION_HOURS=(int, 72),
+    JWT_EXPIRATION_MINUTES=(int, 4320),
     JWT_REFRESH_EXPIRATION_DAYS=(int, 7),
 )
 
@@ -24,6 +24,7 @@ if env_file.exists():
 SECRET_KEY = env('SECRET_KEY')
 
 DEBUG = env('DEBUG')
+APPEND_SLASH = False  # Django-Ninja APIs do not use Django URL patterns; disable redirect-on-missing-slash
 
 ALLOWED_HOSTS = env('ALLOWED_HOSTS')
 
@@ -48,6 +49,7 @@ INSTALLED_APPS = [
     'apps.printing.apps.PrintingConfig',
     'apps.image_optimizer.apps.ImageOptimizerConfig',
     'apps.monitor.apps.MonitorConfig',
+    'apps.tasks.apps.TasksConfig',
 ]
 
 MIDDLEWARE = [
@@ -137,7 +139,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # JWT CONFIGURATION
 # --------------------------
 JWT_SECRET_KEY = SECRET_KEY  # Uses the main secret key by default
-JWT_EXPIRATION_MINUTES = env('JWT_EXPIRATION_MINUTES', default=15)
+JWT_EXPIRATION_MINUTES = env('JWT_EXPIRATION_MINUTES')  # Default 4320 min = 72 hours (defined in Env schema above)
 JWT_REFRESH_EXPIRATION_DAYS = env('JWT_REFRESH_EXPIRATION_DAYS')
 
 # --------------------------
@@ -216,5 +218,6 @@ else:
             'LOCATION': 'poshplex-cache',
         }
     }
+
 
 

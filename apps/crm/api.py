@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.db.models import Q, Sum, Avg, Count
+from django.db.models import Q, Sum, Avg
 from django.utils import timezone
 from ninja import Router, Schema
 from ninja.errors import HttpError
@@ -234,10 +234,6 @@ def update_my_customer_profile(request, data: CustomerProfileUpdateSchema):
         
     return compile_customer_response(profile)
 
-import os
-from django.conf import settings
-from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
 from ninja import File
 from ninja.files import UploadedFile
 

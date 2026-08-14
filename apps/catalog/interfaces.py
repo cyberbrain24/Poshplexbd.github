@@ -1,4 +1,3 @@
-from decimal import Decimal
 from typing import Optional
 from apps.catalog.models import ProductVariant
 

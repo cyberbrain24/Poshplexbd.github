@@ -1,6 +1,6 @@
 from decimal import Decimal
 from django.db.models import Sum, Q
-from apps.finance.models import Account, Entry, Transaction
+from apps.finance.models import Account, Entry
 import datetime
 
 

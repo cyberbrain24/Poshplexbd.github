@@ -9,7 +9,7 @@ from ninja.files import UploadedFile
 from ninja.errors import HttpError
 
 from apps.catalog.models import Category, ProductAttribute, Product, ProductVariant, Brand, SizeGuideTemplate, CareInstructionsTemplate, ProductImage, Review
-from apps.catalog.services import get_cached_category_tree, create_product, create_product_variant, duplicate_product, import_products_from_csv
+from apps.catalog.services import get_cached_category_tree, duplicate_product, import_products_from_csv
 from apps.catalog.selectors import get_product_details
 from apps.core.api import BearerAuth, enforce_permission
 
@@ -159,7 +159,6 @@ def list_products(
     """List products with advanced filtering, debounced search, and pagination."""
     # Generate cache key based on query parameters
     from django.core.cache import cache
-    import json
     
     cache_key = f"products_list_{search}_{category_id}_{brand_id}_{is_active}_{page}_{limit}"
     cached_data = cache.get(cache_key)
@@ -943,9 +942,7 @@ class ReviewModerationSchema(Schema):
     images: Optional[List[str]] = None
 
 import os
-from django.conf import settings
 from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
 
 @router.post("/reviews/upload-photo", auth=BearerAuth())
 def upload_review_photo(request, file: UploadedFile = File(...)):

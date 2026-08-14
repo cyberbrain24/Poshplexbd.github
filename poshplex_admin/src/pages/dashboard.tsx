@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { Row, Col, Card, Statistic, Space, Spin, Alert } from "antd";
 import { ArrowUpOutlined, ArrowDownOutlined, AccountBookOutlined, ShoppingCartOutlined, DollarOutlined, RiseOutlined } from "@ant-design/icons";
 import { useList } from "@refinedev/core";
@@ -41,7 +41,9 @@ export const Dashboard: React.FC = () => {
   if (isLoading) {
     return (
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
-        <Spin size="large" tip="Loading Poshplex Business Intelligence Hub..." />
+        <Spin size="large" tip="Loading Poshplex Business Intelligence Hub...">
+          <div style={{ padding: 50 }} />
+        </Spin>
       </div>
     );
   }

@@ -41,7 +41,7 @@ export const MediaLibrary: React.FC = () => {
 
   const handleDelete = async (id: number) => {
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = localStorage.getItem("poshplex_access_token");
       await axios.delete(`${(import.meta.env.VITE_SERVER_URL || 'http://localhost:8000')}/api/v1/core/media/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });

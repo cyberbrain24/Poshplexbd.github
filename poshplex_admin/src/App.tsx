@@ -4,7 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom
 import { ConfigProvider, theme } from "antd";
 
 import { dataProvider } from "./providers/dataProvider";
-import { authProvider } from "./providers/authProvider";
+import { authProvider, accessControlProvider } from "./providers/authProvider";
 import CustomLayout from "./components/layout";
 import Dashboard from "./pages/dashboard";
 import Catalog from "./pages/catalog";
@@ -21,6 +21,9 @@ import SettingsPage from "./pages/settings";
 import PrintingQueue from "./pages/printing";
 import ImageOptimizer from "./pages/imageOptimizer";
 import SystemMonitor from "./pages/system-monitor";
+import RolesPage from "./pages/roles";
+import StaffPage from "./pages/staff";
+import TasksPage from "./pages/tasks";
 
 // Curated administrative dark-theme tokens matching streetwear aesthetics
 const customTheme = {
@@ -44,6 +47,7 @@ export const App: React.FC = () => {
           <Refine
             dataProvider={dataProvider}
             authProvider={authProvider}
+            accessControlProvider={accessControlProvider}
             options={{ syncWithLocation: true }}
           >
             <Routes>
@@ -70,10 +74,13 @@ export const App: React.FC = () => {
                 <Route path="/integrations" element={<Integrations />} />
                 <Route path="/media" element={<MediaLibrary />} />
                 <Route path="/music" element={<MusicLibrary />} />
+                <Route path="/tasks" element={<TasksPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/printing" element={<PrintingQueue />} />
                 <Route path="/image-optimizer" element={<ImageOptimizer />} />
                 <Route path="/system-monitor" element={<SystemMonitor />} />
+                <Route path="/roles" element={<RolesPage />} />
+                <Route path="/staff" element={<StaffPage />} />
               </Route>
               
               {/* Fallbacks */}

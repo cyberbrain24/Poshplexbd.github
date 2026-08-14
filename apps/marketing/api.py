@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError
 from django.utils import timezone
-from django.db.models import Q
+
 from ninja import Router, Schema
 from ninja.errors import HttpError
 from apps.marketing.models import PromoCode, PromoUsageHistory

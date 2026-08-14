@@ -1,15 +1,15 @@
 # pyright: reportAttributeAccessIssue=false, reportCallIssue=false, reportGeneralTypeIssues=false, reportOperatorIssue=false, reportArgumentType=false
-from typing import List, Dict, Any, Optional
+from typing import List, Any, Optional
 from decimal import Decimal
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.db.models import Q, Sum
+from django.db.models import Q
 from ninja import Router, Schema
 from ninja.errors import HttpError
 
-from apps.orders.models import Order, OrderItem, OrderStatusHistory, Payment, ReturnRequest
+from apps.orders.models import Order, OrderItem, OrderStatusHistory
 from apps.orders.services import (
     create_order, record_order_payment, process_return,
 )

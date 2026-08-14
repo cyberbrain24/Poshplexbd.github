@@ -24,7 +24,7 @@ export const MusicLibrary: React.FC = () => {
   const [audioUrl, setAudioUrl] = useState<string>("");
   const [audioUploading, setAudioUploading] = useState(false);
 
-  const token = localStorage.getItem("poshplex_token") || "admin_imran";
+  const token = localStorage.getItem("poshplex_access_token");
 
   // Load Tracks
   const fetchTracks = async () => {
@@ -98,9 +98,7 @@ export const MusicLibrary: React.FC = () => {
       });
       message.success("Track status toggled.");
       fetchTracks();
-    } catch (err) {
-      message.error("Failed to update status.");
-    }
+    } catch (err: any) { if (err?.response?.status !== 403) message.error("Failed to update status."); }
   };
 
   // Delete Track
@@ -117,9 +115,7 @@ export const MusicLibrary: React.FC = () => {
           });
           message.success("Track deleted successfully.");
           fetchTracks();
-        } catch (err) {
-          message.error("Failed to delete track.");
-        }
+        } catch (err: any) { if (err?.response?.status !== 403) message.error("Failed to delete track."); }
       }
     });
   };
@@ -148,9 +144,7 @@ export const MusicLibrary: React.FC = () => {
       form.resetFields();
       setAudioUrl("");
       fetchTracks();
-    } catch (err) {
-      message.error("Failed to save track parameters.");
-    }
+    } catch (err: any) { if (err?.response?.status !== 403) message.error("Failed to save track parameters."); }
   };
 
   const uploadAudioFile = async (options: any) => {
@@ -203,7 +197,7 @@ export const MusicLibrary: React.FC = () => {
       </div>
 
       {/* Tracks Grid Table */}
-      <Card bordered={false}>
+      <Card variant='borderless'>
         <Table scroll={{ x: 'max-content' }}
           loading={loading}
           dataSource={tracks}

@@ -136,7 +136,7 @@ export const authProvider: AuthProvider = {
   },
   onError: async (error) => {
     const status = error?.response?.status || error?.status;
-    if (status === 401 || status === 403) {
+    if (status === 401) {
       return {
         logout: true,
         redirectTo: "/login"
@@ -144,4 +144,31 @@ export const authProvider: AuthProvider = {
     }
     return {};
   }
+};
+
+export const accessControlProvider = {
+  can: async ({ resource, action }: { resource?: string, action: string }) => {
+    if (!resource) return { can: true };
+    const userStr = localStorage.getItem("poshplex_user");
+    if (!userStr) return { can: false };
+    
+    const user = JSON.parse(userStr);
+    
+    // Superadmin bypass
+    if (user.permissions && user.permissions.superuser) {
+        return { can: true };
+    }
+    
+    // Check JSON matrix
+    const hasAccess = user?.permissions?.[resource]?.[action];
+    
+    // Default to true for backward compatibility if permissions matrix is completely missing (e.g. old admin login)
+    if (!user.permissions && user.role === 'admin') {
+      return { can: true };
+    }
+    
+    return {
+        can: !!hasAccess,
+    };
+  },
 };

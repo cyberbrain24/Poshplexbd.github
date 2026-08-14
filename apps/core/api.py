@@ -1,13 +1,7 @@
-# Fix #1: JWT Auth — core/api.py (complete rewrite of auth + settings auth + audit pagination)
-# Fix #5: Add auth to GET /settings
-# Fix #17: Add page param to audit logs
-
 from typing import List, Dict, Any, Optional
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
-from django.contrib.contenttypes.models import ContentType
-from django.contrib.auth.hashers import check_password
 from django.conf import settings as django_settings
 from django.db.models import Q
 from ninja import Router, Schema, File
@@ -18,8 +12,7 @@ import datetime
 from ninja.security import HttpBearer
 from ninja.errors import HttpError
 
-from apps.core.models import SiteSetting, AuditLog, MediaAsset, MediaUsage
-from apps.core.middleware import get_current_user
+from apps.core.models import SiteSetting, AuditLog, MediaAsset
 
 router = Router()
 User = get_user_model()
@@ -74,10 +67,6 @@ class BearerAuth(HttpBearer):
         Decodes the token, verifies the signature and expiry,
         and returns the associated User object.
         """
-        print("BEARER TOKEN RECEIVED IN BACKEND AUTH:", repr(token))
-        if token == "admin_imran":
-            return User.objects.filter(role="admin").first() or User.objects.filter(is_superuser=True).first()
-
         try:
             payload = decode_jwt_token(token)
             if payload.get('type') != 'access':
@@ -94,6 +83,20 @@ def enforce_permission(request, module_name: str, action: str):
     user = request.auth
     if not user:
         raise HttpError(401, "Unauthorized: User context required.")
+        
+    # Dynamically enforce REST actions based on HTTP methods.
+    # This prevents users with only "view" privileges from being blocked on GET routes
+    # that mistakenly check for "edit_catalog" or "manage_campaigns".
+    method = getattr(request, 'method', '').upper()
+    if method == 'GET':
+        action = 'view'
+    elif method == 'POST':
+        action = 'create'
+    elif method in ('PUT', 'PATCH'):
+        action = 'edit'
+    elif method == 'DELETE':
+        action = 'delete'
+        
     if not user.has_module_permission(module_name, action):
         raise HttpError(403, f"Forbidden: Insufficient privileges for action {module_name}.{action}")
 
@@ -173,16 +176,25 @@ def login(request, data: LoginSchema, response: HttpResponse):
     if not user.check_password(data.password):
         raise HttpError(401, "Invalid username or password.")
 
+    user_data = {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "role": user.role,
+    }
+    
+    # Add permissions matrix if they are staff
+    if hasattr(user, 'staff_profile') and user.staff_profile and user.staff_profile.role:
+        user_data['role_name'] = user.staff_profile.role.name
+        user_data['permissions'] = user.staff_profile.role.permissions
+    elif user.is_superuser:
+        user_data['permissions'] = {'superuser': True}
+
     tokens = generate_jwt_token(user)
     set_refresh_cookie(response, tokens['refresh_token'])
     return {
         "access_token": tokens['access_token'],
-        "user": {
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
-            "role": user.role,
-        }
+        "user": user_data
     }
 
 @router.post("/register", response=TokenResponseSchema)
@@ -360,12 +372,6 @@ def customer_login(request, data: CustomerLoginSchema, response: HttpResponse):
         }
     }
 
-class CustomerRegisterSchema(Schema):
-    full_name: str
-    phone_or_email: str
-    password: str
-    birthdate: str = None
-
 @router.post("/customer-register", response=TokenResponseSchema)
 def customer_register(request, data: CustomerRegisterSchema, response: HttpResponse):
     """Register storefront customer and automatically setup profile."""
@@ -519,10 +525,22 @@ def logout(request, response: HttpResponse):
 
 # --- Protected Endpoints ---
 
-@router.get("/me", response=UserSchema, auth=BearerAuth())
+@router.get("/me", auth=BearerAuth())
 def get_me(request):
-    """Get profile of current authenticated user."""
-    return request.auth
+    """Get profile of current authenticated user, including permissions."""
+    user = request.auth
+    user_data = {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "role": user.role,
+    }
+    if hasattr(user, 'staff_profile') and user.staff_profile and user.staff_profile.role:
+        user_data['role_name'] = user.staff_profile.role.name
+        user_data['permissions'] = user.staff_profile.role.permissions
+    elif user.is_superuser:
+        user_data['permissions'] = {'superuser': True}
+    return user_data
 
 @router.get("/settings", response=List[SiteSettingSchema], auth=BearerAuth())
 def list_settings(request):
@@ -534,7 +552,7 @@ def get_setting(request, key: str):
     """Retrieve value of a specific setting key (Requires authentication)."""
     val = SiteSetting.get_value(key)
     if val is None:
-        raise HttpError(404, f"Setting key '{key}' not found.")
+        return {"key": key, "value": {}}
     setting = SiteSetting.objects.get(key=key)
     return setting
 
@@ -573,7 +591,7 @@ def get_audit_logs(request, page: int = 1, limit: int = 50):
 @router.get("/media", response=List[MediaAssetSchema], auth=BearerAuth())
 def list_media(request):
     """List all media assets."""
-    enforce_permission(request, "catalog", "edit_catalog")
+    enforce_permission(request, "media", "view")
     assets = MediaAsset.objects.all().order_by('-created_at')
     res = []
     for asset in assets:
@@ -594,7 +612,7 @@ def list_media(request):
 @router.post("/media", response=MediaAssetSchema, auth=BearerAuth())
 def upload_media(request, file: UploadedFile = File(...)):
     """Upload asset into the central media library."""
-    enforce_permission(request, "catalog", "edit_catalog")
+    enforce_permission(request, "media", "create")
     
     mime_type = file.content_type or 'application/octet-stream'
     if file.name.lower().endswith('.webp'):
@@ -650,7 +668,7 @@ def upload_media(request, file: UploadedFile = File(...)):
 @router.delete("/media/{asset_id}", auth=BearerAuth())
 def delete_media(request, asset_id: int):
     """Delete a media asset."""
-    enforce_permission(request, "catalog", "edit_catalog")
+    enforce_permission(request, "media", "delete")
     asset = get_object_or_404(MediaAsset, id=asset_id)
     
     # Check for active references before deleting
@@ -669,4 +687,128 @@ def delete_media(request, asset_id: int):
     if asset.file:
         asset.file.delete(save=False)
     asset.delete()
+    return {"success": True}
+
+# --- Roles and Staff Endpoints ---
+class RoleSchema(Schema):
+    id: int
+    name: str
+    description: Optional[str] = None
+    permissions: Dict[str, Any]
+    created_at: Any
+
+class RoleInputSchema(Schema):
+    name: str
+    description: Optional[str] = None
+    permissions: Dict[str, Any]
+
+class StaffProfileSchema(Schema):
+    id: int
+    user_id: int
+    username: str
+    role_id: Optional[int]
+    role_name: Optional[str]
+    internal_notes: Optional[str] = None
+    created_at: Any
+
+class StaffProfileInputSchema(Schema):
+    name: str
+    username: str
+    password: Optional[str] = None
+    role_id: Optional[int] = None
+    internal_notes: Optional[str] = None
+
+from apps.core.models import Role, StaffProfile
+
+@router.get("/roles", response=List[RoleSchema], auth=BearerAuth())
+def list_roles(request):
+    enforce_permission(request, "core", "view")
+    return list(Role.objects.all())
+
+@router.post("/roles", response=RoleSchema, auth=BearerAuth())
+def create_role(request, data: RoleInputSchema):
+    enforce_permission(request, "core", "edit")
+    role = Role.objects.create(**data.dict())
+    return role
+
+@router.put("/roles/{role_id}", response=RoleSchema, auth=BearerAuth())
+def update_role(request, role_id: int, data: RoleInputSchema):
+    enforce_permission(request, "core", "edit")
+    role = get_object_or_404(Role, id=role_id)
+    for key, value in data.dict().items():
+        setattr(role, key, value)
+    role.save()
+    return role
+
+@router.delete("/roles/{role_id}", auth=BearerAuth())
+def delete_role(request, role_id: int):
+    enforce_permission(request, "core", "edit")
+    role = get_object_or_404(Role, id=role_id)
+    if role.staff_members.exists():
+        raise HttpError(400, "Cannot delete role assigned to active staff.")
+    role.delete()
+    return {"success": True}
+
+def compile_staff_response(staff: StaffProfile):
+    return {
+        "id": staff.id,
+        "user_id": staff.user.id,
+        "username": staff.user.username,
+        "role_id": staff.role.id if staff.role else None,
+        "role_name": staff.role.name if staff.role else None,
+        "internal_notes": staff.internal_notes,
+        "created_at": staff.created_at
+    }
+
+@router.get("/staff", response=List[StaffProfileSchema], auth=BearerAuth())
+def list_staff(request):
+    enforce_permission(request, "core", "view")
+    return [compile_staff_response(s) for s in StaffProfile.objects.all()]
+
+@router.post("/staff", response=StaffProfileSchema, auth=BearerAuth())
+def create_staff(request, data: StaffProfileInputSchema):
+    enforce_permission(request, "core", "edit")
+    if User.objects.filter(username=data.username).exists():
+        raise HttpError(400, "Username already exists")
+    
+    from django.db import transaction
+    with transaction.atomic():
+        user = User.objects.create_user(
+            username=data.username,
+            first_name=data.name,
+            password=data.password,
+            role="admin"  # Staff marker
+        )
+        staff = StaffProfile.objects.create(
+            user=user,
+            role_id=data.role_id,
+            internal_notes=data.internal_notes
+        )
+    return compile_staff_response(staff)
+
+@router.put("/staff/{staff_id}", response=StaffProfileSchema, auth=BearerAuth())
+def update_staff(request, staff_id: int, data: StaffProfileInputSchema):
+    enforce_permission(request, "core", "edit")
+    staff = get_object_or_404(StaffProfile, id=staff_id)
+    
+    from django.db import transaction
+    with transaction.atomic():
+        staff.user.first_name = data.name
+        if data.password:
+            staff.user.set_password(data.password)
+        staff.user.save()
+        
+        staff.role_id = data.role_id
+        staff.internal_notes = data.internal_notes
+        staff.save()
+        
+    return compile_staff_response(staff)
+
+@router.delete("/staff/{staff_id}", auth=BearerAuth())
+def delete_staff(request, staff_id: int):
+    enforce_permission(request, "core", "edit")
+    staff = get_object_or_404(StaffProfile, id=staff_id)
+    if staff.user == request.auth:
+        raise HttpError(400, "Cannot delete yourself.")
+    staff.user.delete()
     return {"success": True}

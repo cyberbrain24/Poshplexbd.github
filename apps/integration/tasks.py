@@ -46,7 +46,6 @@ def drain_webhook_queue_task():
     Payloads from Meta (Instagram/Messenger) and TikTok are stored in the
     WebhookEvent table for review and future action.
     """
-    import django_redis
     from django.core.cache import cache
 
     redis_client = cache.client.get_client()

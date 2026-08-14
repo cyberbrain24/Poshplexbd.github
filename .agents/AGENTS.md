@@ -28,6 +28,12 @@ The production VPS code is NOT currently configured as a Git repository. Code sy
 - **Nginx Configuration:** The production Nginx config is located at `/etc/nginx/sites-available/poshplex` on the VPS. If you modify it, be sure to mirror the final version to `nginx.host.conf` in the local repository so it is backed up in version control.
 - **Database Drift:** Remember that the local SQLite database and production PostgreSQL database are entirely separate. Fixing a data issue (like a broken image URL saved in a `JSONField`) on the VPS will not fix it locally, and vice versa. Always clarify with the user which database you are operating on.
 
+## Role-Based Access Control (RBAC) & New Modules
+The Poshplex monolithic backend and admin panel are protected by a granular, module-based RBAC system.
+- **Backend (`apps.core.models.Role`):** Permissions are stored in a dynamic JSON matrix (e.g., `{"orders": {"view": true, "edit": false}}`).
+- **Endpoint Protection:** Any new administrative API endpoints MUST be protected using the `enforce_permission(request, module_name, action)` utility function from `apps.core.api`.
+- **Frontend Refine UI:** Any new pages or modules added to the `poshplex_admin` React SPA MUST be registered with the `accessControlProvider` (using `useCan` or native Refine access control properties) to ensure the UI correctly hides/shows based on the user's role.
+- **Do not bypass this system:** When building new modules, ALWAYS integrate them into the RBAC JSON matrix rather than creating separate or hardcoded permission logic.
 ## Docker Compose Architecture (Local vs Prod)
 - **`docker-compose.yml`**: This file is **strictly for production**. It does NOT contain local volume mounts (`.:/app`) that override the built images. It is pushed to the VPS.
 - **`docker-compose.override.yml`**: This file is **strictly for local development** and is `.gitignore`d. It contains the volume mounts to enable hot-reloading. When running `docker compose up` locally, Docker merges both files automatically.

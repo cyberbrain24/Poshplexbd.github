@@ -31,6 +31,8 @@ interface ErrorLog {
   user_agent?: string;
 }
 
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_SERVER_URL || 'http://localhost:8000') + "/api/v1";
+
 export const SystemMonitor: React.FC = () => {
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
   const [containers, setContainers] = useState<DockerContainer[]>([]);
@@ -42,9 +44,9 @@ export const SystemMonitor: React.FC = () => {
     setLoading(true);
     try {
       const [metricsRes, dockerRes, logsRes] = await Promise.all([
-        axios.get("/api/v1/monitor/metrics", { baseURL: import.meta.env.VITE_API_URL || (import.meta.env.VITE_SERVER_URL || 'http://localhost:8000') }),
-        axios.get("/api/v1/monitor/docker", { baseURL: import.meta.env.VITE_API_URL || (import.meta.env.VITE_SERVER_URL || 'http://localhost:8000') }),
-        axios.get("/api/v1/monitor/logs", { baseURL: import.meta.env.VITE_API_URL || (import.meta.env.VITE_SERVER_URL || 'http://localhost:8000') })
+        axios.get(API_URL + "/monitor/metrics"),
+        axios.get(API_URL + "/monitor/docker"),
+        axios.get(API_URL + "/monitor/logs")
       ]);
       setMetrics(metricsRes.data);
       if (dockerRes.data.success) {
@@ -201,7 +203,7 @@ export const SystemMonitor: React.FC = () => {
           <Card 
             title="Docker Containers" 
             style={{ background: "var(--bg-secondary)", borderColor: "var(--border-glass)", borderRadius: 12, height: "100%" }}
-            headStyle={{ borderBottom: "1px solid var(--border-glass)" }}
+            styles={{ header: { borderBottom: "1px solid var(--border-glass)" } }}
           >
             {containers.length === 0 ? (
               <div style={{ color: "var(--text-muted)", textAlign: "center", padding: "20px 0" }}>
@@ -238,8 +240,7 @@ export const SystemMonitor: React.FC = () => {
               </div>
             }
             style={{ background: "var(--bg-secondary)", borderColor: "var(--border-glass)", borderRadius: 12 }}
-            headStyle={{ borderBottom: "1px solid var(--border-glass)" }}
-            bodyStyle={{ padding: 0 }}
+            styles={{ header: { borderBottom: "1px solid var(--border-glass)" }, body: { padding: 0 } }}
           >
             <Table
               columns={columns}

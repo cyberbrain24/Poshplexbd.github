@@ -126,10 +126,13 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({ visible, order, 
       onCancel={onClose}
       footer={null}
       width={700}
-      bodyStyle={{ maxHeight: "70vh", overflowY: "auto" }}
+      styles={{ body: { maxHeight: "70vh", overflowY: "auto" } }}
     >
-      <Tabs activeKey={activeTab} onChange={setActiveTab}>
-        <Tabs.TabPane tab={<span><SyncOutlined /> Edit Products</span>} key="items">
+      <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
+        {
+          key: "items",
+          label: <span><SyncOutlined /> Edit Products</span>,
+          children: (
           <Form form={itemsForm} layout="vertical">
             <Form.List name="items">
               {(fields, { add, remove }) => (
@@ -178,9 +181,12 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({ visible, order, 
             </Form.List>
             <Button type="primary" onClick={handleUpdateItems} loading={loading} block>Save Product Changes</Button>
           </Form>
-        </Tabs.TabPane>
-        
-        <Tabs.TabPane tab={<span><DollarOutlined /> Receive Payment</span>} key="payment">
+          )
+        },
+        {
+          key: "payment",
+          label: <span><DollarOutlined /> Receive Payment</span>,
+          children: (
           <Form form={paymentForm} layout="vertical">
             <Row gutter={16}>
               <Col span={12}>
@@ -213,9 +219,12 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({ visible, order, 
             </Row>
             <Button type="primary" onClick={handleReceivePayment} loading={loading} block>Record Payment</Button>
           </Form>
-        </Tabs.TabPane>
-
-        <Tabs.TabPane tab={<span><ClockCircleOutlined /> Update Status</span>} key="status">
+          )
+        },
+        {
+          key: "status",
+          label: <span><ClockCircleOutlined /> Update Status</span>,
+          children: (
           <Form form={statusForm} layout="vertical">
             <Form.Item name="status" label="New Order Status" rules={[{ required: true }]}>
               <Select options={STATUS_CHOICES} />
@@ -225,8 +234,9 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({ visible, order, 
             </Form.Item>
             <Button type="primary" onClick={handleUpdateStatus} loading={loading} block>Update Status</Button>
           </Form>
-        </Tabs.TabPane>
-      </Tabs>
+          )
+        }
+      ]} />
 
       <Divider style={{ margin: "32px 0 16px 0" }} />
       <h3>Order Timeline</h3>

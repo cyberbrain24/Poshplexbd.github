@@ -7,7 +7,6 @@ from django.contrib.auth import get_user_model
 from apps.orders.models import Order, OrderItem, OrderStatusHistory, Payment, ReturnRequest
 from apps.catalog.interfaces import get_variant_details_by_sku
 from apps.finance.interfaces import record_sales_revenue, record_order_refund
-from apps.integration.interfaces import send_customer_sms
 from apps.crm.interfaces import get_customer_contact_info
 
 User = get_user_model()

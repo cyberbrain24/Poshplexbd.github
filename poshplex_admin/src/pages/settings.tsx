@@ -70,9 +70,7 @@ export const SettingsPage: React.FC = () => {
         { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
       );
       message.success(`${key.toUpperCase()} settings saved successfully!`);
-    } catch (err: any) {
-      message.error(err.message || "Failed to save settings");
-    } finally {
+    } catch (err: any) { if (err?.response?.status !== 403) message.error(err.message || "Failed to save settings"); } finally {
       setLoading(false);
     }
   };
@@ -140,6 +138,7 @@ export const SettingsPage: React.FC = () => {
         {
           key: "seo",
           label: <span><SearchOutlined /> SEO Optimization</span>,
+          forceRender: true,
           children: (
             <Row gutter={[24, 24]}>
               <Col xs={24} lg={16}>

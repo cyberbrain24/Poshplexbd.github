@@ -1,4 +1,3 @@
-import re
 from decimal import Decimal
 from django.core.management.base import BaseCommand
 from apps.orders.models import District, Thana
