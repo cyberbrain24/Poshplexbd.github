@@ -110,12 +110,12 @@ class RegisterSchema(Schema):
     role: Optional[str] = "customer"
 
 class CustomerLoginSchema(Schema):
-    phone: str
+    phone_or_email: str
     password: str
 
 class CustomerRegisterSchema(Schema):
     full_name: str
-    phone: str
+    phone_or_email: str
     birthdate: Optional[str] = None
     password: str
 
@@ -241,19 +241,112 @@ class ResetPasswordSchema(Schema):
     otp: str
     new_password: str
 
+class SocialLoginSchema(Schema):
+    provider: str
+    token: str
+
+@router.post("/social-login", response=TokenResponseSchema)
+def social_login(request, data: SocialLoginSchema, response: HttpResponse):
+    """Authenticate or register via Google/Facebook OAuth token."""
+    from apps.core.models import Setting
+    from apps.crm.models import CustomerProfile
+    import requests
+    from google.oauth2 import id_token
+    from google.auth.transport import requests as google_requests
+    import uuid
+    from django.db import transaction
+
+    # Fetch configured IDs
+    settings_obj = Setting.objects.filter(key="social_auth").first()
+    if not settings_obj or not settings_obj.value:
+        raise HttpError(500, "Social login is not configured on the server.")
+        
+    google_client_id = settings_obj.value.get("google_client_id", "")
+    facebook_app_id = settings_obj.value.get("facebook_app_id", "")
+
+    email = None
+    full_name = None
+
+    try:
+        if data.provider == "google":
+            if not google_client_id:
+                raise HttpError(500, "Google login is disabled.")
+            idinfo = id_token.verify_oauth2_token(data.token, google_requests.Request(), google_client_id)
+            email = idinfo.get("email")
+            full_name = idinfo.get("name", "Google User")
+            
+        elif data.provider == "facebook":
+            if not facebook_app_id:
+                raise HttpError(500, "Facebook login is disabled.")
+            fb_res = requests.get(f"https://graph.facebook.com/me?fields=id,name,email&access_token={data.token}")
+            if not fb_res.ok:
+                raise HttpError(401, "Invalid Facebook token.")
+            fb_data = fb_res.json()
+            email = fb_data.get("email")
+            full_name = fb_data.get("name", "Facebook User")
+        else:
+            raise HttpError(400, "Unsupported provider.")
+            
+        if not email:
+            raise HttpError(400, "Could not extract email from social provider.")
+
+        # Create or Get user
+        with transaction.atomic():
+            user = User.objects.filter(email=email).first()
+            if not user:
+                user = User.objects.create_user(
+                    username=f"social_{uuid.uuid4().hex[:8]}",
+                    first_name=full_name,
+                    email=email,
+                    password=uuid.uuid4().hex,
+                    role="customer",
+                )
+                
+            # Ensure CRM profile exists
+            dummy_phone = f"email_{uuid.uuid4().hex[:8]}"
+            CustomerProfile.objects.get_or_create(
+                user=user,
+                defaults={
+                    "phone": dummy_phone,
+                    "email": email,
+                    "gender": "unspecified",
+                    "membership_tier_id": 1
+                }
+            )
+
+        tokens = generate_jwt_token(user)
+        set_refresh_cookie(response, tokens['refresh_token'])
+        
+        return {
+            "access_token": tokens['access_token'],
+            "user": {
+                "id": user.id,
+                "username": user.first_name or user.username,
+                "email": user.email,
+                "role": user.role,
+            }
+        }
+    except ValueError as e:
+        raise HttpError(401, f"Token verification failed: {e}")
+    except Exception as e:
+        raise HttpError(400, str(e))
+
 
 
 @router.post("/customer-login", response=TokenResponseSchema)
 def customer_login(request, data: CustomerLoginSchema, response: HttpResponse):
-    """Authenticate storefront customer via phone and password."""
+    """Authenticate storefront customer via phone or email and password."""
     from apps.crm.models import CustomerProfile
-    profile = CustomerProfile.objects.filter(phone=data.phone).select_related('user').first()
-    if not profile:
-        raise HttpError(401, "Invalid phone number or password.")
-        
-    user = profile.user
-    if not user.check_password(data.password):
-        raise HttpError(401, "Invalid phone number or password.")
+    
+    if "@" in data.phone_or_email:
+        user = User.objects.filter(email=data.phone_or_email).first()
+        if not user or not user.check_password(data.password):
+            raise HttpError(401, "Invalid email or password.")
+    else:
+        profile = CustomerProfile.objects.filter(phone=data.phone_or_email).select_related('user').first()
+        if not profile or not profile.user.check_password(data.password):
+            raise HttpError(401, "Invalid phone number or password.")
+        user = profile.user
 
     tokens = generate_jwt_token(user)
     set_refresh_cookie(response, tokens['refresh_token'])
@@ -269,7 +362,7 @@ def customer_login(request, data: CustomerLoginSchema, response: HttpResponse):
 
 class CustomerRegisterSchema(Schema):
     full_name: str
-    phone: str
+    phone_or_email: str
     password: str
     birthdate: str = None
 
@@ -279,17 +372,24 @@ def customer_register(request, data: CustomerRegisterSchema, response: HttpRespo
     from apps.crm.models import CustomerProfile
     from django.db import transaction
     
-    if CustomerProfile.objects.filter(phone=data.phone).exists():
-        raise HttpError(400, "Phone number is already registered.")
-        
+    is_email = "@" in data.phone_or_email
+    
+    if is_email:
+        if User.objects.filter(email=data.phone_or_email).exists():
+            raise HttpError(400, "Email is already registered.")
+    else:
+        if CustomerProfile.objects.filter(phone=data.phone_or_email).exists():
+            raise HttpError(400, "Phone number is already registered.")
+            
     try:
         with transaction.atomic():
             import uuid
             from django.utils import timezone
             
             user = User.objects.create_user(
-                username=f"cust_{data.phone}",
+                username=f"cust_{uuid.uuid4().hex[:8]}",
                 first_name=data.full_name,
+                email=data.phone_or_email if is_email else "",
                 password=data.password,
                 role="customer",
             )
@@ -298,7 +398,8 @@ def customer_register(request, data: CustomerRegisterSchema, response: HttpRespo
             
             CustomerProfile.objects.create(
                 user=user,
-                phone=data.phone,
+                phone=f"email_{uuid.uuid4().hex[:8]}" if is_email else data.phone_or_email,
+                email=data.phone_or_email if is_email else "",
                 gender='unspecified',
                 birthdate=bdate,
                 membership_tier_id=1
@@ -306,6 +407,17 @@ def customer_register(request, data: CustomerRegisterSchema, response: HttpRespo
             
             tokens = generate_jwt_token(user)
             set_refresh_cookie(response, tokens['refresh_token'])
+            
+            # Dispatch automated notification
+            from apps.core.tasks import send_automated_notification
+            send_automated_notification.delay(
+                event_type="account",
+                context={
+                    "username": data.full_name,
+                    "email": user.email,
+                    "phone": "" if is_email else data.phone_or_email
+                }
+            )
             
             return {
                 "access_token": tokens['access_token'],

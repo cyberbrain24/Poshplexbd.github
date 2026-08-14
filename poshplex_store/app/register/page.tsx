@@ -3,12 +3,13 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { UserPlus, User, Phone, Key, Eye, EyeOff, ArrowRight } from "lucide-react";
+import SocialLogin from "../components/SocialLogin";
 
 function RegisterContent() {
   const router = useRouter();
 
   const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phoneOrEmail, setPhoneOrEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   
@@ -20,22 +21,32 @@ function RegisterContent() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName.trim() || !phone.trim() || !password.trim()) return;
+    if (!fullName.trim() || !phoneOrEmail.trim() || !password.trim()) return;
     
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
     }
 
-    let formattedPhone = phone.trim();
-    if (formattedPhone.startsWith("+88")) {
-      formattedPhone = formattedPhone.substring(3);
-    }
+    let formattedInput = phoneOrEmail.trim();
+    const isEmail = formattedInput.includes("@");
     
-    const phoneRegex = /^01\d{9}$/;
-    if (!phoneRegex.test(formattedPhone)) {
-      setError("Phone number must be exactly 11 digits and start with 01.");
-      return;
+    if (!isEmail) {
+      if (formattedInput.startsWith("+88")) {
+        formattedInput = formattedInput.substring(3);
+      }
+      
+      const phoneRegex = /^01\d{9}$/;
+      if (!phoneRegex.test(formattedInput)) {
+        setError("Phone number must be exactly 11 digits and start with 01. Or enter a valid email address.");
+        return;
+      }
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formattedInput)) {
+        setError("Please enter a valid email address.");
+        return;
+      }
     }
 
     setIsLoading(true);
@@ -47,7 +58,7 @@ function RegisterContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           full_name: fullName, 
-          phone: formattedPhone, 
+          phone_or_email: formattedInput, 
           password
         }),
       });
@@ -140,15 +151,15 @@ function RegisterContent() {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>Phone Number</label>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>Phone Number or Email</label>
             <div style={{ position: "relative" }}>
               <Phone size={16} style={{ position: "absolute", left: 16, top: 15, color: "var(--text-muted)" }} />
               <input 
-                type="tel" 
+                type="text" 
                 required
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="e.g. 01700000000"
+                value={phoneOrEmail}
+                onChange={(e) => setPhoneOrEmail(e.target.value)}
+                placeholder="e.g. 01700000000 or email@domain.com"
                 style={{ width: "100%", background: "var(--bg-secondary)", border: "1px solid var(--border-glass)", color: "var(--text-main)", padding: "12px 16px 12px 44px", fontSize: 14, outline: "none" }}
               />
             </div>
@@ -194,6 +205,7 @@ function RegisterContent() {
             {isLoading ? "CREATING ACCOUNT..." : <>CREATE ACCOUNT <ArrowRight size={16} /></>}
           </button>
         </form>
+        <SocialLogin />
         </div>
 
         <div style={{ marginTop: 24, textAlign: "center", borderTop: "1px solid var(--border-glass)", paddingTop: 24 }}>

@@ -447,19 +447,31 @@ def customer_checkout_endpoint(request, data: OrderCreateInputSchema):
                     )
                 u_id = existing_user.id
                 
-                # Update CRM Profile
-                from django.apps import apps
-                CustomerProfile = apps.get_model('crm', 'CustomerProfile')
-                profile, _ = CustomerProfile.objects.get_or_create(user=existing_user)
-                if data.customer_phone:
-                    profile.phone = data.customer_phone
-                if data.shipping_address:
-                    profile.address = data.shipping_address
-                if data.customer_gender and data.customer_gender != "unspecified":
-                    profile.gender = data.customer_gender
-                if data.customer_birthdate:
-                    profile.birthdate = data.customer_birthdate
-                profile.save()
+            # ENFORCE PHONE NUMBER
+            final_phone = data.shipping_phone or data.customer_phone
+            if user and hasattr(user, 'crm_profile') and user.crm_profile.phone and not user.crm_profile.phone.startswith('email_'):
+                final_phone = final_phone or user.crm_profile.phone
+                
+            if not final_phone:
+                raise ValidationError("A valid phone number is mandatory to place an order.")
+                
+            # Update CRM Profile
+            from django.apps import apps
+            CustomerProfile = apps.get_model('crm', 'CustomerProfile')
+            profile, _ = CustomerProfile.objects.get_or_create(user=existing_user if 'existing_user' in locals() and existing_user else user)
+            
+            if final_phone and (not profile.phone or profile.phone.startswith('email_')):
+                profile.phone = final_phone
+            elif data.customer_phone and not profile.phone.startswith('email_'):
+                profile.phone = data.customer_phone
+                    
+            if data.shipping_address:
+                profile.address = data.shipping_address
+            if data.customer_gender and data.customer_gender != "unspecified":
+                profile.gender = data.customer_gender
+            if data.customer_birthdate:
+                profile.birthdate = data.customer_birthdate
+            profile.save()
 
             if not u_id:
                 raise ValidationError("Please provide customer lookup or create a new customer.")
@@ -498,6 +510,19 @@ def customer_checkout_endpoint(request, data: OrderCreateInputSchema):
                     reference_number=data.payment_reference,
                     sender_number=data.payment_sender
                 )
+                
+            # Dispatch automated notification
+            from apps.core.tasks import send_automated_notification
+            send_automated_notification.delay(
+                event_type="order",
+                context={
+                    "username": order.shipping_name,
+                    "order_id": order.order_number,
+                    "total_amount": str(order.total_amount),
+                    "phone": order.shipping_phone,
+                    "email": user.email if user else (existing_user.email if 'existing_user' in locals() and existing_user else "")
+                }
+            )
                 
             return compile_order_response(order)
             

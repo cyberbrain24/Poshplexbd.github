@@ -3,13 +3,14 @@
 import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Lock, Phone, Key, ArrowRight, Eye, EyeOff } from "lucide-react";
+import SocialLogin from "../components/SocialLogin";
 
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") || "/profile";
 
-  const [phone, setPhone] = useState("");
+  const [phoneOrEmail, setPhoneOrEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -17,7 +18,7 @@ function LoginContent() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phone.trim() || !password.trim()) return;
+    if (!phoneOrEmail.trim() || !password.trim()) return;
 
     setIsLoading(true);
     setError("");
@@ -26,7 +27,7 @@ function LoginContent() {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/customer-login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, password }),
+        body: JSON.stringify({ phone_or_email: phoneOrEmail, password }),
         credentials: "include"
       });
 
@@ -39,7 +40,7 @@ function LoginContent() {
         router.push(next);
       } else {
         const errorData = await res.json().catch(() => ({}));
-        setError(errorData.detail || "Invalid phone number or password.");
+        setError(errorData.detail || "Invalid credentials.");
       }
     } catch (err) {
       setError("Could not connect to authentication server.");
@@ -109,16 +110,16 @@ function LoginContent() {
             
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>
-              Phone Number
+              Phone Number or Email
             </label>
             <div style={{ position: "relative" }}>
               <Phone size={16} style={{ position: "absolute", left: 16, top: 15, color: "var(--text-muted)" }} />
               <input 
                 type="text" 
                 required
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="e.g. 01700000000"
+                value={phoneOrEmail}
+                onChange={(e) => setPhoneOrEmail(e.target.value)}
+                placeholder="e.g. 01700000000 or email@domain.com"
                 style={{ 
                   width: "100%",
                   background: "rgba(0, 0, 0, 0.2)", 
@@ -194,6 +195,8 @@ function LoginContent() {
             )}
           </button>
         </form>
+        
+        <SocialLogin />
         </div>
 
         <div style={{ marginTop: 24, textAlign: "center", borderTop: "1px solid var(--border-glass)", paddingTop: 24 }}>

@@ -190,16 +190,17 @@ export default function CheckoutPage() {
       .then(res => res.json())
       .then(data => {
         if (data.username) {
+          const userPhone = data.phone && data.phone.startsWith("email_") ? "" : data.phone;
           setFormData(prev => ({
             ...prev,
             name: data.username || prev.name,
-            phone: data.phone || prev.phone,
+            phone: userPhone || prev.phone,
             email: data.email || prev.email,
             address: data.address || prev.address,
             district: data.district_name || prev.district,
             districtId: data.district_id || prev.districtId,
             thana: data.thana_name || prev.thana,
-            thanaId: data.thana_id || prev.thanaId
+            thanaId: data.thana_id || prev.thanaId,
           }));
         }
       })

@@ -6,13 +6,13 @@ import {
 import {
   ApiOutlined, MailOutlined, MobileOutlined, 
   GlobalOutlined, SafetyCertificateOutlined, MessageOutlined,
-  NotificationOutlined
+  NotificationOutlined, ShoppingCartOutlined
 } from "@ant-design/icons";
 import { useList, useCreate, useUpdate } from "@refinedev/core";
 
 export const Integrations: React.FC = () => {
   const [form] = Form.useForm();
-  const [broadcastForm] = Form.useForm();
+  const [autoForm] = Form.useForm();
 
   // Load current dynamic settings from modular backend
   const { data: settingsData, refetch } = useList<any>({ resource: "settings" });
@@ -26,8 +26,10 @@ export const Integrations: React.FC = () => {
   useEffect(() => {
     const configSetting = settings.find((s) => s.key === "integration_providers");
     const pixelsSetting = settings.find((s) => s.key === "tracking_pixels");
+    const autoSetting = settings.find((s) => s.key === "automated_notifications");
+    const socialSetting = settings.find((s) => s.key === "social_auth");
 
-    if (configSetting || pixelsSetting) {
+    if (configSetting || pixelsSetting || autoSetting || socialSetting) {
       form.setFieldsValue({
         sms_provider: configSetting?.value?.sms_provider || "mock",
         twilio_sid: configSetting?.value?.twilio_credentials?.account_sid || "",
@@ -45,9 +47,26 @@ export const Integrations: React.FC = () => {
         fb_pixel: pixelsSetting?.value?.fb_pixel || "",
         tiktok_pixel: pixelsSetting?.value?.tiktok_pixel || "",
         google_ga: pixelsSetting?.value?.google_ga || "",
+
+        google_client_id: socialSetting?.value?.google_client_id || "",
+        facebook_app_id: socialSetting?.value?.facebook_app_id || "",
+      });
+
+      autoForm.setFieldsValue({
+        account_email_enabled: autoSetting?.value?.account?.email?.enabled ?? false,
+        account_email_subject: autoSetting?.value?.account?.email?.subject || "Welcome to Poshplex!",
+        account_email_body: autoSetting?.value?.account?.email?.body || "Hi {username},\n\nWelcome to Poshplex!",
+        account_sms_enabled: autoSetting?.value?.account?.sms?.enabled ?? false,
+        account_sms_body: autoSetting?.value?.account?.sms?.body || "Your Poshplex OTP is {otp}",
+        
+        order_email_enabled: autoSetting?.value?.order?.email?.enabled ?? false,
+        order_email_subject: autoSetting?.value?.order?.email?.subject || "Order Confirmation #{order_id}",
+        order_email_body: autoSetting?.value?.order?.email?.body || "Hi {username},\n\nThanks for your order #{order_id} for {total_amount}.",
+        order_sms_enabled: autoSetting?.value?.order?.sms?.enabled ?? false,
+        order_sms_body: autoSetting?.value?.order?.sms?.body || "Poshplex: Order #{order_id} confirmed for {total_amount}.",
       });
     }
-  }, [settings, form]);
+  }, [settings, form, autoForm]);
 
   const handleSaveConfig = (values: any) => {
     // 1. Compile providers configuration payload
@@ -74,7 +93,7 @@ export const Integrations: React.FC = () => {
       description: "Gateway credentials for Twilio, SendGrid, and DHL",
     };
 
-    // 2. Compile tracking pixels payload
+    // 2. Compile tracking pixels & social auth payload
     const pixelsPayload = {
       key: "tracking_pixels",
       value: {
@@ -85,7 +104,16 @@ export const Integrations: React.FC = () => {
       description: "Client/Server conversion pixels tracking configurations",
     };
 
-    // Submit both to settings endpoint (POST /settings writes or updates keys)
+    const socialPayload = {
+      key: "social_auth",
+      value: {
+        google_client_id: values.google_client_id,
+        facebook_app_id: values.facebook_app_id,
+      },
+      description: "OAuth App Client IDs",
+    };
+
+    // Submit all to settings endpoint (POST /settings writes or updates keys)
     updateSettings(
       { resource: "settings", values: providersPayload },
       {
@@ -94,8 +122,15 @@ export const Integrations: React.FC = () => {
             { resource: "settings", values: pixelsPayload },
             {
               onSuccess: () => {
-                message.success("Operational API Keys and Tracking configurations synced.");
-                refetch();
+                updateSettings(
+                  { resource: "settings", values: socialPayload },
+                  {
+                    onSuccess: () => {
+                      message.success("Operational API Keys, Tracking, and Social Auth configurations synced.");
+                      refetch();
+                    }
+                  }
+                )
               },
             }
           );
@@ -105,21 +140,44 @@ export const Integrations: React.FC = () => {
     );
   };
 
-  const handleSendBroadcast = (values: any) => {
-    const isEmail = values.channel === "email";
-    const resource = isEmail ? "integration/send-email" : "integration/send-sms";
-    const payload = isEmail
-      ? { to_email: values.test_target, subject: values.subject, body: values.body }
-      : { to_number: values.test_target, message: values.body };
+  const handleSaveAutoConfig = (values: any) => {
+    const payload = {
+      key: "automated_notifications",
+      value: {
+        account: {
+          email: {
+            enabled: values.account_email_enabled,
+            subject: values.account_email_subject,
+            body: values.account_email_body,
+          },
+          sms: {
+            enabled: values.account_sms_enabled,
+            body: values.account_sms_body,
+          }
+        },
+        order: {
+          email: {
+            enabled: values.order_email_enabled,
+            subject: values.order_email_subject,
+            body: values.order_email_body,
+          },
+          sms: {
+            enabled: values.order_sms_enabled,
+            body: values.order_sms_body,
+          }
+        }
+      },
+      description: "Automated System Notifications Templates",
+    };
 
-    triggerBroadcast(
-      { resource, values: payload },
+    updateSettings(
+      { resource: "settings", values: payload },
       {
         onSuccess: () => {
-          message.success(`Broadcast message dispatched successfully via selected provider channel.`);
-          broadcastForm.resetFields();
+          message.success("Automated notifications settings saved successfully.");
+          refetch();
         },
-        onError: (err) => message.error(`Broadcast failed: ${err.message}`),
+        onError: (err) => message.error(`Failed to save settings: ${err.message}`),
       }
     );
   };
@@ -214,6 +272,24 @@ export const Integrations: React.FC = () => {
                   </Form.Item>
                 </Col>
               </Row>
+              
+              <Divider style={{ margin: "20px 0" }} />
+              
+              <Row gutter={24}>
+                <Col xs={24}>
+                  <Divider orientation="left"><ApiOutlined /> Social Login Integrations</Divider>
+                </Col>
+                <Col xs={24} md={12}>
+                  <Form.Item name="google_client_id" label="Google OAuth Client ID">
+                    <Input placeholder="xxxxxx-yyyyyy.apps.googleusercontent.com" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={12}>
+                  <Form.Item name="facebook_app_id" label="Facebook App ID">
+                    <Input placeholder="Facebook App ID number" />
+                  </Form.Item>
+                </Col>
+              </Row>
 
               <Button type="primary" htmlType="submit" size="large" block>
                 Save Mapped Configurations
@@ -222,29 +298,65 @@ export const Integrations: React.FC = () => {
           </Card>
         </Tabs.TabPane>
 
-        {/* Tab 2: Broadcaster Console */}
-        <Tabs.TabPane tab={<span><MessageOutlined /> Broadcast Campaign Console</span>} key="2">
+        {/* Tab 2: Automated Notifications Console */}
+        <Tabs.TabPane tab={<span><MessageOutlined /> Automated Notifications</span>} key="2">
           <Row gutter={24}>
             <Col xs={24} md={16}>
-              <Card title="Marketing / Notifications Broadcast Dispatcher">
-                <Form form={broadcastForm} onFinish={handleSendBroadcast} layout="vertical">
-                  <Form.Item name="channel" label="Target Broadcasting Channel" rules={[{ required: true }]} initialValue="email">
-                    <Select>
-                      <Select.Option value="email">Email Campaign Campaign</Select.Option>
-                      <Select.Option value="sms">SMS Text Alert Alert</Select.Option>
-                    </Select>
-                  </Form.Item>
-                  <Form.Item name="test_target" label="Target Recipient (Email or Phone Number)" rules={[{ required: true }]}>
-                    <Input placeholder="e.g. customer@domain.com or +88017XXXXXXXX" />
-                  </Form.Item>
-                  <Form.Item name="subject" label="Subject Line (Email Only)">
-                    <Input placeholder="Poshplex Brand Announcement" />
-                  </Form.Item>
-                  <Form.Item name="body" label="Message Body Details" rules={[{ required: true, message: "Enter payload body!" }]}>
-                    <Input.TextArea rows={6} placeholder="Enter your text or HTML notification code..." />
-                  </Form.Item>
-                  <Button type="primary" htmlType="submit" icon={<ApiOutlined />} block>
-                    Trigger Broadcast Transmission
+              <Card title="Automated System Notifications (Triggers & Templates)">
+                <Form form={autoForm} onFinish={handleSaveAutoConfig} layout="vertical">
+                  
+                  <Divider orientation="left"><MessageOutlined /> Account Registration Event</Divider>
+                  <p style={{ fontSize: 13, color: "var(--text-muted)" }}>Variables allowed: <code>{`{username}`}</code>, <code>{`{email}`}</code>, <code>{`{otp}`}</code></p>
+                  
+                  <Row gutter={16}>
+                    <Col xs={24} md={12}>
+                      <Form.Item name="account_email_enabled" valuePropName="checked">
+                        <Checkbox>Enable Registration Email</Checkbox>
+                      </Form.Item>
+                      <Form.Item name="account_email_subject" label="Email Subject">
+                        <Input />
+                      </Form.Item>
+                      <Form.Item name="account_email_body" label="Email Body Template">
+                        <Input.TextArea rows={4} />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12}>
+                      <Form.Item name="account_sms_enabled" valuePropName="checked">
+                        <Checkbox>Enable Registration SMS (OTP/Welcome)</Checkbox>
+                      </Form.Item>
+                      <Form.Item name="account_sms_body" label="SMS Body Template">
+                        <Input.TextArea rows={4} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
+                  <Divider orientation="left"><ShoppingCartOutlined /> New Order Event</Divider>
+                  <p style={{ fontSize: 13, color: "var(--text-muted)" }}>Variables allowed: <code>{`{username}`}</code>, <code>{`{order_id}`}</code>, <code>{`{total_amount}`}</code></p>
+                  
+                  <Row gutter={16}>
+                    <Col xs={24} md={12}>
+                      <Form.Item name="order_email_enabled" valuePropName="checked">
+                        <Checkbox>Enable Order Confirmation Email</Checkbox>
+                      </Form.Item>
+                      <Form.Item name="order_email_subject" label="Email Subject">
+                        <Input />
+                      </Form.Item>
+                      <Form.Item name="order_email_body" label="Email Body Template">
+                        <Input.TextArea rows={4} />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12}>
+                      <Form.Item name="order_sms_enabled" valuePropName="checked">
+                        <Checkbox>Enable Order Confirmation SMS</Checkbox>
+                      </Form.Item>
+                      <Form.Item name="order_sms_body" label="SMS Body Template">
+                        <Input.TextArea rows={4} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
+                  <Button type="primary" htmlType="submit" icon={<ApiOutlined />} block size="large">
+                    Save Notification Templates
                   </Button>
                 </Form>
               </Card>
@@ -254,7 +366,7 @@ export const Integrations: React.FC = () => {
               <Card title="Channel Status Indicators">
                 <Alert
                   message="Active Providers"
-                  description="Verify active integrations mappings in Tab 1 before launching campaign alerts."
+                  description="Verify active integrations mappings in Tab 1 before relying on these triggers. SMS messages use the BulkSMSBD provider as specified."
                   type="info"
                   showIcon
                 />
