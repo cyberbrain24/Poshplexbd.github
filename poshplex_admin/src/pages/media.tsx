@@ -85,7 +85,7 @@ export const MediaLibrary: React.FC = () => {
           name="file"
           multiple={true}
           action={(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/core/media"}
-          headers={{ Authorization: `Bearer ${localStorage.getItem("poshplex_token") || ""}` }}
+          headers={{ Authorization: `Bearer ${localStorage.getItem("poshplex_access_token") || ""}` }}
           showUploadList={false}
           onChange={handleUploadChange}
         >

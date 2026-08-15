@@ -26,14 +26,18 @@ export const SettingsPage: React.FC = () => {
           const resGen = await axios.get((import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/core/settings/general", { headers });
           if (resGen.data && resGen.data.value) {
             generalForm.setFieldsValue({
+              ...resGen.data.value,
               banner_image_url: resGen.data.value.banner_image_url || "",
+              desktop_hero_banner_url: resGen.data.value.desktop_hero_banner_url || "",
+              mobile_hero_banner_url: resGen.data.value.mobile_hero_banner_url || "",
+              favicon_url: resGen.data.value.favicon_url || "",
               site_tagline: resGen.data.value.site_tagline || "",
               site_description: resGen.data.value.site_description || "",
             });
           }
         } catch (err) {
           generalForm.setFieldsValue({
-            banner_image_url: "https://images.unsplash.com/photo-1509281373149-e957c6296406?q=80&w=1600&auto=format&fit=crop",
+            desktop_hero_banner_url: "https://images.unsplash.com/photo-1509281373149-e957c6296406?q=80&w=1600&auto=format&fit=crop",
             site_tagline: "BE POSH WITH POSHPLEX",
             site_description: "Heavyweight distressed boxy street-culture brand. Mapped deliveries across Banani, Dhaka, Bangladesh.",
           });
@@ -110,14 +114,39 @@ export const SettingsPage: React.FC = () => {
               <Col xs={24} lg={16}>
                 <Card title={<Space><SettingOutlined /><span>Storefront Configuration</span></Space>}>
                   <Form form={generalForm} layout="vertical" onFinish={(vals) => onSave("general", vals, "General settings")} requiredMark={false}>
-                    <Form.Item name="banner_image_url" label="Homepage Banner Image" rules={[{ required: true }]}>
+                    <Form.Item name="desktop_hero_banner_url" label="Desktop Hero Banner Image">
                       <Select
                         showSearch placeholder="Select banner from Media Library or paste custom URL below"
                         options={imageSelectOptions}
                         optionRender={(option) => (option.data as any).customLabel || option.label}
+                        allowClear
                       />
                     </Form.Item>
-                    <Form.Item name="banner_image_url" label="Custom Banner Image URL">
+                    <Form.Item name="desktop_hero_banner_url" label="Custom Desktop Hero Banner URL">
+                      <Input placeholder="Or paste custom image link here..." style={{ borderRadius: 0 }} />
+                    </Form.Item>
+                    
+                    <Form.Item name="mobile_hero_banner_url" label="Mobile Hero Banner Image">
+                      <Select
+                        showSearch placeholder="Select banner from Media Library or paste custom URL below"
+                        options={imageSelectOptions}
+                        optionRender={(option) => (option.data as any).customLabel || option.label}
+                        allowClear
+                      />
+                    </Form.Item>
+                    <Form.Item name="mobile_hero_banner_url" label="Custom Mobile Hero Banner URL">
+                      <Input placeholder="Or paste custom image link here..." style={{ borderRadius: 0 }} />
+                    </Form.Item>
+
+                    <Form.Item name="favicon_url" label="Site Favicon (32x32 or 16x16)">
+                      <Select
+                        showSearch placeholder="Select icon from Media Library or paste custom URL below"
+                        options={imageSelectOptions}
+                        optionRender={(option) => (option.data as any).customLabel || option.label}
+                        allowClear
+                      />
+                    </Form.Item>
+                    <Form.Item name="favicon_url" label="Custom Favicon URL">
                       <Input placeholder="Or paste custom image link here..." style={{ borderRadius: 0 }} />
                     </Form.Item>
                     <Form.Item name="site_tagline" label="Site Tagline" rules={[{ required: true }]}>
