@@ -10,8 +10,8 @@ import {
 import axios from "axios";
 import { EditOrderModal } from "../components/EditOrderModal";
 
-const API_URL = (import.meta.env.VITE_SERVER_URL || 'http://localhost:8000') + "/api/v1/orders";
-const CATALOG_API_URL = (import.meta.env.VITE_SERVER_URL || 'http://localhost:8000') + "/api/v1/catalog";
+const API_URL = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/orders";
+const CATALOG_API_URL = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/catalog";
 
 const formatCourierStatus = (status: string) => {
   if (!status) return "PENDING";
@@ -330,7 +330,7 @@ export const Fulfillment: React.FC = () => {
                       <div key={idx} style={{ textAlign: 'center', minWidth: 100, width: 120 }}>
                         <div style={{ background: '#f5f5f5', borderRadius: 8, padding: 8, marginBottom: 8, width: 120, height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           {item.image ? (
-                            <Image src={`${(import.meta.env.VITE_SERVER_URL || 'http://localhost:8000')}${item.image}`} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} alt="product" />
+                            <Image src={`${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000'))}${item.image}`} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} alt="product" />
                           ) : (
                             <span style={{ color: '#ccc' }}>No Image</span>
                           )}

@@ -37,7 +37,7 @@ const ImageOptimizer: React.FC = () => {
       // We simulate progress for better UX
       onProgress({ percent: 20 });
       
-      const response = await fetch((import.meta.env.VITE_SERVER_URL || 'http://localhost:8000') + "/api/v1/image-optimizer/upload", {
+      const response = await fetch((import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/image-optimizer/upload", {
         method: "POST",
         headers,
         body: formData,

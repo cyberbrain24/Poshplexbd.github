@@ -7,7 +7,7 @@ import {
 } from "@ant-design/icons";
 import axios from "axios";
 
-const API_BASE = (import.meta.env.VITE_SERVER_URL || 'http://localhost:8000') + "/api/v1/music";
+const API_BASE = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/music";
 
 export const MusicLibrary: React.FC = () => {
   const [tracks, setTracks] = useState<any[]>([]);

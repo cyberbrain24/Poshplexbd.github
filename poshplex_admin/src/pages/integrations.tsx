@@ -207,7 +207,7 @@ export const Integrations: React.FC = () => {
     const token = localStorage.getItem("poshplex_access_token");
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     
-    const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_SERVER_URL || 'http://localhost:8000') + "/api/v1";
+    const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000')) + "/api/v1";
     
     try {
       if (testModalType === "sms") {

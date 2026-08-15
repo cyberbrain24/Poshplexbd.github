@@ -4,6 +4,7 @@ import docker
 import uuid
 from datetime import datetime
 from ninja import Router, Schema
+from apps.core.api import BearerAuth
 from django.core.cache import cache
 import concurrent.futures
 
@@ -169,3 +170,23 @@ def get_error_logs(request, limit: int = 100):
         return logs
     except Exception:
         return []
+
+@router.delete("/logs", auth=BearerAuth())
+def clear_error_logs(request):
+    """Clear all error logs from the Redis buffer."""
+    from apps.core.api import enforce_permission
+    enforce_permission(request, "settings", "view")
+    try:
+        redis_client = None
+        if hasattr(cache, 'client'):
+            redis_client = cache.client.get_client()
+        elif hasattr(cache, '_cache'):
+            redis_client = cache._cache.get_client()
+            
+        if not redis_client:
+            return {"success": False, "message": "Redis not available"}
+            
+        redis_client.delete("poshplex_error_logs")
+        return {"success": True, "message": "Logs cleared"}
+    except Exception as e:
+        return {"success": False, "message": str(e)}

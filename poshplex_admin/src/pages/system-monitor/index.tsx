@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Card, Row, Col, Table, Tag, Typography, Progress, Badge, Space, Button, Input } from "antd";
+import { Card, Row, Col, Table, Tag, Typography, Progress, Badge, Space, Button, Input, message, Popconfirm } from "antd";
 import { DesktopOutlined, DatabaseOutlined, SyncOutlined, BugOutlined, WarningOutlined } from "@ant-design/icons";
 import axios from "axios";
 import { formatDistanceToNow } from "date-fns";
@@ -33,7 +33,7 @@ interface ErrorLog {
   user_agent?: string;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_SERVER_URL || 'http://localhost:8000') + "/api/v1";
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000')) + "/api/v1";
 
 export const SystemMonitor: React.FC = () => {
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
@@ -69,6 +69,19 @@ export const SystemMonitor: React.FC = () => {
       .then(res => setLogs(res.data || []))
       .catch(err => console.error("Logs fetch error", err))
       .finally(() => setLogsLoading(false));
+  };
+
+  const handleClearLogs = async () => {
+    try {
+      const token = localStorage.getItem("poshplex_access_token");
+      await axios.delete(API_URL + "/monitor/logs", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      message.success("Unified Error Logs have been cleared.");
+      setLogs([]);
+    } catch (err) {
+      message.error("Failed to clear logs.");
+    }
   };
 
   useEffect(() => {
@@ -253,13 +266,24 @@ export const SystemMonitor: React.FC = () => {
             title={
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span>Unified Error Log (Redis Buffer)</span>
-                <Input.Search 
-                  placeholder="Search logs..." 
-                  allowClear 
-                  onSearch={setSearchText} 
-                  onChange={e => setSearchText(e.target.value)}
-                  style={{ width: 250 }} 
-                />
+                <Space>
+                  <Input.Search 
+                    placeholder="Search logs..." 
+                    allowClear 
+                    onSearch={setSearchText} 
+                    onChange={e => setSearchText(e.target.value)}
+                    style={{ width: 250 }} 
+                  />
+                  <Popconfirm
+                    title="Clear Error Logs"
+                    description="Are you sure you want to delete all logs from the Redis buffer? This cannot be undone."
+                    onConfirm={handleClearLogs}
+                    okText="Yes, Clear"
+                    cancelText="Cancel"
+                  >
+                    <Button danger>Clear Logs</Button>
+                  </Popconfirm>
+                </Space>
               </div>
             }
             style={{ background: "var(--bg-secondary)", borderColor: "var(--border-glass)", borderRadius: 12 }}

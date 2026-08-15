@@ -11,8 +11,8 @@ import {
 } from "@ant-design/icons";
 import axios from "axios";
 
-const API = (import.meta.env.VITE_SERVER_URL || 'http://localhost:8000') + "/api/v1/printing";
-const CATALOG_API = (import.meta.env.VITE_SERVER_URL || 'http://localhost:8000') + "/api/v1/catalog";
+const API = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/printing";
+const CATALOG_API = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/catalog";
 
 const { Title, Text } = Typography;
 const { Option } = Select;

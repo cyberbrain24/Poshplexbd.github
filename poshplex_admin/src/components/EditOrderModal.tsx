@@ -4,7 +4,7 @@ import { PlusOutlined, DeleteOutlined, SyncOutlined, DollarOutlined, ClockCircle
 import axios from "axios";
 import dayjs from "dayjs";
 
-const API_URL = (import.meta.env.VITE_SERVER_URL || 'http://localhost:8000') + "/api/v1/orders";
+const API_URL = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/orders";
 
 interface EditOrderModalProps {
   visible: boolean;

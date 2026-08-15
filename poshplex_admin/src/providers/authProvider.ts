@@ -1,7 +1,7 @@
 import { AuthProvider } from "@refinedev/core";
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_SERVER_URL || 'http://localhost:8000') + "/api/v1";
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000')) + "/api/v1";
 
 // Setup global axios interceptor for token injection and refresh
 axios.interceptors.request.use((config) => {

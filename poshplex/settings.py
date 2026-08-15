@@ -181,7 +181,7 @@ LOGGING = {
             'class': 'apps.monitor.logging.RedisListHandler',
             'key': 'poshplex_error_logs',
             'max_logs': 1000,
-            'level': 'WARNING',
+            'level': 'ERROR',
         },
     },
     'root': {

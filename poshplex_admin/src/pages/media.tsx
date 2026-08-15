@@ -42,7 +42,7 @@ export const MediaLibrary: React.FC = () => {
   const handleDelete = async (id: number) => {
     try {
       const token = localStorage.getItem("poshplex_access_token");
-      await axios.delete(`${(import.meta.env.VITE_SERVER_URL || 'http://localhost:8000')}/api/v1/core/media/${id}`, {
+      await axios.delete(`${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000'))}/api/v1/core/media/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       message.success("Asset deleted successfully.");
@@ -84,7 +84,7 @@ export const MediaLibrary: React.FC = () => {
         <Upload
           name="file"
           multiple={true}
-          action={(import.meta.env.VITE_SERVER_URL || 'http://localhost:8000') + "/api/v1/core/media"}
+          action={(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/core/media"}
           headers={{ Authorization: `Bearer ${localStorage.getItem("poshplex_token") || ""}` }}
           showUploadList={false}
           onChange={handleUploadChange}
@@ -117,7 +117,7 @@ export const MediaLibrary: React.FC = () => {
       >
         <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: "16px" }}>
           {visibleAssets.map((record: any) => {
-            const url = record.url || `${(import.meta.env.VITE_SERVER_URL || 'http://localhost:8000')}/media/${record.file || ""}`;
+            const url = record.url || `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000'))}/media/${record.file || ""}`;
             return (
               <div key={record.id} style={{ 
                 border: "1px solid var(--border-glass)", 
@@ -173,7 +173,7 @@ export const MediaLibrary: React.FC = () => {
         footer={[<Button key="close" onClick={() => setIsPreviewOpen(false)}>Close Inspector</Button>]}
       >
         {selectedAsset && (() => {
-          const url = selectedAsset.url || `${(import.meta.env.VITE_SERVER_URL || 'http://localhost:8000')}/media/${selectedAsset.file || ""}`;
+          const url = selectedAsset.url || `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000'))}/media/${selectedAsset.file || ""}`;
           return (
             <Space direction="vertical" size="middle" style={{ width: "100%", textAlign: "center" }}>
               <div style={{ width: "100%", maxWidth: 300, minHeight: 120, borderRadius: 8, overflow: "hidden", border: "1px solid var(--border-glass)", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-secondary)" }}>

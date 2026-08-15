@@ -10,7 +10,7 @@ import {
 } from "@ant-design/icons";
 import axios from "axios";
 
-const API_URL = (import.meta.env.VITE_SERVER_URL || 'http://localhost:8000') + "/api/v1/catalog";
+const API_URL = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/catalog";
 
 export const Catalog: React.FC = () => {
   const [activeTab, setActiveTab] = useState("1");
@@ -858,7 +858,7 @@ export const Catalog: React.FC = () => {
             const colors = r.variant_color ? r.variant_color.split(",").map((s: string) => s.trim()).filter((s: string) => s) : [];
             const images = r.variant_image_url ? r.variant_image_url.split(",").map((s: string) => {
               const url = s.trim();
-              return (url && !url.startsWith("http")) ? `${(import.meta.env.VITE_SERVER_URL || 'http://localhost:8000')}/media/${url}` : url;
+              return (url && !url.startsWith("http")) ? `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000'))}/media/${url}` : url;
             }).filter((s: string) => s) : [];
 
             if (skus.length > 0) {
@@ -897,7 +897,7 @@ export const Catalog: React.FC = () => {
               if (r.variant_price) vPrice = parseFloat(String(r.variant_price).split(",")[0].trim()) || vPrice;
               
               let vImage = r.variant_image_url ? r.variant_image_url.split(",")[0].trim() : null;
-              if (vImage && !vImage.startsWith("http")) vImage = `${(import.meta.env.VITE_SERVER_URL || 'http://localhost:8000')}/media/${vImage}`;
+              if (vImage && !vImage.startsWith("http")) vImage = `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000'))}/media/${vImage}`;
 
               variants.push({
                 sku: `VAR-${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
@@ -921,7 +921,7 @@ export const Catalog: React.FC = () => {
 
         let mainImageUrl = firstRow.image_url ? firstRow.image_url.trim() : null;
         if (mainImageUrl && !mainImageUrl.startsWith("http")) {
-          mainImageUrl = `${(import.meta.env.VITE_SERVER_URL || 'http://localhost:8000')}/media/${mainImageUrl}`;
+          mainImageUrl = `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000'))}/media/${mainImageUrl}`;
         }
         const image_urls = mainImageUrl ? [mainImageUrl] : [];
 

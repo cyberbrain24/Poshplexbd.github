@@ -75,3 +75,4 @@ check_api.py
 # Additional Environment Files
 *.env
 .env.*
+!poshplex_admin/.env.production

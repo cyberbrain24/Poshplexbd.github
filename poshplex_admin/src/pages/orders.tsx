@@ -10,8 +10,8 @@ import {
 import { EditOrderModal } from "../components/EditOrderModal";
 import axios from "axios";
 
-const API_URL = (import.meta.env.VITE_SERVER_URL || 'http://localhost:8000') + "/api/v1/orders";
-const CATALOG_API_URL = (import.meta.env.VITE_SERVER_URL || 'http://localhost:8000') + "/api/v1/catalog";
+const API_URL = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/orders";
+const CATALOG_API_URL = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/catalog";
 
 export const Orders: React.FC = () => {
   const [activeTab, setActiveTab] = useState("all");
@@ -146,7 +146,7 @@ export const Orders: React.FC = () => {
         axios.get(`${API_URL}/shipping-locations/rates`),
         axios.get(`${CATALOG_API_URL}/products`, { params: { limit: 100 } }),
         axios.get(`${API_URL}/payments/methods`),
-        axios.get(`${(import.meta.env.VITE_SERVER_URL || 'http://localhost:8000')}/api/v1/finance/bank-accounts`, { headers: { Authorization: `Bearer ${token}` } })
+        axios.get(`${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000'))}/api/v1/finance/bank-accounts`, { headers: { Authorization: `Bearer ${token}` } })
       ]);
       setLocationRates(locRes.data.districts);
       setProductsList(prodRes.data.results || []);
@@ -671,11 +671,11 @@ export const Orders: React.FC = () => {
                 {/* Images Top Section */}
                 <div style={{ margin: '-12px -12px 12px -12px', height: 160, display: 'flex', backgroundColor: '#f0f0f0' }}>
                   {items.length === 1 ? (
-                    <img src={items[0].image ? `${(import.meta.env.VITE_SERVER_URL || 'http://localhost:8000')}${items[0].image}` : ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="product" />
+                    <img src={items[0].image ? `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000'))}${items[0].image}` : ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="product" />
                   ) : items.length > 1 ? (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', width: '100%', height: '100%' }}>
-                      <img src={items[0].image ? `${(import.meta.env.VITE_SERVER_URL || 'http://localhost:8000')}${items[0].image}` : ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="product 1" />
-                      <img src={items[1].image ? `${(import.meta.env.VITE_SERVER_URL || 'http://localhost:8000')}${items[1].image}` : ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="product 2" />
+                      <img src={items[0].image ? `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000'))}${items[0].image}` : ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="product 1" />
+                      <img src={items[1].image ? `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000'))}${items[1].image}` : ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="product 2" />
                     </div>
                   ) : (
                     <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa' }}>No Items</div>
@@ -947,7 +947,7 @@ export const Orders: React.FC = () => {
                     onClick={() => setModalSelectedProduct(p)}
                     style={{ minWidth: 100, border: modalSelectedProduct?.id === p.id ? '2px solid var(--primary-color)' : '1px solid #d9d9d9' }}
                   >
-                    <img src={p.images?.[0]?.url ? (p.images[0].url.startsWith('http') ? p.images[0].url : `${(import.meta.env.VITE_SERVER_URL || 'http://localhost:8000')}${p.images[0].url}`) : ''} style={{ width: '100%', height: 60, objectFit: 'cover' }} alt="prod" />
+                    <img src={p.images?.[0]?.url ? (p.images[0].url.startsWith('http') ? p.images[0].url : `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000'))}${p.images[0].url}`) : ''} style={{ width: '100%', height: 60, objectFit: 'cover' }} alt="prod" />
                     <div style={{ fontSize: 10, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
                   </Card>
                 ))}
@@ -1136,7 +1136,7 @@ export const Orders: React.FC = () => {
                         onClick={() => setSelectedGridProduct(p)}
                         style={{ minWidth: 100, border: selectedGridProduct?.id === p.id ? '2px solid var(--primary-color)' : '1px solid #d9d9d9' }}
                       >
-                        <img src={p.images?.[0]?.url ? (p.images[0].url.startsWith('http') ? p.images[0].url : `${(import.meta.env.VITE_SERVER_URL || 'http://localhost:8000')}${p.images[0].url}`) : ''} style={{ width: '100%', height: 60, objectFit: 'cover' }} alt="prod" />
+                        <img src={p.images?.[0]?.url ? (p.images[0].url.startsWith('http') ? p.images[0].url : `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000'))}${p.images[0].url}`) : ''} style={{ width: '100%', height: 60, objectFit: 'cover' }} alt="prod" />
                         <div style={{ fontSize: 10, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
                       </Card>
                     ))}
@@ -1203,7 +1203,7 @@ export const Orders: React.FC = () => {
                       const subtotal = draftItems.reduce((acc, item) => acc + (parseFloat(item.price || 0) * (item.quantity || 1)), 0);
                       try {
                         const token = localStorage.getItem("poshplex_access_token");
-                        const res = await axios.post(`${(import.meta.env.VITE_SERVER_URL || 'http://localhost:8000')}/api/v1/marketing/promocodes/validate`, { code: promoCode, order_amount: subtotal }, {
+                        const res = await axios.post(`${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000'))}/api/v1/marketing/promocodes/validate`, { code: promoCode, order_amount: subtotal }, {
                           headers: { Authorization: `Bearer ${token}` }
                         });
                         if (res.data.valid) {
