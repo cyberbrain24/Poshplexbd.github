@@ -137,6 +137,7 @@ export default function ProductDetailClient({ product }: { product: any }) {
           list = list.filter(id => id !== product.id);
         }
         localStorage.setItem("wishlist", JSON.stringify(list));
+        window.dispatchEvent(new Event("wishlist_updated"));
       }
       return next;
     });
@@ -271,7 +272,7 @@ export default function ProductDetailClient({ product }: { product: any }) {
   ) || null;
 
   useEffect(() => {
-    if (matchedVariant && matchedVariant.image_id) {
+    if (Object.keys(selectedAttributes).length > 0 && matchedVariant && matchedVariant.image_id) {
       const idx = product.images?.findIndex((img: any) => img.id === matchedVariant.image_id);
       if (idx !== undefined && idx !== -1) {
         setActiveImageIdx(idx);
@@ -281,7 +282,7 @@ export default function ProductDetailClient({ product }: { product: any }) {
         }
       }
     }
-  }, [selectedAttributes]);
+  }, [selectedAttributes, matchedVariant, product.images]);
 
   const allSelected =
     Object.keys(attributeGroups).length > 0 &&

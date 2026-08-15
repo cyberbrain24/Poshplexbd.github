@@ -42,6 +42,7 @@ const MusicContext = createContext<MusicContextType | undefined>(undefined);
 export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const [hasRandomized, setHasRandomized] = useState<boolean>(false);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isLooping, setIsLooping] = useState<boolean>(false);
   const [volume, setVolume] = useState<number>(0.5);
@@ -111,6 +112,13 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     document.addEventListener("toggle-music", handleToggle);
     return () => document.removeEventListener("toggle-music", handleToggle);
   }, []);
+
+  useEffect(() => {
+    if (tracks.length > 0 && !hasRandomized) {
+      setCurrentIndex(Math.floor(Math.random() * tracks.length));
+      setHasRandomized(true);
+    }
+  }, [tracks, hasRandomized]);
 
   const currentTrack = tracks[currentIndex] || null;
 

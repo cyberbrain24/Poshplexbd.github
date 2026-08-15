@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Table, Tag, Button, Space, Card, Modal, Form, Input, 
   InputNumber, Select, Switch, Divider, DatePicker, message, Row, Col
@@ -10,12 +10,14 @@ import axios from "axios";
 import dayjs from "dayjs";
 
 const API_URL = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/marketing/promos";
+const CRM_URL = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/crm";
 
 export const PromoCodes: React.FC = () => {
   const [promos, setPromos] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPromo, setSelectedPromo] = useState<any>(null);
+  const [tiers, setTiers] = useState<any[]>([]);
   const [form] = Form.useForm();
 
   // Load active marketing campaigns
@@ -34,6 +36,14 @@ export const PromoCodes: React.FC = () => {
 
   useEffect(() => {
     fetchPromos();
+    const fetchTiers = async () => {
+      try {
+        const token = localStorage.getItem("poshplex_access_token");
+        const res = await axios.get(`${CRM_URL}/tiers`, { headers: { Authorization: `Bearer ${token}` } });
+        setTiers(res.data);
+      } catch (err) { console.error("Failed to fetch CRM tiers", err); }
+    };
+    fetchTiers();
   }, []);
 
   // Save / Edit campaign promo
@@ -47,16 +57,22 @@ export const PromoCodes: React.FC = () => {
         expires_at: values.expires_at ? values.expires_at.toISOString() : null
       };
 
+      if (values.is_single_use) {
+        payload.total_usage_limit = 1;
+        payload.per_customer_limit = 1;
+      }
+
       if (selectedPromo) {
         await axios.put(`${API_URL}/${selectedPromo.id}`, payload, {
           headers: { Authorization: `Bearer ${token}` }
         });
         message.success("Promo code details updated.");
       } else {
-        await axios.post(API_URL, payload, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        message.success("New promo code registered.");
+        const codes = payload.code.split(',').map((c: string) => c.trim()).filter(Boolean);
+        await Promise.all(codes.map((code: string) => 
+          axios.post(API_URL, { ...payload, code }, { headers: { Authorization: `Bearer ${token}` } })
+        ));
+        message.success(codes.length > 1 ? `${codes.length} promo codes registered.` : "New promo code registered.");
       }
 
       setIsModalOpen(false);
@@ -151,7 +167,8 @@ export const PromoCodes: React.FC = () => {
                     form.setFieldsValue({
                       ...record,
                       starts_at: record.starts_at ? dayjs(record.starts_at) : null,
-                      expires_at: record.expires_at ? dayjs(record.expires_at) : null
+                      expires_at: record.expires_at ? dayjs(record.expires_at) : null,
+                      is_single_use: record.total_usage_limit === 1 && record.per_customer_limit === 1
                     });
                     setIsModalOpen(true);
                   }}>
@@ -178,8 +195,8 @@ export const PromoCodes: React.FC = () => {
         <Form form={form} onFinish={handleSave} layout="vertical">
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="code" label="Promo Coupon Code (alphanumeric)" rules={[{ required: true }]}>
-                <Input style={{ borderRadius: 0 }} placeholder="e.g. SUMMER500" />
+              <Form.Item name="code" label="Promo Coupon Code(s) - Use comma for bulk" rules={[{ required: true }]}>
+                <Input.TextArea rows={2} style={{ borderRadius: 0 }} placeholder="e.g. SUMMER500, SUMMER501, WINTER10" />
               </Form.Item>
             </Col>
             <Col span={12}>
@@ -220,15 +237,24 @@ export const PromoCodes: React.FC = () => {
             <Col span={12}>
               <Form.Item name="membership_tier" label="Membership Tier Grant (optional)">
                 <Select placeholder="Choose membership tier" allowClear>
-                  <Select.Option value="Silver">Silver Tier</Select.Option>
-                  <Select.Option value="Gold">Gold Tier</Select.Option>
-                  <Select.Option value="VIP">VIP Tier</Select.Option>
+                  {tiers.map(t => <Select.Option key={t.id} value={t.name}>{t.name}</Select.Option>)}
                 </Select>
               </Form.Item>
             </Col>
           </Row>
 
           <Divider orientation="left">Redemption Constraints</Divider>
+
+          <Row gutter={16}>
+            <Col span={24}>
+              <Form.Item name="is_single_use" valuePropName="checked">
+                <Switch /> <span style={{ marginLeft: 8, fontWeight: 600 }}>Strict Single-Use globally</span>
+              </Form.Item>
+              <div style={{ fontSize: 12, color: '#888', marginTop: -15, marginBottom: 15 }}>
+                If enabled, this code is permanently expired after 1 single order, regardless of customer phone number.
+              </div>
+            </Col>
+          </Row>
 
           <Row gutter={16}>
             <Col span={12}>

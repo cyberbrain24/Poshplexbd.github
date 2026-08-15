@@ -73,10 +73,15 @@ export default async function Home() {
     getGeneralSettings(),
   ]);
 
-  const bannerUrl =
-    settings?.banner_image_url
-      ? `${settings.banner_image_url}`
-      : "https://images.unsplash.com/photo-1509281373149-e957c6296406?q=80&w=1600&auto=format&fit=crop";
+  const desktopBannerUrl =
+    settings?.desktop_hero_banner_url
+      ? `${settings.desktop_hero_banner_url}`
+      : (settings?.banner_image_url ? `${settings.banner_image_url}` : "https://images.unsplash.com/photo-1509281373149-e957c6296406?q=80&w=1600&auto=format&fit=crop");
+
+  const mobileBannerUrl =
+    settings?.mobile_hero_banner_url
+      ? `${settings.mobile_hero_banner_url}`
+      : desktopBannerUrl;
 
   return (
     <div style={{ paddingBottom: 100 }}>
@@ -90,12 +95,23 @@ export default async function Home() {
         }}
       >
         <Image
-          src={bannerUrl}
-          alt="Streetwear Hero"
+          src={desktopBannerUrl}
+          alt="Streetwear Hero Desktop"
           fill
           priority
           unoptimized
           sizes="100vw"
+          className="hide-on-mobile"
+          style={{ objectFit: "cover" }}
+        />
+        <Image
+          src={mobileBannerUrl}
+          alt="Streetwear Hero Mobile"
+          fill
+          priority
+          unoptimized
+          sizes="100vw"
+          className="hide-on-desktop"
           style={{ objectFit: "cover" }}
         />
       </section>

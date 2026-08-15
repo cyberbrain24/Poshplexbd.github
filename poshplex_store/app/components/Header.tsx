@@ -20,6 +20,7 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [wishlistCount, setWishlistCount] = useState(0);
 
   const toggleMenu = () => setIsOpen(!isOpen);
   const closeMenu = () => setIsOpen(false);
@@ -47,6 +48,31 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
     document.addEventListener("toggle-mobile-menu", handleToggle);
     return () => {
       document.removeEventListener("toggle-mobile-menu", handleToggle);
+    };
+  }, []);
+
+  useEffect(() => {
+    const updateWishlistCount = () => {
+      try {
+        const stored = localStorage.getItem("wishlist");
+        if (stored) {
+          const list = JSON.parse(stored);
+          setWishlistCount(Array.isArray(list) ? list.length : 0);
+        } else {
+          setWishlistCount(0);
+        }
+      } catch (e) {
+        setWishlistCount(0);
+      }
+    };
+    updateWishlistCount();
+    window.addEventListener("wishlist_updated", updateWishlistCount);
+    window.addEventListener("storage", (e) => {
+      if (e.key === "wishlist") updateWishlistCount();
+    });
+    return () => {
+      window.removeEventListener("wishlist_updated", updateWishlistCount);
+      window.removeEventListener("storage", updateWishlistCount);
     };
   }, []);
 
@@ -165,19 +191,21 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
                       top: "100%",
                       left: "50%",
                       transform: "translateX(-50%)",
-                      background: "var(--bg-primary, #ffffff)",
-                      border: "1px solid var(--border-glass, #eaeaea)",
-                      padding: "32px",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      gap: 32,
+                      paddingTop: "24px",
                       zIndex: 100,
-                      boxShadow: "0 20px 40px rgba(0,0,0,0.08)",
-                      marginTop: 0,
-                      borderRadius: "8px",
-                      whiteSpace: "nowrap"
                     }}>
+                      <div style={{
+                        background: "var(--bg-primary, #ffffff)",
+                        border: "1px solid var(--border-glass, #eaeaea)",
+                        padding: "32px",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 32,
+                        boxShadow: "0 20px 40px rgba(0,0,0,0.08)",
+                        borderRadius: "8px",
+                        whiteSpace: "nowrap"
+                      }}>
                       <div style={{ display: "flex", gap: 24, justifyContent: "center" }}>
                         {cat.children.map((child: any) => (
                           <Link 
@@ -231,6 +259,7 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
                       >
                         VIEW ALL {cat.name} <span>&rarr;</span>
                       </Link>
+                    </div>
                     </div>
                   )}
                 </div>
@@ -343,8 +372,13 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
               </div>
             )}
           </div>
-          <Link href="/wishlist" onClick={closeMenu} style={{ background: "transparent", border: "none", color: "var(--text-main)", cursor: "pointer", display: "flex", alignItems: "center", padding: 0 }}>
-            <Heart size={18} />
+          <Link href="/wishlist" onClick={closeMenu} style={{ background: "transparent", border: "none", color: "var(--text-main)", cursor: "pointer", display: "flex", alignItems: "center", padding: 0, position: "relative" }}>
+            <Heart size={18} fill={wishlistCount > 0 ? "#e11d48" : "none"} color={wishlistCount > 0 ? "#e11d48" : "currentColor"} />
+            {wishlistCount > 0 && (
+              <div style={{ position: "absolute", top: -8, right: -10, background: "#e11d48", color: "#fff", fontSize: 9, fontWeight: 700, height: 16, minWidth: 16, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8, padding: "0 4px" }}>
+                {wishlistCount}
+              </div>
+            )}
           </Link>
           <Link href="/profile" className="desktop-only-icon" onClick={closeMenu} style={{ color: "var(--text-main)", display: "flex", alignItems: "center" }}>
             <User size={18} />

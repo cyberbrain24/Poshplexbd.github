@@ -444,3 +444,7 @@ input:focus, select:focus, textarea:focus {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Media Query Display Utilities */
+@media (max-width: 768px) { .hide-on-mobile { display: none !important; } }
+@media (min-width: 769px) { .hide-on-desktop { display: none !important; } }

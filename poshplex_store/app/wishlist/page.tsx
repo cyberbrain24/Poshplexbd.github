@@ -145,6 +145,7 @@ export default function WishlistPage() {
     setProducts(products.filter(p => p.id !== id));
     if (typeof window !== "undefined") {
       localStorage.setItem("wishlist", JSON.stringify(newList));
+      window.dispatchEvent(new Event("wishlist_updated"));
     }
   };
 

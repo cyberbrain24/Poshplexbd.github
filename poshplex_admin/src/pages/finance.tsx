@@ -280,9 +280,9 @@ function ARAgingTab() {
   ];
 
   const buckets = data ? [
-    { label: "Current (0â€“30 days)", key: "current_0_30", color: "#10b981", total: data.totals.current_0_30 },
-    { label: "31â€“60 days", key: "days_31_60", color: "#f59e0b", total: data.totals.days_31_60 },
-    { label: "61â€“90 days", key: "days_61_90", color: "#f97316", total: data.totals.days_61_90 },
+    { label: "Current (0 - 30 days)", key: "current_0_30", color: "#10b981", total: data.totals.current_0_30 },
+    { label: "31 - 60 days", key: "days_31_60", color: "#f59e0b", total: data.totals.days_31_60 },
+    { label: "61 - 90 days", key: "days_61_90", color: "#f97316", total: data.totals.days_61_90 },
     { label: "91+ days (Overdue)", key: "days_91_plus", color: "#e11d48", total: data.totals.days_91_plus },
   ] : [];
 
@@ -777,7 +777,7 @@ export const Finance: React.FC = () => {
       <div>
         <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700 }}>Financial Ledger System</h1>
         <p style={{ margin: 0, color: "#888", fontSize: 14 }}>
-          Double-entry ledger Â· Balance Sheet Â· AR Aging Â· Cash Flow Â· Bank Reconciliation
+          Double-entry ledger | Balance Sheet | AR Aging | Cash Flow | Bank Reconciliation
         </p>
       </div>
 

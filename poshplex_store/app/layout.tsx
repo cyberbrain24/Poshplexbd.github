@@ -17,13 +17,21 @@ const outfit = Outfit({
 
 export async function generateMetadata() {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/seo`, {
-      next: { revalidate: 3600 } // Cache for 1 hour to prevent hampering speed
-    });
+    const [resSeo, resGen] = await Promise.all([
+      fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/seo`, {
+        next: { revalidate: 3600 }
+      }),
+      fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/general`, {
+        next: { revalidate: 3600 }
+      })
+    ]);
     
-    if (res.ok) {
-      const data = await res.json();
-      const seo = data.value || {};
+    if (resSeo.ok && resGen.ok) {
+      const seoData = await resSeo.json();
+      const genData = await resGen.json();
+      
+      const seo = seoData.value || {};
+      const gen = genData.value || {};
       
       return {
         title: seo.meta_title || "Poshplex Storefront | Heavyweight Streetwear Brand",
@@ -33,6 +41,9 @@ export async function generateMetadata() {
           title: seo.meta_title || "Poshplex Storefront",
           description: seo.meta_description || "Heavyweight distressed boxy street-culture brand.",
           images: seo.og_image_url ? [seo.og_image_url] : [],
+        },
+        icons: {
+          icon: gen.favicon_url || "/favicon.ico",
         },
         manifest: "/manifest.json",
       };
