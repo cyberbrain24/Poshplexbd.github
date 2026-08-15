@@ -17,6 +17,7 @@ interface DockerContainer {
   status: string;
   image: string;
   id: string;
+  memory_mb?: number;
 }
 
 interface ErrorLog {
@@ -217,7 +218,14 @@ export const SystemMonitor: React.FC = () => {
                       <div style={{ fontWeight: 600, fontSize: 14 }}>{c.name}</div>
                       <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{c.image}</div>
                     </div>
-                    <Badge status={c.status.includes("Up") || c.status === "running" ? "success" : "error"} text={c.status} />
+                    <Space size="middle">
+                      {c.memory_mb !== undefined && (
+                        <Text style={{ fontSize: 13, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
+                          <DatabaseOutlined /> {c.memory_mb} MB
+                        </Text>
+                      )}
+                      <Badge status={c.status.includes("Up") || c.status === "running" ? "success" : "error"} text={c.status} />
+                    </Space>
                   </div>
                 ))}
               </Space>

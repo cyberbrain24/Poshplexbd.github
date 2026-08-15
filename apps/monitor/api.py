@@ -68,11 +68,24 @@ def get_docker_status(request):
         containers = client.containers.list()
         result = []
         for c in containers:
+            try:
+                image_name = c.attrs.get('Config', {}).get('Image', 'Unknown Image')
+            except Exception:
+                image_name = "Unknown Image"
+                
+            try:
+                stats = c.stats(stream=False)
+                mem_usage = stats.get('memory_stats', {}).get('usage', 0)
+                mem_mb = round(mem_usage / (1024 * 1024), 2)
+            except Exception:
+                mem_mb = 0
+                
             result.append({
                 "name": c.name,
                 "status": c.status,
-                "image": c.image.tags[0] if c.image.tags else c.image.id[:12],
-                "id": c.short_id
+                "image": image_name,
+                "id": c.short_id,
+                "memory_mb": mem_mb
             })
         return {"success": True, "containers": result}
     except Exception as e:
