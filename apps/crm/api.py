@@ -199,6 +199,7 @@ def update_my_customer_address(request, data: AddressUpdateInputSchema):
 
 class CustomerProfileUpdateSchema(Schema):
     full_name: str
+    email: Optional[str] = ""
     gender: Optional[str] = "unspecified"
     birthdate: Optional[str] = None # format YYYY-MM-DD
     address: Optional[str] = ""
@@ -219,6 +220,9 @@ def update_my_customer_profile(request, data: CustomerProfileUpdateSchema):
     with transaction.atomic():
         user = profile.user
         user.first_name = data.full_name
+        if data.email:
+            user.email = data.email
+            profile.email = data.email
         user.save()
         
         profile.gender = data.gender

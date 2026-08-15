@@ -461,8 +461,8 @@ def request_otp(request, data: RequestOtpSchema):
     
     # Send the OTP via Email or SMS using Celery
     if is_email:
-        html_body = f"<h2>Password Reset</h2><p>Your Poshplex OTP is <strong>{otp}</strong>. It expires in 3 minutes.</p>"
-        send_customer_email_task.delay(data.identifier, "Poshplex Password Reset OTP", html_body)
+        email_body = f"Your Poshplex OTP is {otp}. It expires in 3 minutes."
+        send_customer_email_task.delay(data.identifier, "Poshplex Password Reset OTP", email_body)
     else:
         otp_message = f"Your Poshplex OTP is {otp}"
         send_customer_sms_task.delay(data.identifier, otp_message)

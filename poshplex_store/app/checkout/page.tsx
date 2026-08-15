@@ -303,7 +303,7 @@ export default function CheckoutPage() {
         shipping_cost: shippingCost,
         discount_amount: discountAmount,
         customer_notes: formData.notes,
-        payment_method: formData.paymentMethod,
+        payment_method: "Cash on Delivery",
         items: cart.map(item => ({
           sku: item.sku,
           quantity: item.quantity,
@@ -451,32 +451,6 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              {/* Payment Method */}
-              <div className="checkout-section">
-                <h3 className="checkout-section-title">2. Payment Method</h3>
-                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                  {paymentMethods.length > 0 ? paymentMethods.map(method => (
-                    <label key={method.id} className={`payment-method-card ${formData.paymentMethod === method.name ? 'active' : ''}`}>
-                      <input 
-                        type="radio" 
-                        name="paymentMethod" 
-                        value={method.name} 
-                        checked={formData.paymentMethod === method.name} 
-                        onChange={(e) => setFormData(prev => ({ ...prev, paymentMethod: e.target.value }))}
-                        style={{ accentColor: "var(--text-main)", width: 20, height: 20, cursor: "pointer" }}
-                      />
-                      <div>
-                        <div style={{ fontWeight: 700, color: "var(--text-main)", fontSize: 16, textTransform: "uppercase" }}>{method.name}</div>
-                        {method.instructions && <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 6, lineHeight: 1.4 }}>{method.instructions}</div>}
-                      </div>
-                    </label>
-                  )) : (
-                    <div style={{ padding: 20, border: "1px dashed var(--border-color, #333)", borderRadius: 8, color: "var(--text-muted)", textAlign: "center" }}>
-                      Loading secure payment options...
-                    </div>
-                  )}
-                </div>
-              </div>
 
               <div style={{ marginTop: 24 }}>
                 <button 
@@ -574,6 +548,13 @@ export default function CheckoutPage() {
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 24, fontWeight: 900, color: "#ffffff", marginTop: 12, paddingTop: 24, borderTop: "1px solid rgba(255,255,255,0.1)" }}>
                   <span>TOTAL</span>
                   <span>৳{Math.max(0, cartTotal + shippingCost - discountAmount).toFixed(2)}</span>
+                </div>
+                
+                {/* Delivery Note */}
+                <div style={{ marginTop: 16, padding: 12, backgroundColor: "rgba(255,255,255,0.05)", borderRadius: 6, fontSize: 13, color: "#bbbbbb", lineHeight: 1.6, borderLeft: "3px solid #10b981" }}>
+                  <div style={{ fontWeight: 700, color: "#ffffff", marginBottom: 4 }}>DELIVERY TERMS:</div>
+                  <div>• Inside Dhaka: Cash on Delivery</div>
+                  <div>• Outside Dhaka: Advance delivery charge need to be pay</div>
                 </div>
               </div>
             </div>

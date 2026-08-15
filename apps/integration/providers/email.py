@@ -9,13 +9,48 @@ class MockEmailProvider(BaseEmailProvider):
         logger.info(f"[EMAIL MOCK] Sending email to '{to_email}' | Subject: '{subject}'")
         return True
 
-class SendGridEmailProvider(BaseEmailProvider):
-    """SendGrid API integration provider."""
-    def __init__(self, api_key: str = None, from_email: str = None):
-        self.api_key = api_key or "MOCK_SENDGRID_KEY"
-        self.from_email = from_email or "no-reply@poshplexbd.com"
+from django.core.mail import get_connection, EmailMessage
+
+class SMTPEmailProvider(BaseEmailProvider):
+    """Custom SMTP Server integration provider."""
+    def __init__(self, host: str = None, port: int = None, username: str = None, password: str = None, use_ssl: bool = True):
+        self.host = host or "mail.poshplexbd.com"
+        self.port = port or 465
+        self.username = username or "support@poshplexbd.com"
+        self.password = password or ""
+        self.use_ssl = use_ssl
 
     def send_email(self, to_email: str, subject: str, body: str, html_body: str = None) -> bool:
-        # SendGrid API integration placeholder
-        logger.info(f"[EMAIL SENDGRID] Sending email to '{to_email}' from '{self.from_email}' using key '{self.api_key[:8]}...': {subject}")
-        return True
+        try:
+            logger.info(f"[EMAIL SMTP] Connecting to {self.host}:{self.port} to send email to '{to_email}'")
+            
+            # Use SSL/TLS as requested (port 465 uses implicit SSL usually)
+            use_tls = False
+            use_ssl = self.use_ssl
+            
+            connection = get_connection(
+                host=self.host,
+                port=self.port,
+                username=self.username,
+                password=self.password,
+                use_tls=use_tls,
+                use_ssl=use_ssl,
+                fail_silently=False,
+            )
+            
+            email = EmailMessage(
+                subject=subject,
+                body=html_body or body,
+                from_email=self.username,
+                to=[to_email],
+                connection=connection,
+            )
+            if html_body:
+                email.content_subtype = "html"
+                
+            email.send()
+            logger.info(f"[EMAIL SMTP] Successfully sent email to '{to_email}'")
+            return True
+        except Exception as e:
+            logger.error(f"[EMAIL SMTP] Failed to send email to '{to_email}': {str(e)}")
+            return False

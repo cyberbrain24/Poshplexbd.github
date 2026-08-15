@@ -16,14 +16,21 @@ export interface Track {
 interface MusicContextType {
   tracks: Track[];
   currentTrack: Track | null;
+  currentIndex: number;
   isPlaying: boolean;
+  isLooping: boolean;
   volume: number;
   isMuted: boolean;
   isMinimized: boolean;
+  currentTime: number;
+  duration: number;
   play: () => void;
   pause: () => void;
   skipNext: () => void;
   skipPrev: () => void;
+  toggleLoop: () => void;
+  seek: (time: number) => void;
+  playTrack: (index: number) => void;
   changeVolume: (v: number) => void;
   toggleMute: () => void;
   toggleMinimize: () => void;
@@ -36,27 +43,42 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [tracks, setTracks] = useState<Track[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [isLooping, setIsLooping] = useState<boolean>(false);
   const [volume, setVolume] = useState<number>(0.5);
-  const [isMuted, setIsMuted] = useState<boolean>(false); // Initialized to false so sound plays on click
-  const [isMinimized, setIsMinimized] = useState<boolean>(false);
+  const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [isMinimized, setIsMinimized] = useState<boolean>(true);
+  const [currentTime, setCurrentTime] = useState<number>(0);
+  const [duration, setDuration] = useState<number>(0);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const tracksRef = useRef<Track[]>([]);
+  const isLoopingRef = useRef<boolean>(false);
   const pathname = usePathname();
 
-  // Fetch active tracks — cached in sessionStorage to avoid re-fetching on every page mount
+  // Sync refs to avoid stale closures in event listeners
+  useEffect(() => {
+    tracksRef.current = tracks;
+  }, [tracks]);
+
+  useEffect(() => {
+    isLoopingRef.current = isLooping;
+    if (audioRef.current) {
+      audioRef.current.loop = isLooping;
+    }
+  }, [isLooping]);
+
   useEffect(() => {
     const fetchTracks = async () => {
-      // Check session cache first
       try {
         const cached = sessionStorage.getItem("poshplex_music_tracks");
         if (cached) {
           const parsed = JSON.parse(cached);
           if (Array.isArray(parsed) && parsed.length > 0) {
             setTracks(parsed);
-            return; // Skip network call entirely
+            return;
           }
         }
-      } catch { /* ignore parse errors */ }
+      } catch { }
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 3000);
@@ -67,11 +89,9 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (res.ok) {
           const data = await res.json();
           setTracks(data);
-          // Cache for this browser session
           try { sessionStorage.setItem("poshplex_music_tracks", JSON.stringify(data)); } catch { }
         }
       } catch {
-        // Backend offline or timeout — load fallback demo tracks silently
         clearTimeout(timeout);
         setTracks([]);
       }
@@ -79,7 +99,6 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     fetchTracks();
   }, []);
 
-  // Sync settings and custom events
   useEffect(() => {
     if (typeof window !== "undefined") {
       const savedVolume = localStorage.getItem("poshplex_music_volume");
@@ -88,16 +107,13 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (savedMinimized !== null) setIsMinimized(savedMinimized === "true");
     }
 
-    const handleToggle = () => {
-      setIsMinimized(prev => !prev);
-    };
+    const handleToggle = () => setIsMinimized(prev => !prev);
     document.addEventListener("toggle-music", handleToggle);
     return () => document.removeEventListener("toggle-music", handleToggle);
   }, []);
 
   const currentTrack = tracks[currentIndex] || null;
 
-  // Track audio object loading
   useEffect(() => {
     if (!currentTrack) return;
 
@@ -106,7 +122,6 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       ? currentTrack.audio_url
       : `${API}${currentTrack.audio_url}`;
 
-    // Reuse the existing Audio element instance if available to satisfy browser interaction security policies
     const isSameSrc = audioRef.current && (audioRef.current.src === audioUrlToPlay || audioRef.current.src.endsWith(currentTrack.audio_url));
     if (!audioRef.current) {
       audioRef.current = new Audio(audioUrlToPlay);
@@ -118,15 +133,28 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const audio = audioRef.current;
     audio.volume = isMuted ? 0 : volume;
     audio.muted = isMuted;
+    audio.loop = isLoopingRef.current;
 
     const handleTrackEnded = () => {
-      if (tracks.length > 0) {
-        setCurrentIndex((prev) => (prev + 1) % tracks.length);
+      // If looping, HTMLAudioElement with loop=true handles it automatically.
+      // But just in case loop isn't supported or we want explicit control:
+      if (!isLoopingRef.current && tracksRef.current.length > 0) {
+        setCurrentIndex((prev) => (prev + 1) % tracksRef.current.length);
         setIsPlaying(true);
       }
     };
 
+    const handleTimeUpdate = () => {
+      setCurrentTime(audio.currentTime);
+    };
+
+    const handleLoadedMetadata = () => {
+      setDuration(audio.duration);
+    };
+
     audio.addEventListener("ended", handleTrackEnded);
+    audio.addEventListener("timeupdate", handleTimeUpdate);
+    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
 
     if (isPlaying && audio.paused) {
       audio.play().catch((err) => {
@@ -137,26 +165,23 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     return () => {
       audio.removeEventListener("ended", handleTrackEnded);
-      // Removed audio.pause() during track transitions so the synchronous play isn't immediately stopped
+      audio.removeEventListener("timeupdate", handleTimeUpdate);
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
     };
   }, [currentTrack]);
 
-  // Sync toggle state
   useEffect(() => {
     if (typeof window !== "undefined") {
       document.dispatchEvent(new CustomEvent("music-state", { detail: { isPlaying } }));
     }
     if (!audioRef.current) return;
     if (isPlaying) {
-      audioRef.current.play().catch(() => {
-        setIsPlaying(false);
-      });
+      audioRef.current.play().catch(() => setIsPlaying(false));
     } else {
       audioRef.current.pause();
     }
   }, [isPlaying]);
 
-  // Sync volume level settings
   useEffect(() => {
     if (!audioRef.current) return;
     audioRef.current.volume = isMuted ? 0 : volume;
@@ -171,40 +196,32 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
   const pause = () => setIsPlaying(false);
 
+  const toggleLoop = () => setIsLooping(prev => !prev);
+  
+  const seek = (time: number) => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = time;
+      setCurrentTime(time);
+    }
+  };
+
+  const playTrack = (index: number) => {
+    if (index >= 0 && index < tracks.length) {
+      setCurrentIndex(index);
+      setIsPlaying(true);
+    }
+  };
+
   const skipNext = () => {
     if (tracks.length === 0) return;
     const nextIdx = (currentIndex + 1) % tracks.length;
-    setCurrentIndex(nextIdx);
-    setIsPlaying(true);
-
-    const nextTrack = tracks[nextIdx];
-    if (nextTrack && audioRef.current) {
-      const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const audioUrlToPlay = nextTrack.audio_url.startsWith("http")
-        ? nextTrack.audio_url
-        : `${API}${nextTrack.audio_url}`;
-      audioRef.current.src = audioUrlToPlay;
-      audioRef.current.load();
-      audioRef.current.play().catch((err) => console.warn("Sync skipNext play failed:", err));
-    }
+    playTrack(nextIdx);
   };
 
   const skipPrev = () => {
     if (tracks.length === 0) return;
     const prevIdx = (currentIndex - 1 + tracks.length) % tracks.length;
-    setCurrentIndex(prevIdx);
-    setIsPlaying(true);
-
-    const prevTrack = tracks[prevIdx];
-    if (prevTrack && audioRef.current) {
-      const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const audioUrlToPlay = prevTrack.audio_url.startsWith("http")
-        ? prevTrack.audio_url
-        : `${API}${prevTrack.audio_url}`;
-      audioRef.current.src = audioUrlToPlay;
-      audioRef.current.load();
-      audioRef.current.play().catch((err) => console.warn("Sync skipPrev play failed:", err));
-    }
+    playTrack(prevIdx);
   };
 
   const changeVolume = (v: number) => {
@@ -212,9 +229,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (v > 0) setIsMuted(false);
   };
 
-  const toggleMute = () => {
-    setIsMuted(!isMuted);
-  };
+  const toggleMute = () => setIsMuted(!isMuted);
 
   const toggleMinimize = () => {
     const nextMinimized = !isMinimized;
@@ -224,21 +239,27 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  // Checkout page suppression
   const isVisible = pathname !== "/checkout" && pathname !== "/payment";
 
   return (
     <MusicContext.Provider value={{
       tracks,
       currentTrack,
+      currentIndex,
       isPlaying,
+      isLooping,
       volume,
       isMuted,
       isMinimized,
+      currentTime,
+      duration,
       play,
       pause,
       skipNext,
       skipPrev,
+      toggleLoop,
+      seek,
+      playTrack,
       changeVolume,
       toggleMute,
       toggleMinimize,

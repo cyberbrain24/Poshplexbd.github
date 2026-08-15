@@ -3,7 +3,28 @@ import requests
 import logging
 from celery import shared_task
 
+import re
+
 logger = logging.getLogger(__name__)
+
+def normalize_phone_for_steadfast(phone: str) -> str:
+    """
+    Strips international codes and ensures 11 digits starting with 01.
+    """
+    if not phone:
+        return "01700000000"
+    
+    digits = re.sub(r'\D', '', phone)
+    
+    if digits.startswith('8801') and len(digits) == 13:
+        digits = digits[2:]
+    elif digits.startswith('008801') and len(digits) == 15:
+        digits = digits[4:]
+        
+    if digits.startswith('01') and len(digits) == 11:
+        return digits
+        
+    return "01700000000"
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=300)
 def dispatch_order_to_steadfast_task(self, order_id: int):
@@ -23,11 +44,14 @@ def dispatch_order_to_steadfast_task(self, order_id: int):
     if order.payment_status == 'paid':
         cod_amount = 0.0
 
+    raw_phone = order.shipping_phone or order.user.crm_profile.phone if hasattr(order.user, 'crm_profile') else ""
+    formatted_phone = normalize_phone_for_steadfast(raw_phone)
+
     payload = {
         "invoice": order.order_number,
         "recipient_name": order.shipping_name or order.user.username,
-        "recipient_phone": order.shipping_phone or "01700000000",
-        "recipient_address": order.shipping_address,
+        "recipient_phone": formatted_phone,
+        "recipient_address": f"District: {order.shipping_district}, Thana: {order.shipping_thana}, {order.shipping_address}",
         "cod_amount": cod_amount,
         "note": order.customer_notes or "Delivery from Poshplex"
     }
@@ -50,15 +74,17 @@ def dispatch_order_to_steadfast_task(self, order_id: int):
             if data.get("status") == 200 and "consignment" in data:
                 cons = data["consignment"]
                 order.tracking_number = cons.get("tracking_code")
-                order.courier_status = cons.get("status", "pending")
-                order.status = 'approval_pending' # Shipped status
+                order.courier_consignment_id = cons.get("consignment_id")
+                order.courier_name = "Steadfast"
+                order.courier_status = cons.get("status", "in_review")
+                order.status = 'review' # Shipped status
                 order.save()
                 
                 # Log status history
                 OrderStatusHistory.objects.create(
                     order=order,
-                    status='approval_pending',
-                    notes=f"Dispatched to Steadfast Courier via Celery. Consignment: {order.tracking_number}"
+                    status='review',
+                    notes=f"Dispatched to Steadfast Courier. Consignment: {order.courier_consignment_id}, Tracking: {order.tracking_number}"
                 )
                 return True
             else:

@@ -39,27 +39,36 @@ export const SystemMonitor: React.FC = () => {
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
   const [containers, setContainers] = useState<DockerContainer[]>([]);
   const [logs, setLogs] = useState<ErrorLog[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [metricsLoading, setMetricsLoading] = useState(true);
+  const [dockerLoading, setDockerLoading] = useState(true);
+  const [logsLoading, setLogsLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
+  
+  const loading = metricsLoading || dockerLoading || logsLoading;
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [metricsRes, dockerRes, logsRes] = await Promise.all([
-        axios.get(API_URL + "/monitor/metrics"),
-        axios.get(API_URL + "/monitor/docker"),
-        axios.get(API_URL + "/monitor/logs")
-      ]);
-      setMetrics(metricsRes.data);
-      if (dockerRes.data.success) {
-        setContainers(dockerRes.data.containers);
-      }
-      setLogs(logsRes.data || []);
-    } catch (error) {
-      console.error("Failed to fetch monitor data", error);
-    } finally {
-      setLoading(false);
-    }
+  const fetchData = () => {
+    setMetricsLoading(true);
+    setDockerLoading(true);
+    setLogsLoading(true);
+
+    axios.get(API_URL + "/monitor/metrics")
+      .then(res => setMetrics(res.data))
+      .catch(err => console.error("Metrics fetch error", err))
+      .finally(() => setMetricsLoading(false));
+
+    axios.get(API_URL + "/monitor/docker")
+      .then(res => {
+        if (res.data.success) {
+          setContainers(res.data.containers);
+        }
+      })
+      .catch(err => console.error("Docker fetch error", err))
+      .finally(() => setDockerLoading(false));
+
+    axios.get(API_URL + "/monitor/logs")
+      .then(res => setLogs(res.data || []))
+      .catch(err => console.error("Logs fetch error", err))
+      .finally(() => setLogsLoading(false));
   };
 
   useEffect(() => {

@@ -266,20 +266,35 @@ def sync_steadfast_status(order_id: int) -> str:
             data = res.json()
             if "delivery_status" in data:
                 status = data["delivery_status"]
-                order.courier_status = status
                 
                 # Check status changes mappings
-                if status == "delivered":
+                from django.utils import timezone
+                old_status = order.status
+                
+                if status in ["delivered_approval_pending", "partial_delivered_approval_pending", "cancelled_approval_pending"]:
+                    order.status = "approval_pending"
+                elif status == "in_review":
+                    order.status = "review"
+                elif status == "pending":
+                    order.status = "pending"
+                elif status == "hold":
+                    order.status = "hold"
+                elif status == "delivered":
                     order.status = "delivered"
                     order.payment_status = "paid"
-                    OrderStatusHistory.objects.create(order=order, status="delivered", notes="Delivered by Steadfast.")
-                elif status == "cancelled":
-                    order.status = "cancelled"
-                    OrderStatusHistory.objects.create(order=order, status="cancelled", notes="Cancelled by Steadfast.")
-                elif status == "returned":
-                    order.status = "returned"
-                    OrderStatusHistory.objects.create(order=order, status="returned", notes="Returned to sender by Steadfast.")
-                
+                    if not order.delivered_at:
+                        order.delivered_at = timezone.now()
+                elif status == "partial_delivered":
+                    order.status = "partially_delivered"
+                    if not order.delivered_at:
+                        order.delivered_at = timezone.now()
+                elif status == "cancelled" or status == "returned":
+                    order.status = "cancelled" if status == "cancelled" else "returned"
+
+                if old_status != order.status:
+                    OrderStatusHistory.objects.create(order=order, status=order.status, notes=f"Courier status updated to '{status}'. Internal status mapped to '{order.status}'.")
+
+                order.courier_status = status
                 order.save()
                 return status
     except Exception:

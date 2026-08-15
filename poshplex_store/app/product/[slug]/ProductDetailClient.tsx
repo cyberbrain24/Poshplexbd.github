@@ -270,6 +270,19 @@ export default function ProductDetailClient({ product }: { product: any }) {
     Object.entries(selectedAttributes).every(([k, val]) => v.attributes[k] === val)
   ) || null;
 
+  useEffect(() => {
+    if (matchedVariant && matchedVariant.image_id) {
+      const idx = product.images?.findIndex((img: any) => img.id === matchedVariant.image_id);
+      if (idx !== undefined && idx !== -1) {
+        setActiveImageIdx(idx);
+        const el = document.getElementById("gallery-scroll-container");
+        if (el) {
+          el.scrollTo({ left: el.clientWidth * idx, behavior: "smooth" });
+        }
+      }
+    }
+  }, [selectedAttributes]);
+
   const allSelected =
     Object.keys(attributeGroups).length > 0 &&
     Object.keys(attributeGroups).every((k) => selectedAttributes[k]);

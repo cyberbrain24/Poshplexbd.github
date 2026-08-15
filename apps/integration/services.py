@@ -1,7 +1,7 @@
 import logging
 from apps.core.interfaces import get_setting_value
 from apps.integration.providers.sms import MockSMSProvider, TwilioSMSProvider, BulkSMSBDProvider
-from apps.integration.providers.email import MockEmailProvider, SendGridEmailProvider
+from apps.integration.providers.email import MockEmailProvider, SMTPEmailProvider
 from apps.integration.providers.courier import MockCourierProvider, DHLCourierProvider
 
 logger = logging.getLogger(__name__)
@@ -31,11 +31,13 @@ def get_email_provider():
     config = get_setting_value("integration_providers", {})
     provider_type = config.get("email_provider", "mock").lower()
     
-    if provider_type == "sendgrid":
-        params = config.get("sendgrid_credentials", {})
-        return SendGridEmailProvider(
-            api_key=params.get("api_key"),
-            from_email=params.get("from_email")
+    if provider_type == "smtp":
+        params = config.get("smtp_credentials", {})
+        return SMTPEmailProvider(
+            host=params.get("host"),
+            port=params.get("port"),
+            username=params.get("username"),
+            password=params.get("password")
         )
     return MockEmailProvider()
 

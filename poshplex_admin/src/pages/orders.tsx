@@ -5,7 +5,7 @@ import {
 } from "antd";
 import {
   ShoppingCartOutlined, CheckCircleOutlined, CarOutlined, 
-  PrinterOutlined, PlusOutlined, ShoppingOutlined, EyeOutlined, SyncOutlined, DeleteOutlined, GiftOutlined, CloseCircleOutlined, EditOutlined, WhatsAppOutlined, SaveOutlined
+  PrinterOutlined, PlusOutlined, ShoppingOutlined, EyeOutlined, SyncOutlined, DeleteOutlined, GiftOutlined, CloseCircleOutlined, EditOutlined, WhatsAppOutlined, SaveOutlined, PhoneOutlined
 } from "@ant-design/icons";
 import { EditOrderModal } from "../components/EditOrderModal";
 import axios from "axios";
@@ -32,6 +32,9 @@ export const Orders: React.FC = () => {
 
   // Call notes state
   const [callNotes, setCallNotes] = useState<Record<number, string>>({});
+  
+  // Active Phone WhatsApp toggles
+  const [activePhones, setActivePhones] = useState<Record<number, boolean>>({});
 
   const handleSaveCallNote = async (id: number) => {
     const note = callNotes[id];
@@ -284,6 +287,28 @@ export const Orders: React.FC = () => {
     } catch (err: any) { if (err?.response?.status !== 403) message.error("Sync failed."); }
   };
 
+  const handleRemoveShipment = async (id: number) => {
+    try {
+      const token = localStorage.getItem("poshplex_access_token");
+      await axios.delete(`${API_URL}/${id}/ship`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      message.success("Shipment removed locally.");
+      fetchOrders();
+    } catch (err: any) { if (err?.response?.status !== 403) message.error(err.response?.data?.message || "Failed to remove shipment."); }
+  };
+
+  const handleSyncAllCouriers = async () => {
+    try {
+      const token = localStorage.getItem("poshplex_access_token");
+      const res = await axios.post(`${API_URL}/sync-couriers`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      message.success(`Sync enqueued for ${res.data.count} pending shipments.`);
+      setTimeout(fetchOrders, 3000);
+    } catch (err: any) { if (err?.response?.status !== 403) message.error(err.response?.data?.message || "Bulk sync failed."); }
+  };
+
   // Bulk Steadfast sync
   const handleBulkCourierSync = async () => {
     setLoading(true);
@@ -498,7 +523,8 @@ export const Orders: React.FC = () => {
       placed: { color: "gold", label: "Order Placed" },
       review: { color: "cyan", label: "In Review" },
       pending: { color: "orange", label: "Pending" },
-      approval_pending: { color: "blue", label: "Shipped / Dispatch Pending" },
+      hold: { color: "volcano", label: "Hold" },
+      approval_pending: { color: "blue", label: "Approval Pending" },
       delivered: { color: "green", label: "Delivered" },
       partially_delivered: { color: "lime", label: "Partially Delivered" },
       cancelled: { color: "red", label: "Cancelled" },
@@ -585,9 +611,14 @@ export const Orders: React.FC = () => {
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "var(--text-main)" }}>Orders & Fulfillment</h1>
           <p style={{ margin: "4px 0 0", color: "var(--text-muted)", fontSize: 13 }}>Manage orders, payments, and courier dispatches.</p>
         </div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreateModal} style={{ borderRadius: 6, whiteSpace: 'nowrap' }}>
-          Create Order
-        </Button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Button icon={<SyncOutlined />} onClick={handleSyncAllCouriers} style={{ borderRadius: 6, whiteSpace: 'nowrap' }}>
+            Sync Steadfast
+          </Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreateModal} style={{ borderRadius: 6, whiteSpace: 'nowrap' }}>
+            Create Order
+          </Button>
+        </div>
       </div>
 
       <Card styles={{ body: { padding: '12px 14px' } }}>
@@ -616,16 +647,16 @@ export const Orders: React.FC = () => {
             )}
           </div>
         </div>
-
         <Tabs activeKey={activeTab} onChange={setActiveTab} type="card" items={[
           { label: <span>All <Badge count={orderCounts.all || 0} showZero style={{ backgroundColor: '#52c41a' }} /></span>, key: "all" },
           { label: <span>Placed <Badge count={orderCounts.placed || 0} showZero color="gold" /></span>, key: "placed" },
           { label: <span>Review <Badge count={orderCounts.review || 0} showZero color="cyan" /></span>, key: "review" },
           { label: <span>Pending <Badge count={orderCounts.pending || 0} showZero color="orange" /></span>, key: "pending" },
-          { label: <span>Dispatched <Badge count={orderCounts.approval_pending || 0} showZero color="blue" /></span>, key: "approval_pending" },
+          { label: <span>Hold <Badge count={orderCounts.hold || 0} showZero color="volcano" /></span>, key: "hold" },
+          { label: <span>Approval Pending <Badge count={orderCounts.approval_pending || 0} showZero color="blue" /></span>, key: "approval_pending" },
           { label: <span>Delivered <Badge count={orderCounts.delivered || 0} showZero color="green" /></span>, key: "delivered" },
           { label: <span>Returned <Badge count={orderCounts.returned || 0} showZero color="purple" /></span>, key: "returned" },
-          { label: <span>Cancelled <Badge count={orderCounts.cancelled || 0} showZero color="red" /></span>, key: "cancelled" }
+          { label: <span>Cancelled <Badge count={orderCounts.cancelled || 0} showZero color="red" /></span>, key: "cancelled" },
         ]} />
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
@@ -663,7 +694,17 @@ export const Orders: React.FC = () => {
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 'bold', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   {order.customer_phone}
-                  <WhatsAppOutlined style={{ color: '#25D366' }} />
+                  {activePhones[order.id] ? (
+                    <PhoneOutlined 
+                      style={{ color: '#25D366', cursor: 'pointer', fontSize: 16 }} 
+                      onClick={() => setActivePhones(prev => ({...prev, [order.id]: false}))} 
+                    />
+                  ) : (
+                    <PhoneOutlined 
+                      style={{ color: '#888', cursor: 'pointer', fontSize: 16 }} 
+                      onClick={() => setActivePhones(prev => ({...prev, [order.id]: true}))} 
+                    />
+                  )}
                 </div>
 
                 {/* Qty & Price */}
@@ -698,11 +739,16 @@ export const Orders: React.FC = () => {
                       <CarOutlined /> Ship
                     </Button>
                   ) : (
-                    <Button size="small" style={{ flex: 1, borderColor: '#10b981', color: '#10b981', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4 }} onClick={() => handleSyncCourier(order.id)}>
-                      <CheckCircleOutlined /> Shipped: {order.tracking_number}
-                    </Button>
+                    <>
+                      <Button size="small" style={{ flex: 1, borderColor: '#10b981', color: '#10b981', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4, overflow: 'hidden' }} onClick={() => { navigator.clipboard.writeText(order.tracking_number); message.success('Parcel ID copied to clipboard'); }}>
+                        <CheckCircleOutlined style={{ flexShrink: 0 }} /> 
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          Shipped: {order.tracking_number}
+                        </span>
+                      </Button>
+                      <Button size="small" danger icon={<DeleteOutlined />} onClick={() => handleRemoveShipment(order.id)} />
+                    </>
                   )}
-                  <Button size="small" danger icon={<DeleteOutlined />} onClick={() => handleDeleteOrder(order.id)} />
                 </div>
 
                 {/* Call Note */}

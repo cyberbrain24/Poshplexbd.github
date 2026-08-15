@@ -661,8 +661,31 @@ def ship_order_endpoint(request, order_id: int):
     enforce_permission(request, "orders", "edit_orders")
     try:
         from apps.orders.tasks import dispatch_order_to_steadfast_task
-        dispatch_order_to_steadfast_task.delay(order_id)
+        # Run synchronously so the frontend gets the tracking number immediately
+        dispatch_order_to_steadfast_task(order_id)
         order = Order.objects.get(id=order_id)
+        return compile_order_response(order)
+    except Exception as e:
+        raise HttpError(400, str(e))
+
+@router.delete("/{int:order_id}/ship", response=OrderResponseSchema, auth=BearerAuth())
+def remove_shipment_endpoint(request, order_id: int):
+    """Removes the Steadfast Courier consignment locally and reverts order status."""
+    enforce_permission(request, "orders", "edit_orders")
+    try:
+        order = Order.objects.get(id=order_id)
+        order.tracking_number = None
+        order.courier_consignment_id = None
+        order.courier_name = None
+        order.courier_status = None
+        order.status = 'placed'
+        order.save()
+        OrderStatusHistory.objects.create(
+            order=order,
+            status='placed',
+            admin_username=request.auth.username,
+            notes="Courier consignment deleted locally. Reverted to Placed status."
+        )
         return compile_order_response(order)
     except Exception as e:
         raise HttpError(400, str(e))
@@ -676,6 +699,20 @@ def sync_courier_endpoint(request, order_id: int):
         sync_steadfast_status_task.delay(order_id)
         order = Order.objects.get(id=order_id)
         return compile_order_response(order)
+    except Exception as e:
+        raise HttpError(400, str(e))
+
+@router.post("/sync-couriers", auth=BearerAuth())
+def sync_all_couriers_endpoint(request):
+    """Enqueues sync for all shipped/pending orders."""
+    enforce_permission(request, "orders", "edit_orders")
+    try:
+        from apps.orders.tasks import sync_steadfast_status_task
+        # Sync orders that have tracking number and are not delivered/cancelled/returned
+        orders_to_sync = Order.objects.exclude(status__in=['delivered', 'cancelled', 'returned']).exclude(tracking_number__isnull=True).exclude(tracking_number='')
+        for o in orders_to_sync:
+            sync_steadfast_status_task.delay(o.id)
+        return {"success": True, "count": orders_to_sync.count()}
     except Exception as e:
         raise HttpError(400, str(e))
 

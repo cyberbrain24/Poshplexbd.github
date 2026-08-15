@@ -71,6 +71,7 @@ export default function ProfilePage() {
   // Profile editing states
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profName, setProfName] = useState("");
+  const [profEmail, setProfEmail] = useState("");
   const [profGender, setProfGender] = useState("");
   const [profBirthYear, setProfBirthYear] = useState("");
   const [profBirthMonth, setProfBirthMonth] = useState("");
@@ -166,6 +167,7 @@ export default function ProfilePage() {
       setSelectedThana(userProfile.thana_id ? String(userProfile.thana_id) : "");
       
       setProfName(userProfile.username || "");
+      setProfEmail(userProfile.email || "");
       setProfGender(userProfile.gender || "unspecified");
       if (userProfile.birthdate) {
         const parts = userProfile.birthdate.split("-");
@@ -203,6 +205,7 @@ export default function ProfilePage() {
         },
         body: JSON.stringify({
           full_name: profName,
+          email: profEmail,
           gender: profGender,
           birthdate: birthdate,
           address: addressText,
@@ -1216,7 +1219,15 @@ export default function ProfilePage() {
                 {changePwdError && <div style={{ background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", border: "1px solid rgba(239, 68, 68, 0.2)", padding: 12, borderRadius: 12, fontSize: 13, textAlign: "center" }}>{changePwdError}</div>}
                 <form onSubmit={handleChangePassword} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   <div>
-                    <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Current Password</label>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", display: "flex", justifyContent: "space-between", marginBottom: 6, textTransform: "uppercase" }}>
+                      <span>Current Password</span>
+                      <a 
+                        onClick={(e) => { e.preventDefault(); router.push('/forgot-password'); }} 
+                        style={{ color: "var(--text-main)", cursor: "pointer", textDecoration: "underline", textTransform: "none", fontWeight: 600 }}
+                      >
+                        I can't remember my current password
+                      </a>
+                    </label>
                     <input
                       type="password"
                       required
@@ -1357,6 +1368,16 @@ export default function ProfilePage() {
                   required
                   value={profName}
                   onChange={(e) => setProfName(e.target.value)}
+                  style={{ width: "100%", background: "#ffffff", border: "1px solid var(--border-glass)", color: "#111", borderRadius: 8, padding: 10, fontSize: 13 }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Email Address</label>
+                <input
+                  type="email"
+                  value={profEmail}
+                  onChange={(e) => setProfEmail(e.target.value)}
                   style={{ width: "100%", background: "#ffffff", border: "1px solid var(--border-glass)", color: "#111", borderRadius: 8, padding: 10, fontSize: 13 }}
                 />
               </div>

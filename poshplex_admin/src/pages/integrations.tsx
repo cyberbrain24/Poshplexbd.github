@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import {
   Card, Form, Input, Select, Button, Space, Row, Col, 
-  Tabs, Divider, message, Alert, Checkbox
+  Tabs, Divider, message, Alert, Checkbox, Modal
 } from "antd";
+import axios from "axios";
 import {
   ApiOutlined, MailOutlined, MobileOutlined, 
   GlobalOutlined, SafetyCertificateOutlined, MessageOutlined,
@@ -13,6 +14,11 @@ import { useList, useCreate, useUpdate } from "@refinedev/core";
 export const Integrations: React.FC = () => {
   const [form] = Form.useForm();
   const [autoForm] = Form.useForm();
+
+  const [isTestModalVisible, setIsTestModalVisible] = useState(false);
+  const [testModalType, setTestModalType] = useState<"sms" | "email">("sms");
+  const [testTarget, setTestTarget] = useState("");
+  const [isTesting, setIsTesting] = useState(false);
 
   // Load current dynamic settings from modular backend
   const { data: settingsData, refetch } = useList<any>({ resource: "settings" });
@@ -36,8 +42,10 @@ export const Integrations: React.FC = () => {
         bulksmsbd_sender: configSetting?.value?.bulksmsbd_credentials?.sender_id || "",
         
         email_provider: configSetting?.value?.email_provider || "mock",
-        sendgrid_key: configSetting?.value?.sendgrid_credentials?.api_key || "",
-        sendgrid_from: configSetting?.value?.sendgrid_credentials?.from_email || "",
+        smtp_host: configSetting?.value?.smtp_credentials?.host || "",
+        smtp_port: configSetting?.value?.smtp_credentials?.port || 465,
+        smtp_username: configSetting?.value?.smtp_credentials?.username || "",
+        smtp_password: configSetting?.value?.smtp_credentials?.password || "",
 
         courier_provider: configSetting?.value?.courier_provider || "mock",
         dhl_key: configSetting?.value?.dhl_credentials?.api_key || "",
@@ -78,9 +86,11 @@ export const Integrations: React.FC = () => {
           sender_id: values.bulksmsbd_sender,
         },
         email_provider: values.email_provider,
-        sendgrid_credentials: {
-          api_key: values.sendgrid_key,
-          from_email: values.sendgrid_from,
+        smtp_credentials: {
+          host: values.smtp_host,
+          port: values.smtp_port,
+          username: values.smtp_username,
+          password: values.smtp_password,
         },
         courier_provider: values.courier_provider,
         dhl_credentials: {
@@ -88,7 +98,7 @@ export const Integrations: React.FC = () => {
           account_number: values.dhl_account,
         },
       },
-      description: "Gateway credentials for BulkSMSBD, SendGrid, and DHL",
+      description: "Gateway credentials for BulkSMSBD, Custom SMTP, and DHL",
     };
 
     // 2. Compile tracking pixels & social auth payload
@@ -180,6 +190,48 @@ export const Integrations: React.FC = () => {
     );
   };
 
+  const openTestModal = (type: "sms" | "email") => {
+    setTestModalType(type);
+    setTestTarget("");
+    setIsTestModalVisible(true);
+  };
+
+  const handleSendTest = async () => {
+    if (!testTarget) {
+      message.error("Please enter a target address or number.");
+      return;
+    }
+    
+    setIsTesting(true);
+    
+    const token = localStorage.getItem("poshplex_access_token");
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    
+    const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_SERVER_URL || 'http://localhost:8000') + "/api/v1";
+    
+    try {
+      if (testModalType === "sms") {
+        await axios.post(`${API_URL}/integration/send-sms`, {
+          to_number: testTarget,
+          message: "This is a test SMS from Poshplex Admin."
+        }, { headers });
+        message.success("Test SMS dispatched successfully.");
+      } else {
+        await axios.post(`${API_URL}/integration/send-email`, {
+          to_email: testTarget,
+          subject: "Test Email from Poshplex",
+          body: "This is a test email sent from the Poshplex Admin integrations panel."
+        }, { headers });
+        message.success("Test Email dispatched successfully.");
+      }
+      setIsTestModalVisible(false);
+    } catch (err: any) {
+      message.error(`Test dispatch failed: ${err.response?.data?.detail || err.response?.data?.message || err.message}`);
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
   return (
     <Space direction="vertical" size="large" style={{ width: "100%" }}>
       <div>
@@ -197,7 +249,10 @@ export const Integrations: React.FC = () => {
               <Row gutter={24}>
                 {/* SMS Channel */}
                 <Col xs={24} md={8}>
-                  <Divider orientation="left"><MobileOutlined /> SMS Provider</Divider>
+                  <Divider orientation="left">
+                    <MobileOutlined /> SMS Provider 
+                    <Button type="link" size="small" onClick={() => openTestModal("sms")}>Test</Button>
+                  </Divider>
                   <Form.Item name="sms_provider" label="Active SMS Gateway">
                     <Select>
                       <Select.Option value="mock">Local Debug Mock Logger</Select.Option>
@@ -214,18 +269,27 @@ export const Integrations: React.FC = () => {
 
                 {/* Email Channel */}
                 <Col xs={24} md={8}>
-                  <Divider orientation="left"><MailOutlined /> Email Provider</Divider>
+                  <Divider orientation="left">
+                    <MailOutlined /> Email Provider
+                    <Button type="link" size="small" onClick={() => openTestModal("email")}>Test</Button>
+                  </Divider>
                   <Form.Item name="email_provider" label="Active Email Gateway">
                     <Select>
                       <Select.Option value="mock">Local Debug Mock Printer</Select.Option>
-                      <Select.Option value="sendgrid">SendGrid API</Select.Option>
+                      <Select.Option value="smtp">Poshplex Webmail SMTP</Select.Option>
                     </Select>
                   </Form.Item>
-                  <Form.Item name="sendgrid_key" label="SendGrid API Key">
-                    <Input.Password placeholder="SG.xxxxxxxxxxxxxxxxxxxx" />
+                  <Form.Item name="smtp_host" label="SMTP Host">
+                    <Input placeholder="mail.poshplexbd.com" />
                   </Form.Item>
-                  <Form.Item name="sendgrid_from" label="Sender Email address">
-                    <Input placeholder="hello@poshplexbd.com" />
+                  <Form.Item name="smtp_port" label="SMTP Port">
+                    <Input placeholder="465" />
+                  </Form.Item>
+                  <Form.Item name="smtp_username" label="SMTP Username">
+                    <Input placeholder="support@poshplexbd.com" />
+                  </Form.Item>
+                  <Form.Item name="smtp_password" label="SMTP Password">
+                    <Input.Password placeholder="Enter password" />
                   </Form.Item>
                 </Col>
 
@@ -375,6 +439,31 @@ export const Integrations: React.FC = () => {
           )
         }
       ]} />
+      
+      <Modal
+        title={`Test ${testModalType === "sms" ? "SMS Gateway" : "Email Gateway"}`}
+        open={isTestModalVisible}
+        onCancel={() => !isTesting && setIsTestModalVisible(false)}
+        footer={null}
+      >
+        <div style={{ padding: "20px 0" }}>
+          <p style={{ marginBottom: 16, color: "var(--text-muted)" }}>
+            Enter a destination {testModalType === "sms" ? "phone number" : "email address"} to dispatch a test payload using the active integration.
+          </p>
+          <Form layout="vertical" onFinish={handleSendTest}>
+            <Form.Item label={`Destination ${testModalType === "sms" ? "Phone Number" : "Email"}`} required>
+              <Input 
+                value={testTarget} 
+                onChange={(e) => setTestTarget(e.target.value)} 
+                placeholder={testModalType === "sms" ? "e.g. 01700000000" : "hello@example.com"} 
+              />
+            </Form.Item>
+            <Button type="primary" htmlType="submit" loading={isTesting} block>
+              Send Test Payload
+            </Button>
+          </Form>
+        </div>
+      </Modal>
     </Space>
   );
 };

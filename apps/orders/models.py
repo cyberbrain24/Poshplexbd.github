@@ -9,6 +9,7 @@ class Order(AuditedModelMixin):
         ('placed', 'Order Placed'),
         ('review', 'In Review'),
         ('pending', 'Pending'),
+        ('hold', 'Hold'),
         ('approval_pending', 'Approval Pending'),
         ('delivered', 'Delivered'),
         ('partially_delivered', 'Partially Delivered'),
@@ -51,6 +52,9 @@ class Order(AuditedModelMixin):
     # Courier fields
     tracking_number = models.CharField(max_length=100, blank=True, null=True)
     courier_status = models.CharField(max_length=100, blank=True, null=True)
+    courier_consignment_id = models.CharField(max_length=100, blank=True, null=True)
+    courier_name = models.CharField(max_length=50, blank=True, null=True)
+    delivered_at = models.DateTimeField(blank=True, null=True)
     
     # Notes
     customer_notes = models.TextField(blank=True, null=True)
