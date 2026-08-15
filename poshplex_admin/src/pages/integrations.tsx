@@ -362,6 +362,7 @@ export const Integrations: React.FC = () => {
         {
           key: "2",
           label: <span><MessageOutlined /> Automated Notifications</span>,
+          forceRender: true,
           children: (
           <Row gutter={24}>
             <Col xs={24} md={16}>

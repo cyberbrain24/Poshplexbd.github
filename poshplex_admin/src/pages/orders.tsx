@@ -908,7 +908,7 @@ export const Orders: React.FC = () => {
             size="small"
             dataSource={modalDraftItems}
             pagination={false}
-            rowKey={(rec, index) => `${rec.sku}-${index}`}
+            rowKey={(rec) => `${rec.sku}`}
             columns={[
               { title: "SKU Variant", dataIndex: "sku", key: "sku" },
               { title: "Name", dataIndex: "name", key: "name" },
@@ -1026,6 +1026,9 @@ export const Orders: React.FC = () => {
         open={isDetailDrawerOpen}
         extra={
           <Space>
+            <Button icon={<EditOutlined />} onClick={() => setIsEditModalOpen(true)}>
+              Edit Order
+            </Button>
             <Button danger icon={<DeleteOutlined />} onClick={() => handleDeleteOrder(selectedOrder.id)}>
               Delete Order
             </Button>
@@ -1410,6 +1413,23 @@ export const Orders: React.FC = () => {
         </Form>
       </Modal>
 
+      {/* Edit Order Modal */}
+      <EditOrderModal
+        visible={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        order={selectedOrder}
+        onRefresh={() => {
+          setIsEditModalOpen(false);
+          fetchOrders();
+          if (selectedOrder) {
+            // Re-fetch or update the selectedOrder if needed. The drawer might show stale data until refetched.
+            const updated = orders.find(o => o.id === selectedOrder.id);
+            if (updated) setSelectedOrder(updated);
+          }
+        }}
+        productsList={productsList}
+        paymentMethods={paymentMethods}
+      />
     </Space>
   );
 };

@@ -1,11 +1,11 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Table, Tag, Button, Space, Card, Form, Input, 
   InputNumber, Select, Descriptions, Divider, message, Tabs, Drawer, Timeline, Row, Col, Alert, Checkbox, Progress, Modal, Badge, Image
 } from "antd";
 import {
   CarOutlined, PrinterOutlined, CheckCircleOutlined, SyncOutlined, 
-  EyeOutlined, EditOutlined, DollarOutlined, SolutionOutlined, LoadingOutlined, PhoneOutlined, InboxOutlined
+  EyeOutlined, EditOutlined, DollarOutlined, SolutionOutlined, LoadingOutlined, PhoneOutlined, InboxOutlined, PushpinOutlined
 } from "@ant-design/icons";
 import axios from "axios";
 import { EditOrderModal } from "../components/EditOrderModal";
@@ -46,7 +46,6 @@ export const Fulfillment: React.FC = () => {
   const [isEditTrackingOpen, setIsEditTrackingOpen] = useState(false);
   
   // Progress states for bulk dispatches
-  const [syncProgress, setSyncProgress] = useState<number | null>(null);
   const [syncTotal, setSyncTotal] = useState(0);
 
   // Edit Modal and Metadata
@@ -134,43 +133,16 @@ export const Fulfillment: React.FC = () => {
     setLoading(false);
   };
 
-  // Bulk sync Steadfast Courier statuses with progress indicator
-  const handleBulkSyncCourier = async () => {
-    if (selectedRowKeys.length === 0) return;
-    const total = selectedRowKeys.length;
-    setSyncTotal(total);
-    setSyncProgress(0);
-    setLoading(true);
-
-    const token = localStorage.getItem("poshplex_access_token");
-    let count = 0;
-
-    for (const orderId of selectedRowKeys) {
-      try {
-        // Skip calling API if the order is already final state (safety built in frontend as well)
-        const ord = orders.find(o => o.id === orderId);
-        if (ord && !['placed', 'review', 'pending', 'approval_pending'].includes(ord.status)) {
-          count++;
-          setSyncProgress(count);
-          continue;
-        }
-
-        await axios.post(`${API_URL}/${orderId}/sync-courier`, {}, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        count++;
-        setSyncProgress(count);
-      } catch (err) {
-        count++;
-        setSyncProgress(count);
-      }
-    }
-
-    message.success(`Bulk synchronization of ${total} orders complete.`);
-    setSyncProgress(null);
-    setSelectedRowKeys([]);
-    fetchFulfillmentQueue();
-    setLoading(false);
+  // Sync Steadfast (Simple)
+  const handleSyncAllCouriers = async () => {
+    try {
+      const token = localStorage.getItem("poshplex_access_token");
+      const res = await axios.post(`${API_URL}/sync-couriers`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      message.success(`Sync enqueued for ${res.data.count} pending shipments.`);
+      setTimeout(fetchFulfillmentQueue, 3000);
+    } catch (err: any) { if (err?.response?.status !== 403) message.error(err.response?.data?.message || "Bulk sync failed."); }
   };
 
   // COD Collected approval
@@ -220,24 +192,64 @@ export const Fulfillment: React.FC = () => {
   // Manual status override
   const handleStatusOverride = async (newStatus: string) => {
     if (!selectedOrder) return;
+    handleQuickStatusOverride(selectedOrder, newStatus);
+  };
+
+  const handleQuickStatusOverride = async (orderToUpdate: any, newStatus: string) => {
+    try {
+      const token = localStorage.getItem("poshplex_access_token");
+      const res = await axios.put(`${API_URL}/${orderToUpdate.id}/status`, { status: newStatus, notes: "" }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      message.success(`Status updated to: ${newStatus.toUpperCase()}`);
+      if (selectedOrder && selectedOrder.id === orderToUpdate.id) {
+        setSelectedOrder(res.data);
+      }
+      fetchFulfillmentQueue();
+    } catch (err: any) { if (err?.response?.status !== 403) message.error("Override failed."); }
+  };
+
+  const handleToggleReady = async (orderToUpdate: any) => {
     try {
       const token = localStorage.getItem("poshplex_access_token");
       const updatedData = {
-        ...selectedOrder,
-        status: newStatus,
-        items: selectedOrder.items.map((i: any) => ({
+        ...orderToUpdate,
+        is_ready: !orderToUpdate.is_ready,
+        items: orderToUpdate.items.map((i: any) => ({
           sku: i.sku,
           quantity: i.quantity,
           price: i.price
         }))
       };
-      const res = await axios.put(`${API_URL}/${selectedOrder.id}`, updatedData, {
+      const res = await axios.put(`${API_URL}/${orderToUpdate.id}`, updatedData, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      message.success(`Manual override set order status to: ${newStatus.toUpperCase()}`);
-      setSelectedOrder(res.data);
+      message.success(`Order marked as ${!orderToUpdate.is_ready ? 'Ready' : 'Not Ready'}`);
+      if (selectedOrder && selectedOrder.id === orderToUpdate.id) {
+        setSelectedOrder(res.data);
+      }
       fetchFulfillmentQueue();
-    } catch (err: any) { if (err?.response?.status !== 403) message.error("Override failed."); }
+    } catch (err: any) { if (err?.response?.status !== 403) message.error("Failed to update ready state."); }
+  };
+
+  const handleUpdateIssue = async (orderToUpdate: any, issue: string) => {
+    try {
+      const token = localStorage.getItem("poshplex_access_token");
+      const updatedData = {
+        ...orderToUpdate,
+        issue_status: issue,
+        items: orderToUpdate.items.map((i: any) => ({
+          sku: i.sku,
+          quantity: i.quantity,
+          price: i.price
+        }))
+      };
+      await axios.put(`${API_URL}/${orderToUpdate.id}`, updatedData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      message.success(`Issue updated to: ${issue}`);
+      fetchFulfillmentQueue();
+    } catch (err: any) { if (err?.response?.status !== 403) message.error("Failed to update issue."); }
   };
 
   const getStatusBadge = (status: string) => {
@@ -296,24 +308,17 @@ export const Fulfillment: React.FC = () => {
             style={{ flex: 1, minWidth: 140 }}
           />
 
-          <Button icon={<SyncOutlined />} onClick={handleBulkSyncCourier}>Sync</Button>
+          <Button icon={<SyncOutlined />} onClick={handleSyncAllCouriers}>
+            Sync Steadfast
+          </Button>
         </div>
       </div>
-
-      {syncProgress !== null && (
-        <Card>
-          <Space direction="vertical" style={{ width: "100%" }}>
-            <span>Bulk synchronizing consignment statuses with courier: <b>{syncProgress} / {syncTotal}</b></span>
-            <Progress percent={Math.round((syncProgress / syncTotal) * 100)} status="active" />
-          </Space>
-        </Card>
-      )}
 
       {/* Orders List / Cards Layout */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {orders.map(order => {
           const items = order.items || [];
-          const isReady = order.status !== 'review';
+          const isReady = order.is_ready;
           
           return (
             <Card key={order.id} styles={{ body: { padding: '24px 16px' } }} style={{ borderRadius: 8, borderColor: '#e5e5e5' }}>
@@ -322,8 +327,8 @@ export const Fulfillment: React.FC = () => {
                 <Col xs={24} md={10} lg={8}>
                   <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 8 }}>
                     {items.map((item: any, idx: number) => (
-                      <div key={idx} style={{ textAlign: 'center', minWidth: 100 }}>
-                        <div style={{ background: '#f5f5f5', borderRadius: 8, padding: 8, marginBottom: 8, height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div key={idx} style={{ textAlign: 'center', minWidth: 100, width: 120 }}>
+                        <div style={{ background: '#f5f5f5', borderRadius: 8, padding: 8, marginBottom: 8, width: 120, height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           {item.image ? (
                             <Image src={`${(import.meta.env.VITE_SERVER_URL || 'http://localhost:8000')}${item.image}`} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} alt="product" />
                           ) : (
@@ -332,7 +337,7 @@ export const Fulfillment: React.FC = () => {
                         </div>
                         <div style={{ fontSize: 12, fontWeight: 500 }}>x{item.quantity}</div>
                         <div style={{ fontSize: 12, color: '#666', fontWeight: 600 }}>
-                          {item.attributes?.size || ''} {item.attributes?.color ? `â€¢ ${item.attributes.color}` : ''}
+                          {item.attributes?.size || ''} {item.attributes?.color ? ` • ${item.attributes.color}` : ''}
                         </div>
                       </div>
                     ))}
@@ -361,19 +366,30 @@ export const Fulfillment: React.FC = () => {
                     <PhoneOutlined /> {order.shipping_phone || order.customer_phone}
                   </div>
                   {order.customer_notes && (
-                    <div style={{ color: '#666', fontSize: 12, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <SolutionOutlined /> {order.customer_notes}
+                    <div style={{ color: '#666', fontSize: 12, marginBottom: 4, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                      <SolutionOutlined style={{ marginTop: 2 }} /> 
+                      <span><strong>Customer:</strong> {order.customer_notes}</span>
+                    </div>
+                  )}
+                  {order.internal_notes && order.internal_notes !== "None" && (
+                    <div style={{ color: '#d48806', fontSize: 12, marginBottom: 8, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                      <PushpinOutlined style={{ marginTop: 2 }} />
+                      <span><strong>Staff Note:</strong> {order.internal_notes}</span>
                     </div>
                   )}
                   
                   <div style={{ color: '#888', fontSize: 12, marginTop: 4 }}>
-                    {order.created_at ? new Date(order.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''} â€¢ ৳{Math.round(parseFloat(order.total_amount || 0))}
+                    {order.created_at ? new Date(order.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''} • ৳{Math.round(parseFloat(order.total_amount || 0))}
                   </div>
                 </Col>
 
                 {/* Right: Actions */}
                 <Col xs={24} md={4} lg={4} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: 12 }}>
-                  <Select defaultValue="None" style={{ width: '100%' }}>
+                  <Select 
+                    value={order.issue_status || "None"} 
+                    style={{ width: '100%' }}
+                    onChange={(val) => handleUpdateIssue(order, val)}
+                  >
                     <Select.Option value="None">None</Select.Option>
                     <Select.Option value="Stock Out">Stock Out</Select.Option>
                     <Select.Option value="Print Issues">Print Issues</Select.Option>
@@ -386,8 +402,7 @@ export const Fulfillment: React.FC = () => {
                     icon={!isReady ? <InboxOutlined /> : <CheckCircleOutlined />}
                     style={{ width: '100%', backgroundColor: !isReady ? '#000' : '#10b981', borderColor: !isReady ? '#000' : '#10b981', borderRadius: 4 }}
                     onClick={() => {
-                      if (!isReady) handleStatusOverride('pending');
-                      else { setSelectedOrder(order); setIsDetailDrawerOpen(true); }
+                      handleToggleReady(order);
                     }}
                   >
                     {!isReady ? 'Mark as Ready' : 'Ready'}
@@ -407,6 +422,9 @@ export const Fulfillment: React.FC = () => {
         open={isDetailDrawerOpen}
         extra={
           <Space>
+            <Button icon={<EditOutlined />} onClick={() => setIsEditModalOpen(true)}>
+              Edit Order
+            </Button>
             <Button icon={<PrinterOutlined />} onClick={() => triggerPrintWindow(selectedOrder)}>
               Print Pack list
             </Button>
@@ -565,6 +583,18 @@ export const Fulfillment: React.FC = () => {
           )}
         </div>
       </div>
+
+      <EditOrderModal
+        visible={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        order={selectedOrder}
+        onRefresh={() => {
+          setIsEditModalOpen(false);
+          fetchFulfillmentQueue();
+        }}
+        productsList={productsList}
+        paymentMethods={paymentMethods}
+      />
     </Space>
   );
 };

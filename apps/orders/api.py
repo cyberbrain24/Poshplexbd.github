@@ -47,6 +47,8 @@ class OrderCreateInputSchema(Schema):
     shipping_cost: Optional[Decimal] = Decimal('0.00')
     customer_notes: Optional[str] = ""
     internal_notes: Optional[str] = ""
+    issue_status: Optional[str] = "None"
+    is_ready: Optional[bool] = False
     
     # Optional payment on creation
     payment_method: Optional[str] = "COD"
@@ -116,6 +118,8 @@ class OrderResponseSchema(Schema):
     courier_status: Optional[str] = None
     customer_notes: Optional[str] = None
     internal_notes: Optional[str] = None
+    issue_status: Optional[str] = "None"
+    is_ready: Optional[bool] = False
     
     risk_level: str
     risk_reasons: List[str]
@@ -216,6 +220,8 @@ def compile_order_response(order: Order, sku_to_details: dict = None) -> dict:
         "courier_status": order.courier_status,
         "customer_notes": order.customer_notes,
         "internal_notes": order.internal_notes,
+        "issue_status": getattr(order, 'issue_status', 'None'),
+        "is_ready": getattr(order, 'is_ready', False),
         "risk_level": order.risk_level,
         "risk_reasons": order.risk_reasons or [],
         "items": items,
@@ -558,6 +564,10 @@ def update_order_endpoint(request, order_id: int, data: OrderCreateInputSchema):
             order.shipping_cost = data.shipping_cost
             order.customer_notes = data.customer_notes
             order.internal_notes = data.internal_notes
+            if hasattr(data, 'issue_status'):
+                order.issue_status = data.issue_status
+            if hasattr(data, 'is_ready'):
+                order.is_ready = data.is_ready
             
             # Recalculate subtotal
             subtotal = Decimal('0.00')
@@ -720,20 +730,37 @@ def sync_all_couriers_endpoint(request):
 def bulk_sync_courier_endpoint(request, order_ids: List[int]):
     """Sync delivery status in bulk for multiple orders (Admin only)."""
     enforce_permission(request, "orders", "edit_orders")
-    synced_count = 0
+    updated_count = 0
+    skipped_count = 0
+    failed_count = 0
     errors = []
+    
+    from apps.orders.services import sync_steadfast_status
     
     for o_id in order_ids:
         try:
-            from apps.orders.tasks import sync_steadfast_status_task
-            sync_steadfast_status_task.delay(o_id)
-            synced_count += 1
+            order = Order.objects.get(id=o_id)
+            old_status = order.status
+            new_status = sync_steadfast_status(o_id)
+            
+            # Since sync_steadfast_status updates the object in-place,
+            # we consider it updated if the status changed.
+            # (Note: it could also change payment_status, so if they want strictly status changes:)
+            # Actually, sync_steadfast_status saves to DB, so we reload to check.
+            order.refresh_from_db()
+            if old_status != order.status:
+                updated_count += 1
+            else:
+                skipped_count += 1
         except Exception as e:
+            failed_count += 1
             errors.append({"order_id": o_id, "error": str(e)})
             
     return {
-        "success": len(errors) == 0,
-        "synced_count": synced_count,
+        "success": True,
+        "updated": updated_count,
+        "skipped": skipped_count,
+        "failed": failed_count,
         "errors": errors
     }
 

@@ -39,6 +39,14 @@ const customTheme = {
 
 import { App as AntdApp } from "antd";
 
+const originalWarn = console.warn;
+console.warn = (...args) => {
+  if (typeof args[0] === "string" && args[0].includes("Static function can not consume context like dynamic theme")) {
+    return;
+  }
+  originalWarn(...args);
+};
+
 export const App: React.FC = () => {
   return (
     <ConfigProvider theme={customTheme}>

@@ -238,6 +238,7 @@ def sync_steadfast_status(order_id: int) -> str:
     Syncs Steadfast delivery status, updating database states and audit timeline.
     """
     import requests
+    import os
     order = Order.objects.get(id=order_id)
     if not order.tracking_number:
         return "pending"

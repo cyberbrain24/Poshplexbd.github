@@ -56,9 +56,11 @@ class Order(AuditedModelMixin):
     courier_name = models.CharField(max_length=50, blank=True, null=True)
     delivered_at = models.DateTimeField(blank=True, null=True)
     
-    # Notes
+    # Notes & Issues
     customer_notes = models.TextField(blank=True, null=True)
     internal_notes = models.TextField(blank=True, null=True)
+    issue_status = models.CharField(max_length=100, default='None', blank=True, null=True)
+    is_ready = models.BooleanField(default=False)
     
     # Risk flags
     risk_level = models.CharField(max_length=20, default='low')

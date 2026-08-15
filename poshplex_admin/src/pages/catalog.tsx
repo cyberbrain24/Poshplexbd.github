@@ -1189,7 +1189,7 @@ export const Catalog: React.FC = () => {
           <Card 
             title="Structural Categories Tree"
             extra={
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsCategoryModalOpen(true)} style={{ borderRadius: 0 }}>
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingCategory(null); categoryForm.resetFields(); setIsCategoryModalOpen(true); }} style={{ borderRadius: 0 }}>
                 Create Category
               </Button>
             }
@@ -1615,7 +1615,7 @@ export const Catalog: React.FC = () => {
           <Card
             title="Brand Management"
             extra={
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsBrandModalOpen(true)} style={{ borderRadius: 0 }}>
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingBrand(null); brandForm.resetFields(); setIsBrandModalOpen(true); }} style={{ borderRadius: 0 }}>
                 Add Brand
               </Button>
             }
@@ -1648,7 +1648,7 @@ export const Catalog: React.FC = () => {
           <Card
             title="Size Guide Templates"
             extra={
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsSizeModalOpen(true)} style={{ borderRadius: 0 }}>
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingSize(null); sizeForm.resetFields(); setIsSizeModalOpen(true); }} style={{ borderRadius: 0 }}>
                 Create Size Guide
               </Button>
             }
@@ -1680,7 +1680,7 @@ export const Catalog: React.FC = () => {
           <Card
             title="Wash & Care Templates"
             extra={
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsCareModalOpen(true)} style={{ borderRadius: 0 }}>
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingCare(null); careForm.resetFields(); setIsCareModalOpen(true); }} style={{ borderRadius: 0 }}>
                 Create Template
               </Button>
             }

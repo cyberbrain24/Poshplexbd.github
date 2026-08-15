@@ -38,7 +38,10 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({ visible, order, 
   useEffect(() => {
     if (visible && order) {
       itemsForm.setFieldsValue({
-        items: order.items.map((i: any) => ({ sku: i.sku, quantity: i.quantity, price: i.price }))
+        items: order.items.map((i: any) => ({ sku: i.sku, quantity: i.quantity, price: i.price })),
+        shipping_name: order.shipping_name,
+        shipping_phone: order.shipping_phone,
+        shipping_address: order.shipping_address,
       });
       statusForm.setFieldsValue({ status: order.status, notes: "" });
       paymentForm.resetFields();
@@ -54,9 +57,9 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({ visible, order, 
       const payload = {
         user_id: order.user_id,
         items: values.items,
-        shipping_address: order.shipping_address,
-        shipping_name: order.shipping_name,
-        shipping_phone: order.shipping_phone,
+        shipping_address: values.shipping_address || order.shipping_address,
+        shipping_name: values.shipping_name || order.shipping_name,
+        shipping_phone: values.shipping_phone || order.shipping_phone,
         shipping_district: order.shipping_district,
         shipping_thana: order.shipping_thana,
         shipping_postal_code: order.shipping_postal_code,
@@ -131,9 +134,27 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({ visible, order, 
       <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
         {
           key: "items",
-          label: <span><SyncOutlined /> Edit Products</span>,
+          label: <span><SyncOutlined /> Edit Details</span>,
           children: (
           <Form form={itemsForm} layout="vertical">
+            <Row gutter={16}>
+              <Col span={8}>
+                <Form.Item name="shipping_name" label="Recipient Name">
+                  <Input />
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item name="shipping_phone" label="Recipient Phone">
+                  <Input />
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item name="shipping_address" label="Full Address">
+                  <Input />
+                </Form.Item>
+              </Col>
+            </Row>
+            
             <Form.List name="items">
               {(fields, { add, remove }) => (
                 <>
@@ -179,7 +200,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({ visible, order, 
                 </>
               )}
             </Form.List>
-            <Button type="primary" onClick={handleUpdateItems} loading={loading} block>Save Product Changes</Button>
+            <Button type="primary" onClick={handleUpdateItems} loading={loading} block>Save Order Changes</Button>
           </Form>
           )
         },
