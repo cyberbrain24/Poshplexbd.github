@@ -75,17 +75,31 @@ def get_docker_status(request):
                 
             try:
                 stats = c.stats(stream=False)
+                
+                # RAM
                 mem_usage = stats.get('memory_stats', {}).get('usage', 0)
                 mem_mb = round(mem_usage / (1024 * 1024), 2)
+                
+                # CPU
+                cpu_delta = stats.get('cpu_stats', {}).get('cpu_usage', {}).get('total_usage', 0) - stats.get('precpu_stats', {}).get('cpu_usage', {}).get('total_usage', 0)
+                system_cpu_delta = stats.get('cpu_stats', {}).get('system_cpu_usage', 0) - stats.get('precpu_stats', {}).get('system_cpu_usage', 0)
+                number_cpus = stats.get('cpu_stats', {}).get('online_cpus', 1)
+                
+                if system_cpu_delta > 0 and cpu_delta > 0:
+                    cpu_percent = round((cpu_delta / system_cpu_delta) * number_cpus * 100.0, 2)
+                else:
+                    cpu_percent = 0.0
             except Exception:
                 mem_mb = 0
+                cpu_percent = 0.0
                 
             result.append({
                 "name": c.name,
                 "status": c.status,
                 "image": image_name,
                 "id": c.short_id,
-                "memory_mb": mem_mb
+                "memory_mb": mem_mb,
+                "cpu_percent": cpu_percent
             })
         return {"success": True, "containers": result}
     except Exception as e:

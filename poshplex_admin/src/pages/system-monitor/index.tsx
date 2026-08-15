@@ -18,6 +18,7 @@ interface DockerContainer {
   image: string;
   id: string;
   memory_mb?: number;
+  cpu_percent?: number;
 }
 
 interface ErrorLog {
@@ -219,6 +220,11 @@ export const SystemMonitor: React.FC = () => {
                       <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{c.image}</div>
                     </div>
                     <Space size="middle">
+                      {c.cpu_percent !== undefined && (
+                        <Text style={{ fontSize: 13, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
+                          <DesktopOutlined /> {c.cpu_percent}%
+                        </Text>
+                      )}
                       {c.memory_mb !== undefined && (
                         <Text style={{ fontSize: 13, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
                           <DatabaseOutlined /> {c.memory_mb} MB
