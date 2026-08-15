@@ -5,6 +5,7 @@ import uuid
 from datetime import datetime
 from ninja import Router, Schema
 from django.core.cache import cache
+import concurrent.futures
 
 router = Router(tags=["System Monitor"])
 
@@ -66,8 +67,8 @@ def get_docker_status(request):
         # Connect to default local socket (UNIX on Linux, named pipe on Windows)
         client = docker.from_env()
         containers = client.containers.list()
-        result = []
-        for c in containers:
+        
+        def fetch_container_stats(c):
             try:
                 image_name = c.attrs.get('Config', {}).get('Image', 'Unknown Image')
             except Exception:
@@ -93,14 +94,18 @@ def get_docker_status(request):
                 mem_mb = 0
                 cpu_percent = 0.0
                 
-            result.append({
+            return {
                 "name": c.name,
                 "status": c.status,
                 "image": image_name,
                 "id": c.short_id,
                 "memory_mb": mem_mb,
                 "cpu_percent": cpu_percent
-            })
+            }
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            result = list(executor.map(fetch_container_stats, containers))
+            
         return {"success": True, "containers": result}
     except Exception as e:
         # Usually happens in local dev if Docker Desktop isn't running
