@@ -8,7 +8,7 @@ function ForgotPasswordContent() {
   const router = useRouter();
 
   const [step, setStep] = useState(1);
-  const [phone, setPhone] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
   
@@ -28,17 +28,26 @@ function ForgotPasswordContent() {
 
   const requestOTP = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!phone.trim()) return;
+    if (!identifier.trim()) return;
     
-    let formattedPhone = phone.trim();
-    if (formattedPhone.startsWith("+88")) {
-      formattedPhone = formattedPhone.substring(3);
-    }
-    
-    const phoneRegex = /^01\d{9}$/;
-    if (!phoneRegex.test(formattedPhone)) {
-      setError("Phone number must be exactly 11 digits and start with 01.");
-      return;
+    let formattedIdentifier = identifier.trim();
+    const isEmail = formattedIdentifier.includes("@");
+
+    if (!isEmail) {
+      if (formattedIdentifier.startsWith("+88")) {
+        formattedIdentifier = formattedIdentifier.substring(3);
+      }
+      const phoneRegex = /^01\d{9}$/;
+      if (!phoneRegex.test(formattedIdentifier)) {
+        setError("Please enter a valid email or an 11-digit phone number.");
+        return;
+      }
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formattedIdentifier)) {
+        setError("Please enter a valid email or phone number.");
+        return;
+      }
     }
 
     setIsLoading(true);
@@ -48,7 +57,7 @@ function ForgotPasswordContent() {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/customer-forgot-password/request-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: formattedPhone }),
+        body: JSON.stringify({ identifier: formattedIdentifier }),
       });
 
       if (res.ok) {
@@ -72,9 +81,9 @@ function ForgotPasswordContent() {
       return;
     }
 
-    let formattedPhone = phone.trim();
-    if (formattedPhone.startsWith("+88")) {
-      formattedPhone = formattedPhone.substring(3);
+    let formattedIdentifier = identifier.trim();
+    if (!formattedIdentifier.includes("@") && formattedIdentifier.startsWith("+88")) {
+      formattedIdentifier = formattedIdentifier.substring(3);
     }
 
     setIsLoading(true);
@@ -85,7 +94,7 @@ function ForgotPasswordContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          phone: formattedPhone, 
+          identifier: formattedIdentifier, 
           otp,
           new_password: newPassword
         }),
@@ -145,7 +154,7 @@ function ForgotPasswordContent() {
             {step === 1 ? "FORGOT PASSWORD" : "RESET PASSWORD"}
           </h1>
           <p style={{ color: "var(--text-muted)", fontSize: 14, marginTop: 8 }}>
-            {step === 1 ? "Enter your phone number to receive an OTP." : `We sent a code to ${phone}`}
+            {step === 1 ? "Enter your email or phone number to receive an OTP." : `We sent a code to ${identifier}`}
           </p>
         </div>
 
@@ -166,15 +175,15 @@ function ForgotPasswordContent() {
         {step === 1 ? (
           <form onSubmit={requestOTP} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>Phone Number</label>
+              <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>Email or Phone Number</label>
               <div style={{ position: "relative" }}>
                 <Phone size={16} style={{ position: "absolute", left: 16, top: 15, color: "var(--text-muted)" }} />
                 <input 
-                  type="tel" 
+                  type="text" 
                   required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="e.g. 01700000000"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  placeholder="e.g. 01700000000 or hello@example.com"
                   style={{ width: "100%", background: "var(--bg-secondary)", border: "1px solid var(--border-glass)", color: "var(--text-main)", padding: "12px 16px 12px 44px", fontSize: 14, outline: "none" }}
                 />
               </div>
@@ -225,7 +234,7 @@ function ForgotPasswordContent() {
                 onClick={() => setStep(1)}
                 style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: 0 }}
               >
-                Change Phone
+                Change Email / Phone
               </button>
               
               {countdown > 0 ? (

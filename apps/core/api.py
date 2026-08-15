@@ -246,10 +246,10 @@ def check_otp_rate_limit(request):
         cache.incr(cache_key)
 
 class RequestOtpSchema(Schema):
-    phone: str
+    identifier: str
 
 class ResetPasswordSchema(Schema):
-    phone: str
+    identifier: str
     otp: str
     new_password: str
 
@@ -442,20 +442,30 @@ def request_otp(request, data: RequestOtpSchema):
     from apps.crm.models import CustomerProfile
     from django.core.cache import cache
     import random
-    from apps.integration.tasks import send_customer_sms_task
+    from apps.integration.tasks import send_customer_sms_task, send_customer_email_task
     
     check_otp_rate_limit(request)
     
-    profile = CustomerProfile.objects.filter(phone=data.phone).first()
+    is_email = "@" in data.identifier
+    
+    if is_email:
+        profile = CustomerProfile.objects.filter(user__email=data.identifier).first()
+    else:
+        profile = CustomerProfile.objects.filter(phone=data.identifier).first()
+        
     if not profile:
-        raise HttpError(404, "Account with this phone number not found.")
+        raise HttpError(404, "Account with this identifier not found.")
         
     otp = str(random.randint(100000, 999999))
-    cache.set(f"otp_{data.phone}", otp, timeout=180) # 3 minutes expiry
+    cache.set(f"otp_{data.identifier}", otp, timeout=180) # 3 minutes expiry
     
-    # Send the OTP via SMS using Celery
-    otp_message = f"Your Poshplex OTP is {otp}"
-    send_customer_sms_task.delay(data.phone, otp_message)
+    # Send the OTP via Email or SMS using Celery
+    if is_email:
+        html_body = f"<h2>Password Reset</h2><p>Your Poshplex OTP is <strong>{otp}</strong>. It expires in 3 minutes.</p>"
+        send_customer_email_task.delay(data.identifier, "Poshplex Password Reset OTP", html_body)
+    else:
+        otp_message = f"Your Poshplex OTP is {otp}"
+        send_customer_sms_task.delay(data.identifier, otp_message)
     
     return {"success": True, "message": "OTP sent successfully."}
 
@@ -464,11 +474,16 @@ def reset_password(request, data: ResetPasswordSchema):
     from apps.crm.models import CustomerProfile
     from django.core.cache import cache
     
-    cached_otp = cache.get(f"otp_{data.phone}")
+    cached_otp = cache.get(f"otp_{data.identifier}")
     if not cached_otp or cached_otp != data.otp:
         raise HttpError(400, "Invalid or expired OTP.")
         
-    profile = CustomerProfile.objects.filter(phone=data.phone).select_related('user').first()
+    is_email = "@" in data.identifier
+    if is_email:
+        profile = CustomerProfile.objects.filter(user__email=data.identifier).select_related('user').first()
+    else:
+        profile = CustomerProfile.objects.filter(phone=data.identifier).select_related('user').first()
+        
     if not profile:
         raise HttpError(404, "Account not found.")
         
@@ -476,7 +491,7 @@ def reset_password(request, data: ResetPasswordSchema):
     user.set_password(data.new_password)
     user.save()
     
-    cache.delete(f"otp_{data.phone}")
+    cache.delete(f"otp_{data.identifier}")
     return {"success": True, "message": "Password reset successfully."}
 
 class ChangePasswordSchema(Schema):

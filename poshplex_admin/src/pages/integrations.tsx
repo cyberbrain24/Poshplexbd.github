@@ -32,9 +32,8 @@ export const Integrations: React.FC = () => {
     if (configSetting || pixelsSetting || autoSetting || socialSetting) {
       form.setFieldsValue({
         sms_provider: configSetting?.value?.sms_provider || "mock",
-        twilio_sid: configSetting?.value?.twilio_credentials?.account_sid || "",
-        twilio_token: configSetting?.value?.twilio_credentials?.auth_token || "",
-        twilio_number: configSetting?.value?.twilio_credentials?.from_number || "",
+        bulksmsbd_key: configSetting?.value?.bulksmsbd_credentials?.api_key || "",
+        bulksmsbd_sender: configSetting?.value?.bulksmsbd_credentials?.sender_id || "",
         
         email_provider: configSetting?.value?.email_provider || "mock",
         sendgrid_key: configSetting?.value?.sendgrid_credentials?.api_key || "",
@@ -74,10 +73,9 @@ export const Integrations: React.FC = () => {
       key: "integration_providers",
       value: {
         sms_provider: values.sms_provider,
-        twilio_credentials: {
-          account_sid: values.twilio_sid,
-          auth_token: values.twilio_token,
-          from_number: values.twilio_number,
+        bulksmsbd_credentials: {
+          api_key: values.bulksmsbd_key,
+          sender_id: values.bulksmsbd_sender,
         },
         email_provider: values.email_provider,
         sendgrid_credentials: {
@@ -90,7 +88,7 @@ export const Integrations: React.FC = () => {
           account_number: values.dhl_account,
         },
       },
-      description: "Gateway credentials for Twilio, SendGrid, and DHL",
+      description: "Gateway credentials for BulkSMSBD, SendGrid, and DHL",
     };
 
     // 2. Compile tracking pixels & social auth payload
@@ -203,17 +201,14 @@ export const Integrations: React.FC = () => {
                   <Form.Item name="sms_provider" label="Active SMS Gateway">
                     <Select>
                       <Select.Option value="mock">Local Debug Mock Logger</Select.Option>
-                      <Select.Option value="twilio">Twilio SMS API</Select.Option>
+                      <Select.Option value="bulksmsbd">BulkSMSBD API</Select.Option>
                     </Select>
                   </Form.Item>
-                  <Form.Item name="twilio_sid" label="Twilio Account SID">
-                    <Input.Password placeholder="ACxxxxxxxxxxxxxxxxxxxx" />
+                  <Form.Item name="bulksmsbd_key" label="BulkSMSBD API Key">
+                    <Input.Password placeholder="Enter API Key" />
                   </Form.Item>
-                  <Form.Item name="twilio_token" label="Twilio Auth Token">
-                    <Input.Password placeholder="Token hash" />
-                  </Form.Item>
-                  <Form.Item name="twilio_number" label="Twilio Sender Number">
-                    <Input placeholder="+15005550006" />
+                  <Form.Item name="bulksmsbd_sender" label="BulkSMSBD Sender ID">
+                    <Input placeholder="e.g. 09617" />
                   </Form.Item>
                 </Col>
 

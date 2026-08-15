@@ -460,7 +460,7 @@ export default function ProfilePage() {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/customer-forgot-password/request-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: forgotPhone })
+        body: JSON.stringify({ identifier: forgotPhone })
       });
       const data = await res.json();
       if (res.ok) {
@@ -488,7 +488,7 @@ export default function ProfilePage() {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/customer-forgot-password/reset`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: forgotPhone, otp: forgotOtp, new_password: newPassword })
+        body: JSON.stringify({ identifier: forgotPhone, otp: forgotOtp, new_password: newPassword })
       });
       const data = await res.json();
       if (res.ok) {
