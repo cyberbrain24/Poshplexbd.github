@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ShieldCheck, Phone, Key, Eye, EyeOff, ArrowRight } from "lucide-react";
+import GraffitiBackground from "../components/GraffitiBackground";
 
 function ForgotPasswordContent() {
   const router = useRouter();
@@ -121,36 +122,44 @@ function ForgotPasswordContent() {
   };
 
   return (
-    <div className="container" style={{ 
-      paddingTop: 100, 
-      paddingBottom: 150, 
-      display: "flex", 
-      justifyContent: "center", 
-      alignItems: "center" 
-    }}>
+    <div style={{ position: "relative", minHeight: "calc(100vh - 70px)", overflow: "hidden", backgroundColor: "#fff" }}>
+      <GraffitiBackground />
+
       <div style={{ 
-        background: "var(--bg-primary)", 
-        border: "1px solid var(--border-glass)", 
-        padding: "48px 40px", 
-        maxWidth: 500, 
+        position: "relative",
+        zIndex: 1,
         width: "100%",
-        boxShadow: "0 20px 40px rgba(0,0,0,0.05)"
+        minHeight: "calc(100vh - 70px)",
+        display: "flex", 
+        justifyContent: "center", 
+        alignItems: "flex-start",
+        padding: "40px 20px 20px 20px"
       }}>
+        <div style={{ 
+          background: "var(--bg-secondary)", 
+          border: "1px solid var(--border-glass)", 
+          borderRadius: 16, 
+          padding: "24px 20px", 
+          maxWidth: 500, 
+          width: "100%",
+          boxShadow: "none"
+        }}>
         
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
+        <div style={{ textAlign: "center", marginBottom: 20 }}>
           <div style={{ 
-            width: 56, 
-            height: 56, 
+            width: 40, 
+            height: 40, 
             background: "var(--text-main)", 
             color: "var(--bg-primary)", 
+            borderRadius: 12, 
             display: "flex", 
             alignItems: "center", 
             justifyContent: "center", 
             margin: "0 auto 16px auto" 
           }}>
-            <ShieldCheck size={24} />
+            <ShieldCheck size={16} />
           </div>
-          <h1 style={{ fontSize: 28, fontWeight: 900, color: "var(--text-main)", letterSpacing: "-1px", textTransform: "uppercase" }}>
+          <h1 style={{ fontSize: 24, fontWeight: 900, color: "var(--text-main)", letterSpacing: "-1px", textTransform: "uppercase" }}>
             {step === 1 ? "FORGOT PASSWORD" : "RESET PASSWORD"}
           </h1>
           <p style={{ color: "var(--text-muted)", fontSize: 14, marginTop: 8 }}>
@@ -173,8 +182,8 @@ function ForgotPasswordContent() {
         )}
 
         {step === 1 ? (
-          <form onSubmit={requestOTP} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <form onSubmit={requestOTP} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>Email or Phone Number</label>
               <div style={{ position: "relative" }}>
                 <Phone size={16} style={{ position: "absolute", left: 16, top: 15, color: "var(--text-muted)" }} />
@@ -184,7 +193,7 @@ function ForgotPasswordContent() {
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   placeholder="e.g. 01700000000 or hello@example.com"
-                  style={{ width: "100%", background: "var(--bg-secondary)", border: "1px solid var(--border-glass)", color: "var(--text-main)", padding: "12px 16px 12px 44px", fontSize: 14, outline: "none" }}
+                  style={{ width: "100%", background: "var(--bg-secondary)", border: "1px solid var(--border-glass)", color: "var(--text-main)", padding: "10px 14px 10px 40px", fontSize: 14, outline: "none" }}
                 />
               </div>
             </div>
@@ -194,8 +203,8 @@ function ForgotPasswordContent() {
             </button>
           </form>
         ) : (
-          <form onSubmit={handleResetPassword} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <form onSubmit={handleResetPassword} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>6-Digit OTP</label>
               <div style={{ position: "relative" }}>
                 <Key size={16} style={{ position: "absolute", left: 16, top: 15, color: "var(--text-muted)" }} />
@@ -205,12 +214,12 @@ function ForgotPasswordContent() {
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
                   placeholder="XXXXXX"
-                  style={{ width: "100%", background: "var(--bg-secondary)", border: "1px solid var(--border-glass)", color: "var(--text-main)", padding: "12px 16px 12px 44px", fontSize: 14, outline: "none", letterSpacing: "2px" }}
+                  style={{ width: "100%", background: "var(--bg-secondary)", border: "1px solid var(--border-glass)", color: "var(--text-main)", padding: "10px 14px 10px 40px", fontSize: 14, outline: "none", letterSpacing: "2px" }}
                 />
               </div>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>New Password</label>
               <div style={{ position: "relative" }}>
                 <Key size={16} style={{ position: "absolute", left: 16, top: 15, color: "var(--text-muted)" }} />
@@ -220,7 +229,7 @@ function ForgotPasswordContent() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="••••••••"
-                  style={{ width: "100%", background: "var(--bg-secondary)", border: "1px solid var(--border-glass)", color: "var(--text-main)", padding: "12px 44px 12px 44px", fontSize: 14, outline: "none" }}
+                  style={{ width: "100%", background: "var(--bg-secondary)", border: "1px solid var(--border-glass)", color: "var(--text-main)", padding: "10px 40px 10px 40px", fontSize: 14, outline: "none" }}
                 />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: "absolute", right: 16, top: 15, background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: 0 }}>
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -262,6 +271,7 @@ function ForgotPasswordContent() {
             BACK TO LOGIN
           </a>
         </div>
+      </div>
       </div>
     </div>
   );

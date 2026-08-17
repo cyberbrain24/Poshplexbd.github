@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Lock, Phone, Key, ArrowRight, Eye, EyeOff } from "lucide-react";
 import SocialLogin from "../components/SocialLogin";
+import GraffitiBackground from "../components/GraffitiBackground";
 
 function LoginContent() {
   const router = useRouter();
@@ -50,44 +51,47 @@ function LoginContent() {
   };
 
   return (
-    <div className="container" style={{ 
-      paddingTop: 100, 
-      paddingBottom: 150, 
-      display: "flex", 
-      justifyContent: "center", 
-      alignItems: "center" 
-    }}>
+    <div style={{ position: "relative", minHeight: "calc(100vh - 70px)", overflow: "hidden", backgroundColor: "#fff" }}>
+      <GraffitiBackground />
+
       <div style={{ 
-        background: "var(--bg-secondary)", 
-        border: "1px solid var(--border-glass)", 
-        borderRadius: 24, 
-        padding: "48px 40px", 
-        maxWidth: 450, 
+        position: "relative",
+        zIndex: 1,
         width: "100%",
-        boxShadow: "0 20px 40px rgba(0,0,0,0.2)"
+        minHeight: "calc(100vh - 70px)",
+        display: "flex", 
+        justifyContent: "center", 
+        alignItems: "flex-start",
+        padding: "40px 20px 20px 20px"
       }}>
+        <div style={{ 
+          background: "var(--bg-secondary)", 
+          border: "1px solid var(--border-glass)", 
+          borderRadius: 16, 
+          padding: "24px 20px", 
+          maxWidth: 450, 
+          width: "100%",
+          boxShadow: "none"
+        }}>
         
         {/* Logo/Icon */}
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
+        <div style={{ textAlign: "center", marginBottom: 20 }}>
           <div style={{ 
-            width: 56, 
-            height: 56, 
+            width: 40, 
+            height: 40, 
             background: "var(--text-main)", 
             color: "var(--bg-primary)", 
-            borderRadius: 16, 
+            borderRadius: 12, 
             display: "flex", 
             alignItems: "center", 
             justifyContent: "center", 
             margin: "0 auto 16px auto" 
           }}>
-            <Lock size={24} />
+            <Lock size={16} />
           </div>
-          <h1 style={{ fontSize: 28, fontWeight: 900, color: "var(--text-main)", letterSpacing: "-1px", textTransform: "uppercase" }}>
+          <h1 style={{ fontSize: 24, fontWeight: 900, color: "var(--text-main)", letterSpacing: "-1px", textTransform: "uppercase" }}>
             Welcome Back
           </h1>
-          <p style={{ color: "var(--text-muted)", fontSize: 14, marginTop: 8 }}>
-            Sign in with your phone and password to continue.
-          </p>
         </div>
 
         {error && (
@@ -106,9 +110,9 @@ function LoginContent() {
         )}
 
         <div suppressHydrationWarning>
-          <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>
               Phone Number or Email
             </label>
@@ -126,7 +130,7 @@ function LoginContent() {
                   border: "1px solid var(--border-glass)", 
                   borderRadius: 12, 
                   color: "var(--text-main)", 
-                  padding: "12px 16px 12px 44px",
+                  padding: "10px 14px 10px 40px",
                   fontSize: 14,
                   outline: "none"
                 }}
@@ -134,7 +138,7 @@ function LoginContent() {
             </div>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>
               Password
             </label>
@@ -152,7 +156,7 @@ function LoginContent() {
                   border: "1px solid var(--border-glass)", 
                   borderRadius: 12, 
                   color: "var(--text-main)", 
-                  padding: "12px 16px 12px 44px",
+                  padding: "10px 14px 10px 40px",
                   fontSize: 14,
                   outline: "none"
                 }}
@@ -199,8 +203,8 @@ function LoginContent() {
         <SocialLogin />
         </div>
 
-        <div style={{ marginTop: 24, textAlign: "center", borderTop: "1px solid var(--border-glass)", paddingTop: 24 }}>
-          <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 12 }}>
+        <div style={{ marginTop: 16, textAlign: "center", borderTop: "1px solid var(--border-glass)", paddingTop: 16 }}>
+          <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 8 }}>
             Don't have an account yet?
           </p>
           <a href="/register" style={{ 
@@ -217,6 +221,7 @@ function LoginContent() {
             CREATE ACCOUNT <ArrowRight size={14} />
           </a>
         </div>
+      </div>
       </div>
     </div>
   );

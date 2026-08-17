@@ -39,7 +39,7 @@ jobs:
             cd /root/poshplex_store
             echo "Building and restarting services..."
             # Using -d runs in background, --build forces it to catch the new source code changes
-            docker compose up -d --build store backend admin
+            docker compose up -d --build store backend admin worker
             echo "Removing dangling Next.js images to save space..."
             docker image prune -f
             echo "Deployment successful! 🚀"

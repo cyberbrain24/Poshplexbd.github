@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { UserPlus, User, Phone, Key, Eye, EyeOff, ArrowRight } from "lucide-react";
 import SocialLogin from "../components/SocialLogin";
+import GraffitiBackground from "../components/GraffitiBackground";
 
 function RegisterContent() {
   const router = useRouter();
@@ -81,42 +82,47 @@ function RegisterContent() {
   };
 
   return (
-    <div className="container" style={{ 
-      paddingTop: 100, 
-      paddingBottom: 150, 
-      display: "flex", 
-      justifyContent: "center", 
-      alignItems: "center" 
-    }}>
+    <div style={{ position: "relative", minHeight: "calc(100vh - 70px)", overflow: "hidden", backgroundColor: "#fff" }}>
+      <GraffitiBackground />
+
       <div style={{ 
-        background: "var(--bg-primary)", 
-        border: "1px solid var(--border-glass)", 
-        padding: "48px 40px", 
-        maxWidth: 500, 
+        position: "relative",
+        zIndex: 1,
         width: "100%",
-        boxShadow: "0 20px 40px rgba(0,0,0,0.05)"
+        minHeight: "calc(100vh - 70px)",
+        display: "flex", 
+        justifyContent: "center", 
+        alignItems: "flex-start",
+        padding: "40px 20px 20px 20px"
       }}>
+        <div style={{ 
+          background: "var(--bg-secondary)", 
+          border: "1px solid var(--border-glass)", 
+          borderRadius: 16, 
+          padding: "24px 20px", 
+          maxWidth: 500, 
+          width: "100%",
+          boxShadow: "none"
+        }}>
         
         {/* Logo/Icon */}
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
+        <div style={{ textAlign: "center", marginBottom: 20 }}>
           <div style={{ 
-            width: 56, 
-            height: 56, 
+            width: 40, 
+            height: 40, 
             background: "var(--text-main)", 
             color: "var(--bg-primary)", 
+            borderRadius: 12,
             display: "flex", 
             alignItems: "center", 
             justifyContent: "center", 
             margin: "0 auto 16px auto" 
           }}>
-            <UserPlus size={24} />
+            <UserPlus size={16} />
           </div>
-          <h1 style={{ fontSize: 28, fontWeight: 900, color: "var(--text-main)", letterSpacing: "-1px", textTransform: "uppercase" }}>
+          <h1 style={{ fontSize: 24, fontWeight: 900, color: "var(--text-main)", letterSpacing: "-1px", textTransform: "uppercase" }}>
             CREATE ACCOUNT
           </h1>
-          <p style={{ color: "var(--text-muted)", fontSize: 14, marginTop: 8 }}>
-            Join the movement. Elevate your wardrobe.
-          </p>
         </div>
 
         {error && (
@@ -134,8 +140,8 @@ function RegisterContent() {
         )}
 
         <div suppressHydrationWarning>
-        <form onSubmit={handleRegister} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <form onSubmit={handleRegister} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>Full Name</label>
             <div style={{ position: "relative" }}>
               <User size={16} style={{ position: "absolute", left: 16, top: 15, color: "var(--text-muted)" }} />
@@ -145,12 +151,12 @@ function RegisterContent() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="John Doe"
-                style={{ width: "100%", background: "var(--bg-secondary)", border: "1px solid var(--border-glass)", color: "var(--text-main)", padding: "12px 16px 12px 44px", fontSize: 14, outline: "none" }}
+                style={{ width: "100%", background: "var(--bg-secondary)", border: "1px solid var(--border-glass)", color: "var(--text-main)", padding: "10px 14px 10px 40px", fontSize: 14, outline: "none" }}
               />
             </div>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>Phone Number or Email</label>
             <div style={{ position: "relative" }}>
               <Phone size={16} style={{ position: "absolute", left: 16, top: 15, color: "var(--text-muted)" }} />
@@ -160,12 +166,12 @@ function RegisterContent() {
                 value={phoneOrEmail}
                 onChange={(e) => setPhoneOrEmail(e.target.value)}
                 placeholder="e.g. 01700000000 or email@domain.com"
-                style={{ width: "100%", background: "var(--bg-secondary)", border: "1px solid var(--border-glass)", color: "var(--text-main)", padding: "12px 16px 12px 44px", fontSize: 14, outline: "none" }}
+                style={{ width: "100%", background: "var(--bg-secondary)", border: "1px solid var(--border-glass)", color: "var(--text-main)", padding: "10px 14px 10px 40px", fontSize: 14, outline: "none" }}
               />
             </div>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>Password</label>
             <div style={{ position: "relative" }}>
               <Key size={16} style={{ position: "absolute", left: 16, top: 15, color: "var(--text-muted)" }} />
@@ -175,7 +181,7 @@ function RegisterContent() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                style={{ width: "100%", background: "var(--bg-secondary)", border: "1px solid var(--border-glass)", color: "var(--text-main)", padding: "12px 44px 12px 44px", fontSize: 14, outline: "none" }}
+                style={{ width: "100%", background: "var(--bg-secondary)", border: "1px solid var(--border-glass)", color: "var(--text-main)", padding: "10px 40px 10px 40px", fontSize: 14, outline: "none" }}
               />
               <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: "absolute", right: 16, top: 15, background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: 0 }}>
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -183,7 +189,7 @@ function RegisterContent() {
             </div>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>Confirm Password</label>
             <div style={{ position: "relative" }}>
               <Key size={16} style={{ position: "absolute", left: 16, top: 15, color: "var(--text-muted)" }} />
@@ -208,12 +214,14 @@ function RegisterContent() {
         <SocialLogin />
         </div>
 
-        <div style={{ marginTop: 24, textAlign: "center", borderTop: "1px solid var(--border-glass)", paddingTop: 24 }}>
-          <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 12 }}>Already have an account?</p>
+        <div style={{ marginTop: 16, textAlign: "center", borderTop: "1px solid var(--border-glass)", paddingTop: 16 }}>
+          <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 8 }}>
+            Already have an account?</p>
           <a href="/login" style={{ color: "var(--text-main)", fontWeight: 800, fontSize: 14, textDecoration: "none", textTransform: "uppercase", letterSpacing: "0.5px", display: "inline-flex", alignItems: "center", gap: 6 }}>
-            SIGN IN <ArrowRight size={14} />
+            LOGIN <ArrowRight size={14} />
           </a>
         </div>
+      </div>
       </div>
     </div>
   );
