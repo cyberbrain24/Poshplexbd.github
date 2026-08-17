@@ -81,7 +81,7 @@ function ProductCard({ product }: { product: any }) {
           {product.category?.name || product.categories?.[0]?.name || ""}
         </p>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 6 }}>
-          <h3 style={{ fontSize: 13, fontWeight: 600, color: "#111", margin: 0, lineHeight: 1.35, flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <h3 style={{ fontSize: 13, fontWeight: 600, color: "#111", margin: 0, lineHeight: 1.35, flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {product.name}
           </h3>
           <span style={{ fontSize: 13, fontWeight: 700, color: "#111", flexShrink: 0 }}>
@@ -787,26 +787,28 @@ export default function ProductDetailClient({ product }: { product: any }) {
 
                     {/* Size Guide table */}
                     {key === "sizeGuide" && product.size_guide && (
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                        <thead>
-                          <tr>
-                            {product.size_guide.headers.map((h: string) => (
-                              <th key={h} style={{ borderBottom: "1px solid #eee", padding: "8px 0", textAlign: "left", fontWeight: 600, color: "#111", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                                {h}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {product.size_guide.rows.map((row: string[], idx: number) => (
-                            <tr key={idx} style={{ borderBottom: "1px solid #f5f5f5" }}>
-                              {row.map((col: string, ci: number) => (
-                                <td key={ci} style={{ padding: "10px 0", color: "#444", fontSize: 13 }}>{col}</td>
+                      <div style={{ width: "100%", overflowX: "auto" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                          <thead>
+                            <tr>
+                              {product.size_guide.headers.map((h: string) => (
+                                <th key={h} style={{ borderBottom: "1px solid #eee", padding: "8px 0", textAlign: "left", fontWeight: 600, color: "#111", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                                  {h}
+                                </th>
                               ))}
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {product.size_guide.rows.map((row: string[], idx: number) => (
+                              <tr key={idx} style={{ borderBottom: "1px solid #f5f5f5" }}>
+                                {row.map((col: string, ci: number) => (
+                                  <td key={ci} style={{ padding: "10px 0", color: "#444", fontSize: 13 }}>{col}</td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     )}
 
                     {/* Care instructions */}
@@ -1152,7 +1154,7 @@ export default function ProductDetailClient({ product }: { product: any }) {
 
         @media (max-width: 480px) {
           .related-products-grid {
-            grid-template-columns: repeat(3, 1fr) !important;
+            grid-template-columns: repeat(2, 1fr) !important;
           }
         }
       ` }} />

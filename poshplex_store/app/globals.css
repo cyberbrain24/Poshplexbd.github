@@ -21,7 +21,7 @@ body {
   background-color: var(--bg-primary);
   color: var(--text-main);
   font-family: 'Outfit', sans-serif;
-  overflow-x: hidden;
+  overflow-x: clip; /* Fix position: sticky */
 }
 
 /* Animations */

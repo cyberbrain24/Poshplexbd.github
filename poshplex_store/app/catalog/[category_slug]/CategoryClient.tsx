@@ -301,6 +301,7 @@ function ProductCard({ product, priority = false }: { product: Product; priority
               margin: 0,
               lineHeight: 1.35,
               flex: 1,
+              minWidth: 0,
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",

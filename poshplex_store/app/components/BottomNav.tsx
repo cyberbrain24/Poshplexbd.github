@@ -42,6 +42,7 @@ export default function BottomNav() {
         {/* Category */}
         <Link 
           href="/catalog" 
+          className="category-toggle-btn"
           onClick={(e) => {
             if (typeof window !== "undefined" && window.innerWidth <= 768) {
               e.preventDefault();
@@ -60,6 +61,7 @@ export default function BottomNav() {
         {/* Music Button - Raised Circular Center */}
         <div style={{ flex: 1, display: "flex", justifyContent: "center", position: "relative", height: "100%" }}>
           <button 
+            className="music-toggle-btn"
             onClick={() => { handleMusicToggle(); closeCart(); }}
             style={{ 
               position: "absolute",

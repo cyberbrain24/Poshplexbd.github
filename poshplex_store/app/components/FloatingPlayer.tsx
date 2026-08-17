@@ -33,8 +33,24 @@ export const FloatingPlayer: React.FC = () => {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsReady(true), 6000);
-    return () => clearTimeout(timer);
+    let timer: NodeJS.Timeout;
+    
+    const startTimer = () => {
+      // 7 seconds delay on mobile for faster perceived load, 3s on desktop
+      const delay = window.innerWidth <= 768 ? 7000 : 3000;
+      timer = setTimeout(() => setIsReady(true), delay);
+    };
+
+    if (document.readyState === 'complete') {
+      startTimer();
+    } else {
+      window.addEventListener('load', startTimer);
+    }
+    
+    return () => {
+      window.removeEventListener('load', startTimer);
+      if (timer) clearTimeout(timer);
+    };
   }, []);
 
   useEffect(() => {
@@ -56,10 +72,10 @@ export const FloatingPlayer: React.FC = () => {
         setShowPlaylist(false);
       }
 
-      // Auto minimize on mobile (if not clicking bottom nav)
+      // Auto minimize on mobile (if not clicking toggle button)
       if (!isMinimized && isMobile) {
-        const isBottomNav = target.closest(".mobile-bottom-nav") || target.closest("button")?.outerHTML.includes("toggle-music");
-        if (playerRef.current && !playerRef.current.contains(target) && !isBottomNav && !target.closest('.playlist-menu')) {
+        const isToggleButton = target.closest(".music-toggle-btn") || target.closest("button")?.outerHTML.includes("toggle-music");
+        if (playerRef.current && !playerRef.current.contains(target) && !isToggleButton && !target.closest('.playlist-menu')) {
           toggleMinimize();
         }
       }
@@ -375,9 +391,10 @@ export const FloatingPlayer: React.FC = () => {
         @media (max-width: 768px) {
           .floating-audio-player {
             top: auto !important;
-            left: auto !important;
+            left: 0 !important;
+            right: 0 !important;
+            margin: 0 auto !important;
             bottom: 84px !important;
-            right: 16px !important;
           }
           .floating-audio-player.minimized {
             display: none !important;

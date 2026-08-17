@@ -12,7 +12,7 @@ export default function ProfilePage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"orders" | "reviews" | "password">("orders");
+  const [activeTab, setActiveTab] = useState<"orders" | "reviews" | "password" | "membership">("orders");
   
   // Edit review state
   const [editingReview, setEditingReview] = useState<any | null>(null);
@@ -699,9 +699,9 @@ export default function ProfilePage() {
           gap: 16px;
           box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.03);
         }
-        .nav-grid-3col {
+        .nav-grid-4col {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
+          grid-template-columns: repeat(4, 1fr);
           gap: 16px;
           margin-bottom: 32px;
         }
@@ -832,24 +832,24 @@ export default function ProfilePage() {
             width: 18px !important;
             height: 18px !important;
           }
-          .nav-grid-3col {
-            gap: 8px;
+          .nav-grid-4col {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
             margin-bottom: 16px;
             margin-top: 8px;
           }
           .nav-grid-item {
-            padding: 12px 8px;
+            padding: 10px 4px;
             gap: 6px;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.02);
           }
           .nav-grid-item svg {
-            width: 18px !important;
-            height: 18px !important;
+            width: 16px !important;
+            height: 16px !important;
           }
           .nav-label {
-            font-size: 9px;
-            letter-spacing: 0.5px;
+            font-size: 9.5px !important;
           }
           .content-panel-box {
             padding: 16px;
@@ -999,36 +999,12 @@ export default function ProfilePage() {
               Edit Profile Info
             </button>
           </div>
-
-          <div className="tier-card-box">
-            <div className="tier-icon-wrapper" style={{
-              width: 48,
-              height: 48,
-              borderRadius: 12,
-              background: "rgba(255,255,255,0.02)",
-              border: "1px solid var(--border-glass)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0
-            }}>
-              <Award size={24} style={{ color: tierColor }} />
-            </div>
-            <div>
-              <span style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", display: "block", fontWeight: 700, letterSpacing: "0.5px" }}>
-                Membership Tier
-              </span>
-              <b style={{ color: tierColor, fontSize: 16, textTransform: "uppercase", fontWeight: 900 }}>
-                {userProfile.membership_tier_name || membershipTier}
-              </b>
-            </div>
-          </div>
         </div>
 
         {/* Right Side: Tab Buttons Grid & Content */}
         <div>
-          {/* Navigation Grid (3 Columns) */}
-          <div className="nav-grid-3col">
+          {/* Navigation Grid (4 Columns) */}
+          <div className="nav-grid-4col">
             <div 
               className={`nav-grid-item ${activeTab === "orders" ? "active" : ""}`}
               onClick={() => setActiveTab("orders")}
@@ -1052,10 +1028,42 @@ export default function ProfilePage() {
               <Lock size={22} className="nav-icon" />
               <span className="nav-label">Reset Password</span>
             </div>
+
+            <div 
+              className={`nav-grid-item ${activeTab === "membership" ? "active" : ""}`}
+              onClick={() => setActiveTab("membership")}
+            >
+              <Award size={22} className="nav-icon" />
+              <span className="nav-label">My Membership</span>
+            </div>
           </div>
 
           {/* Content Panel */}
           <div className="content-panel-box">
+            {activeTab === "membership" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: "var(--text-main)", marginBottom: 12 }}>
+                  Membership Info
+                </h3>
+                <div style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-glass)", borderRadius: 16, padding: 24 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
+                    <div style={{ width: 48, height: 48, borderRadius: "50%", background: `${tierColor}15`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Award size={24} color={tierColor} />
+                    </div>
+                    <div>
+                      <span style={{ fontSize: 13, color: "var(--text-muted)", display: "block" }}>Current Tier</span>
+                      <b style={{ color: tierColor, fontSize: 18, textTransform: "uppercase", fontWeight: 900 }}>
+                        {userProfile?.membership_tier_name || membershipTier}
+                      </b>
+                    </div>
+                  </div>
+                  <p style={{ fontSize: 14, color: "var(--text-muted)", lineHeight: 1.6, margin: 0 }}>
+                    You are currently on the <b style={{ color: "var(--text-main)" }}>{userProfile?.membership_tier_name || membershipTier}</b> tier. Continue shopping to earn more points and unlock exclusive benefits like free shipping, early access to drops, and special discounts.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {activeTab === "orders" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                 <h3 style={{ fontSize: 18, fontWeight: 800, color: "var(--text-main)", marginBottom: 12 }}>

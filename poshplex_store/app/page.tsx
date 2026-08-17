@@ -99,6 +99,8 @@ export default async function Home() {
           alt="Streetwear Hero Desktop"
           fill
           priority
+          loading="eager"
+          fetchPriority="high"
           unoptimized
           sizes="100vw"
           className="hide-on-mobile"
@@ -109,6 +111,8 @@ export default async function Home() {
           alt="Streetwear Hero Mobile"
           fill
           priority
+          loading="eager"
+          fetchPriority="high"
           unoptimized
           sizes="100vw"
           className="hide-on-desktop"

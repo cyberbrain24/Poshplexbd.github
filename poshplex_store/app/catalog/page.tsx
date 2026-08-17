@@ -66,7 +66,7 @@ function ProductCard({ product, priority = false }: { product: any; priority?: b
         <p style={{ fontSize: 10, color: "#888", marginBottom: 2, letterSpacing: "0.2px", textTransform: "uppercase" }}>
           {product.category?.name || product.categories?.[0]?.name || "Apparel"}
         </p>
-        <h3 style={{ fontSize: 11, fontWeight: 600, color: "#111", margin: "0 0 2px", lineHeight: 1.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        <h3 style={{ fontSize: 11, fontWeight: 600, color: "#111", margin: "0 0 2px", lineHeight: 1.3, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {product.name}
         </h3>
         <span style={{ fontSize: 11, fontWeight: 700, color: "#111" }}>

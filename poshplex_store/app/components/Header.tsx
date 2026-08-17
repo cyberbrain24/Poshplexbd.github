@@ -76,6 +76,23 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
     };
   }, []);
 
+  // Close category mobile menu when clicking outside
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (typeof window !== "undefined" && window.innerWidth <= 768) {
+        if (isOpen) {
+          const target = e.target as HTMLElement;
+          const isCategoryToggle = target.closest(".category-toggle-btn") || target.closest(".mobile-menu-btn");
+          if (!target.closest('.mobile-menu-overlay') && !isCategoryToggle) {
+            setIsOpen(false);
+          }
+        }
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [isOpen]);
+
   useEffect(() => {
     const fetchSearchResults = async () => {
       if (!searchQuery.trim()) {
@@ -395,6 +412,11 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
       {isOpen && (
         <div 
           className="mobile-menu-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setIsOpen(false);
+            }
+          }}
           style={{
             position: "fixed",
             top: 100,
