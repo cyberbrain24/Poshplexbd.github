@@ -583,8 +583,13 @@ export default function ProfilePage() {
     tierColor = "#a855f7"; 
   }
 
+  useEffect(() => {
+    if (!isAuthenticated && !isLoading) {
+      router.push("/login");
+    }
+  }, [isAuthenticated, isLoading, router]);
+
   if (!isAuthenticated && !isLoading) {
-    router.push("/login");
     return <div className="container" style={{ paddingTop: 60, paddingBottom: 100, textAlign: "center" }}>Redirecting to Login...</div>;
   }
 
