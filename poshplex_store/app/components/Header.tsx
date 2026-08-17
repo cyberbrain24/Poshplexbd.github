@@ -41,6 +41,12 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
     return false;
   };
 
+  // Close menus on route change
+  useEffect(() => {
+    setHoveredCategory(null);
+    setIsOpen(false);
+  }, [pathname]);
+
   useEffect(() => {
     const handleToggle = () => {
       setIsOpen(prev => !prev);
@@ -208,7 +214,7 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
                       top: "100%",
                       left: "50%",
                       transform: "translateX(-50%)",
-                      paddingTop: "24px",
+                      paddingTop: 0,
                       zIndex: 100,
                     }}>
                       <div style={{
@@ -286,7 +292,7 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
         </nav>
         
         {/* Right Utility Actions */}
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div className="header-right-utils" style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
             {isSearchOpen && (
               <input 
@@ -448,7 +454,10 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
                   letterSpacing: "1.5px", 
                   textTransform: "uppercase",
                   borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-                  paddingBottom: 6
+                  paddingBottom: 6,
+                  textAlign: "right",
+                  display: "block",
+                  width: "100%"
                 }}
               >
                 {cat.name}
@@ -459,6 +468,7 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
                 <div 
                   style={{ 
                     display: "flex", 
+                    justifyContent: "flex-end",
                     gap: 16, 
                     overflowX: "auto", 
                     paddingBottom: 8,
@@ -583,12 +593,19 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
             height: 56px !important;
             padding: 6px 16px !important;
           }
+          .header-right-utils {
+            order: -1;
+          }
+          .header-logo-link {
+            order: 0;
+            font-size: 20px !important;
+          }
+          .mobile-menu-btn {
+            order: 1;
+          }
           .mobile-menu-overlay {
             top: 82px !important;
             height: calc(100vh - 82px) !important;
-          }
-          .header-logo-link {
-            font-size: 20px !important;
           }
         }
       ` }} />

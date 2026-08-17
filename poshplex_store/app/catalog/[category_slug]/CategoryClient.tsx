@@ -77,9 +77,9 @@ function SubcategoryNav({
       style={{
         display: "flex",
         justifyContent: "center",
-        gap: 20,
+        gap: 12,
         flexWrap: "wrap",
-        marginTop: 10,
+        marginTop: 4,
         marginBottom: 4,
       }}
     >
@@ -90,47 +90,49 @@ function SubcategoryNav({
           <Link
             key={sub.id}
             href={`/catalog/${encodeURIComponent(sub.slug)}`}
+            scroll={false}
             style={{ 
               textDecoration: "none", 
               textAlign: "center",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              width: 115
+              width: "auto",
+              minWidth: 80
             }}
           >
             <div
               className={`sub-circle ${isActive ? "active" : ""}`}
               style={{
-                width: 96,
-                height: 96,
+                width: 72,
+                height: 72,
                 borderRadius: 16,
                 background: isActive ? "#333333" : "#1e1e1e",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: 36,
+                fontSize: 24,
                 border: isActive ? "2.5px solid #c8102e" : "2.5px solid transparent",
                 overflow: "hidden",
                 position: "relative"
               }}
             >
               {sub.image ? (
-                <Image src={sub.image} alt="" fill sizes="84px" priority={idx < 6} style={{ objectFit: "cover" }} />
+                <Image src={sub.image} alt="" fill sizes="72px" priority={idx < 6} style={{ objectFit: "cover" }} />
               ) : (
                 getCategoryIcon(sub.name)
               )}
             </div>
             <p
               style={{
-                fontSize: 12.5,
+                fontSize: 10,
                 fontWeight: 700,
                 textTransform: "uppercase",
-                letterSpacing: "0.6px",
+                letterSpacing: "0.5px",
                 color: isActive ? "#ffffff" : "#cccccc",
                 marginTop: 8,
-                lineHeight: 1.3,
-                wordWrap: "break-word"
+                lineHeight: 1.2,
+                whiteSpace: "nowrap"
               }}
             >
               {sub.name}
@@ -273,17 +275,6 @@ function ProductCard({ product, priority = false }: { product: Product; priority
 
       {/* Info */}
       <div style={{ paddingTop: 10, paddingBottom: 6 }}>
-        {/* Category tag */}
-        <p
-          style={{
-            fontSize: 11,
-            color: "#666",
-            marginBottom: 3,
-            letterSpacing: "0.2px",
-          }}
-        >
-          {product.category?.name || product.categories?.[0]?.name || ""}
-        </p>
 
         {/* Name + Price row */}
         <div
@@ -645,6 +636,17 @@ export default function CategoryClient({
     priceBuckets: [],
   });
 
+  // Handle scroll position on category change
+  useEffect(() => {
+    const headerHeight = window.innerWidth >= 768 ? 96 : 79;
+    if (window.scrollY > headerHeight) {
+      // Ensure we run this after the browser has completed any layout shifts
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: headerHeight, behavior: "smooth" });
+      });
+    }
+  }, [slug]);
+
   // Client-side fetch fallback / refresh if initial data is empty
   useEffect(() => {
     if (initialProducts.length > 0 && initialCategoryTree.length > 0) {
@@ -782,7 +784,18 @@ export default function CategoryClient({
           display: none !important;
         }
         .category-header-container {
-          padding: 16px 24px 12px !important;
+          position: sticky !important;
+          z-index: 50 !important;
+          padding: 8px 24px 8px !important;
+        }
+        @media (min-width: 768px) {
+          .street-header {
+            position: relative !important;
+          }
+          .category-header-container {
+            top: 0 !important;
+            z-index: 101 !important;
+          }
         }
         .subcategory-nav-grid {
           margin-top: 4px !important;
@@ -816,29 +829,39 @@ export default function CategoryClient({
 
         @media (max-width: 767px) {
           .category-title {
-            display: block !important;
+            display: none !important;
+          }
+          .category-toolbar {
+            display: none !important;
           }
           .category-header-container {
-            padding: 12px 16px 12px !important;
+            position: sticky !important;
+            top: 79px !important;
+            z-index: 50 !important;
+            padding: 8px 12px 8px !important;
           }
           .subcategory-nav-grid {
-            display: grid !important;
-            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-            gap: 12px 6px !important;
+            display: flex !important;
+            justify-content: center !important;
+            flex-wrap: wrap !important;
+            gap: 12px 16px !important;
             padding: 0 !important;
-            margin-top: 12px !important;
+            margin-top: 4px !important;
           }
           .subcategory-nav-grid > a {
-            width: 100% !important;
+            width: auto !important;
           }
           .subcategory-nav-grid .sub-circle {
-            width: 100% !important;
-            height: auto !important;
-            aspect-ratio: 1/1 !important;
+            width: 64px !important;
+            height: 64px !important;
+            border-radius: 14px !important;
           }
           .subcategory-nav-grid p {
-            font-size: 9px !important;
+            font-size: 10px !important;
             margin-top: 4px !important;
+          }
+          .desktop-filter-btn {
+            display: none !important;
           }
           .cat-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
@@ -854,6 +877,10 @@ export default function CategoryClient({
           padding: "12px 24px 8px",
           borderBottom: "1px solid #3d3d3d",
           background: "#2f2f2f",
+          position: "relative",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center"
         }}
       >
         <h1
@@ -866,6 +893,7 @@ export default function CategoryClient({
             marginBottom: 10,
             fontFamily: "Georgia, serif",
             textTransform: "uppercase",
+            display: "none"
           }}
         >
           {categoryName}
@@ -873,99 +901,58 @@ export default function CategoryClient({
 
         {/* Subcategory pill nav */}
         <SubcategoryNav children={subcategories} activeSlug={slug} />
-      </div>
 
-      {/* ── Toolbar (count + sort + filter) ── */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "8px 24px",
-          borderBottom: "1px solid #eee",
-          background: "#f3f3f5",
-          maxWidth: 1400,
-          margin: "0 auto",
-        }}
-      >
-        <span style={{ fontSize: 13, color: "#666" }}>
-          {isLoading ? "Loading…" : `${sorted.length} items`}
-        </span>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          {/* Sort */}
-          <div style={{ position: "relative" }}>
-            <select
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value as any)}
+        {/* Desktop Filter Button */}
+        <button
+          className="desktop-filter-btn"
+          onClick={() => setFilterOpen(true)}
+          style={{
+            position: "absolute",
+            right: 24,
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            background: "transparent",
+            border: "1px solid rgba(255, 255, 255, 0.2)",
+            borderRadius: 4,
+            fontSize: 12,
+            fontWeight: 700,
+            cursor: "pointer",
+            color: "#ffffff",
+            padding: "6px 12px",
+            textTransform: "uppercase"
+          }}
+        >
+          <SlidersHorizontal size={14} />
+          Filter
+          {activeFilterCount > 0 && (
+            <span
               style={{
-                appearance: "none",
-                background: "none",
-                border: "none",
-                fontSize: 13,
-                fontWeight: 500,
-                color: "#111",
-                cursor: "pointer",
-                paddingRight: 20,
-                outline: "none",
+                background: "#c8102e",
+                color: "#fff",
+                fontSize: 10,
+                fontWeight: 700,
+                borderRadius: "50%",
+                width: 16,
+                height: 16,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
-              <option value="newest">Newest</option>
-              <option value="asc">Price: Low to High</option>
-              <option value="desc">Price: High to Low</option>
-            </select>
-            <ChevronDown
-              size={14}
-              style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: "#555" }}
-            />
-          </div>
-
-          {/* Filters button */}
-          <button
-            onClick={() => setFilterOpen(true)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              background: "none",
-              border: "none",
-              fontSize: 13,
-              fontWeight: 500,
-              cursor: "pointer",
-              color: "#111",
-              padding: 0,
-            }}
-          >
-            <SlidersHorizontal size={15} />
-            Filters
-            {activeFilterCount > 0 && (
-              <span
-                style={{
-                  background: "#111",
-                  color: "#fff",
-                  fontSize: 10,
-                  fontWeight: 700,
-                  borderRadius: "50%",
-                  width: 18,
-                  height: 18,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                {activeFilterCount}
-              </span>
-            )}
-          </button>
-        </div>
+              {activeFilterCount}
+            </span>
+          )}
+        </button>
       </div>
+
 
       {/* ── Product Grid ── */}
       <div
         style={{
           maxWidth: 1400,
           margin: "0 auto",
-          padding: "24px 24px 80px",
+          padding: "8px 24px 80px",
         }}
       >
         {isLoading ? (
@@ -973,11 +960,11 @@ export default function CategoryClient({
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+              gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
               gap: "2px",
             }}
           >
-            {Array.from({ length: 8 }).map((_, i) => (
+            {Array.from({ length: 10 }).map((_, i) => (
               <div key={i}>
                 <div
                   style={{
@@ -1021,12 +1008,12 @@ export default function CategoryClient({
               className="cat-grid"
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+                gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
                 gap: "32px 16px",
               }}
             >
               {visible.map((p, idx) => (
-                <ProductCard key={p.id} product={p} priority={idx < 4} />
+                <ProductCard key={p.id} product={p} priority={idx < 5} />
               ))}
             </div>
 
