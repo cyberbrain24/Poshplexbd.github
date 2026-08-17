@@ -116,7 +116,7 @@ function SubcategoryNav({
               }}
             >
               {sub.image ? (
-                <Image src={sub.image} alt={sub.name} fill sizes="84px" priority={idx < 6} style={{ objectFit: "cover" }} />
+                <Image src={sub.image} alt="" fill sizes="84px" priority={idx < 6} style={{ objectFit: "cover" }} />
               ) : (
                 getCategoryIcon(sub.name)
               )}
@@ -221,6 +221,7 @@ function ProductCard({ product, priority = false }: { product: Product; priority
 
         {/* Heart button */}
         <button
+          aria-label="Toggle Wishlist"
           onClick={handleWishlistToggle}
           style={{
             position: "absolute",

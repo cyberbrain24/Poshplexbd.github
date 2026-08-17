@@ -32,15 +32,15 @@ export default function Footer() {
               <h2 style={{ fontSize: 24, fontWeight: 900, color: "#fff", letterSpacing: "-1px", margin: "0 0 4px" }}>
                 POSHPLEX
               </h2>
-              <p style={{ fontSize: 10, fontWeight: 700, color: "rgba(255, 255, 255, 0.4)", letterSpacing: "1.2px", textTransform: "uppercase", margin: 0 }}>
+              <p style={{ fontSize: 10, fontWeight: 700, color: "rgba(255, 255, 255, 0.7)", letterSpacing: "1.2px", textTransform: "uppercase", margin: 0 }}>
                 BE POSH WITH POSHPLEX
               </p>
             </div>
             
             <div style={{ marginTop: 8 }}>
-              <h4 style={{ fontSize: 11, fontWeight: 700, color: "#fff", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 12 }}>
+              <h3 style={{ fontSize: 11, fontWeight: 700, color: "#fff", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 12 }}>
                 JOIN THE MOVEMENT
-              </h4>
+              </h3>
               <div style={{ display: "flex", width: "100%", maxWidth: 320 }}>
                 <input
                   type="email"
@@ -81,9 +81,9 @@ export default function Footer() {
 
           {/* Column 2: Shop */}
           <div className="footer-col-links">
-            <h4 style={{ fontSize: 11, fontWeight: 700, color: "#fff", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 18 }}>
+            <h3 style={{ fontSize: 11, fontWeight: 700, color: "#fff", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 18 }}>
               SHOP
-            </h4>
+            </h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <Link href="/catalog" className="footer-link">All Products</Link>
               <Link href="/catalog?sort=newest" className="footer-link">New Arrivals</Link>
@@ -94,9 +94,9 @@ export default function Footer() {
 
           {/* Column 3: About */}
           <div className="footer-col-links">
-            <h4 style={{ fontSize: 11, fontWeight: 700, color: "#fff", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 18 }}>
+            <h3 style={{ fontSize: 11, fontWeight: 700, color: "#fff", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 18 }}>
               ABOUT
-            </h4>
+            </h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <Link href="/brand" className="footer-link">Our Story</Link>
               <Link href="/store-locator" className="footer-link">Find Us</Link>
@@ -105,9 +105,9 @@ export default function Footer() {
 
           {/* Column 4: Legal */}
           <div className="footer-col-links">
-            <h4 style={{ fontSize: 11, fontWeight: 700, color: "#fff", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 18 }}>
+            <h3 style={{ fontSize: 11, fontWeight: 700, color: "#fff", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 18 }}>
               LEGAL
-            </h4>
+            </h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <Link href="/privacy-policy" className="footer-link">Privacy Policy</Link>
               <Link href="/terms-conditions" className="footer-link">Terms & Conditions</Link>
@@ -124,12 +124,12 @@ export default function Footer() {
             <h2 style={{ fontSize: 24, fontWeight: 900, color: "#fff", letterSpacing: "-1px", margin: "0 0 4px" }}>
               POSHPLEX
             </h2>
-            <p style={{ fontSize: 10, fontWeight: 700, color: "rgba(255, 255, 255, 0.4)", letterSpacing: "1.2px", textTransform: "uppercase", margin: "0 0 16px" }}>
+            <p style={{ fontSize: 10, fontWeight: 700, color: "rgba(255, 255, 255, 0.7)", letterSpacing: "1.2px", textTransform: "uppercase", margin: "0 0 16px" }}>
               BE POSH WITH POSHPLEX
             </p>
-            <h4 style={{ fontSize: 11, fontWeight: 700, color: "#fff", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10 }}>
+            <h3 style={{ fontSize: 11, fontWeight: 700, color: "#fff", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10 }}>
               JOIN THE MOVEMENT
-            </h4>
+            </h3>
             <div style={{ display: "flex", width: "100%" }}>
               <input
                 type="email"
@@ -234,10 +234,10 @@ export default function Footer() {
           justifyContent: "space-between",
           alignItems: "center",
           fontSize: 12,
-          color: "rgba(255, 255, 255, 0.4)"
+          color: "rgba(255, 255, 255, 0.7)"
         }}>
           <div>
-            <a href="mailto:business@poshplexbd.com" style={{ color: "rgba(255, 255, 255, 0.4)", textDecoration: "none" }} onMouseEnter={(e) => e.currentTarget.style.color = "#fff"} onMouseLeave={(e) => e.currentTarget.style.color = "rgba(255,255,255,0.4)"}>
+            <a href="mailto:business@poshplexbd.com" style={{ color: "rgba(255, 255, 255, 0.7)", textDecoration: "none" }} onMouseEnter={(e) => e.currentTarget.style.color = "#fff"} onMouseLeave={(e) => e.currentTarget.style.color = "rgba(255,255,255,0.7)"}>
               business@poshplexbd.com
             </a>
           </div>
@@ -245,7 +245,7 @@ export default function Footer() {
             © 2026 Poshplex. All rights reserved.
           </div>
           <div>
-            <a href="https://cyberbrain.com.bd" target="_blank" rel="noreferrer" style={{ color: "rgba(255, 255, 255, 0.4)", textDecoration: "none" }} onMouseEnter={(e) => e.currentTarget.style.color = "#fff"} onMouseLeave={(e) => e.currentTarget.style.color = "rgba(255,255,255,0.4)"}>
+            <a href="https://cyberbrain.com.bd" target="_blank" rel="noreferrer" style={{ color: "rgba(255, 255, 255, 0.7)", textDecoration: "none" }} onMouseEnter={(e) => e.currentTarget.style.color = "#fff"} onMouseLeave={(e) => e.currentTarget.style.color = "rgba(255,255,255,0.7)"}>
               Design & Developed by CyberBrain.com.bd
             </a>
           </div>

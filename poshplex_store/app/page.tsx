@@ -153,7 +153,7 @@ export default async function Home() {
                   }}
                 >
                   {cat.image ? (
-                    <Image src={cat.image} alt={cat.name} fill sizes="160px" priority unoptimized style={{ objectFit: "cover" }} />
+                    <Image src={cat.image} alt="" fill sizes="160px" priority unoptimized style={{ objectFit: "cover" }} />
                   ) : (
                     <span style={{ color: "#777", fontSize: 10, textTransform: "uppercase" }}>No Image</span>
                   )}
@@ -218,7 +218,7 @@ export default async function Home() {
               className="product-card"
               style={{ display: "flex", flexDirection: "column" }}
             >
-              <Link href={`/product/${product.slug}`} style={{ flex: 1 }}>
+              <Link href={`/product/${product.slug}`} style={{ flex: 1, textDecoration: "none", color: "inherit", display: "flex", flexDirection: "column" }}>
                 <div
                   style={{
                     background: "#f5f5f5",
@@ -257,28 +257,23 @@ export default async function Home() {
                     </div>
                   )}
                 </div>
-              </Link>
-              <div style={{ padding: "0 4px" }}>
-                <Link
-                  href={`/product/${product.slug}`}
-                  style={{ textDecoration: "none", color: "#111" }}
-                >
-                  <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 8, lineHeight: 1.3 }}>
+                <div style={{ padding: "0 4px" }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 8, lineHeight: 1.3, color: "#111" }}>
                     {product.name}
                   </h3>
-                </Link>
-                <div
-                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
-                >
-                  <span style={{ fontSize: 15, fontWeight: 800 }}>{getPriceDisplay(product)}</span>
-                  {product.rating_count > 0 && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <Star size={12} fill="#111" color="#111" />
-                      <span style={{ fontSize: 12, fontWeight: 600 }}>{product.rating_count}</span>
-                    </div>
-                  )}
+                  <div
+                    style={{ display: "flex", justifyContent: "space-between", alignItems: "center", color: "#111" }}
+                  >
+                    <span style={{ fontSize: 15, fontWeight: 800 }}>{getPriceDisplay(product)}</span>
+                    {product.rating_count > 0 && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <Star size={12} fill="#111" color="#111" />
+                        <span style={{ fontSize: 12, fontWeight: 600 }}>{product.rating_count}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              </Link>
             </div>
           ))}
         </div>

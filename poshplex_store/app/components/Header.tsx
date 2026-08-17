@@ -389,7 +389,7 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
               </div>
             )}
           </div>
-          <Link href="/wishlist" onClick={closeMenu} style={{ background: "transparent", border: "none", color: "var(--text-main)", cursor: "pointer", display: "flex", alignItems: "center", padding: 0, position: "relative" }}>
+          <Link href="/wishlist" onClick={closeMenu} aria-label="View Wishlist" style={{ background: "transparent", border: "none", color: "var(--text-main)", cursor: "pointer", display: "flex", alignItems: "center", padding: 0, position: "relative" }}>
             <Heart size={18} fill={wishlistCount > 0 ? "#e11d48" : "none"} color={wishlistCount > 0 ? "#e11d48" : "currentColor"} />
             {wishlistCount > 0 && (
               <div style={{ position: "absolute", top: -8, right: -10, background: "#e11d48", color: "#fff", fontSize: 9, fontWeight: 700, height: 16, minWidth: 16, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8, padding: "0 4px" }}>

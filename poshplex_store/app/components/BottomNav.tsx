@@ -10,6 +10,23 @@ export default function BottomNav() {
   const pathname = usePathname();
   const { cartCount, openCart, closeCart, isCartOpen } = useCart();
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    const startTimer = () => {
+      timer = setTimeout(() => setIsReady(true), 6000);
+    };
+    if (document.readyState === 'complete') {
+      startTimer();
+    } else {
+      window.addEventListener('load', startTimer);
+    }
+    return () => {
+      window.removeEventListener('load', startTimer);
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
 
   useEffect(() => {
     const handleMusicState = (e: Event) => {
@@ -60,46 +77,51 @@ export default function BottomNav() {
 
         {/* Music Button - Raised Circular Center */}
         <div style={{ flex: 1, display: "flex", justifyContent: "center", position: "relative", height: "100%" }}>
-          <button 
-            className="music-toggle-btn"
-            onClick={() => { handleMusicToggle(); closeCart(); }}
-            style={{ 
-              position: "absolute",
-              bottom: 12,
-              width: 54,
-              height: 54,
-              borderRadius: "50%",
-              background: isPlaying ? "#e11d48" : "#2e2e2e",
-              color: "#ffffff",
-              border: "4px solid var(--bg-primary)",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              boxShadow: "0 -2px 10px rgba(0,0,0,0.15)",
-              transition: "all 0.3s ease",
-              padding: 0
-            }}
-          >
-            <Music 
-              size={18} 
-              style={{ 
-                animation: isPlaying ? "spin 4s linear infinite" : "none" 
-              }} 
-            />
-          </button>
-          <span style={{ 
-            position: "absolute",
-            bottom: 4,
-            fontSize: 10, 
-            fontWeight: 700, 
-            textTransform: "uppercase", 
-            letterSpacing: "0.5px",
-            color: isPlaying ? "#e11d48" : "var(--text-muted)"
-          }}>
-            Music
-          </span>
+          {isReady && (
+            <>
+              <button 
+                className="music-toggle-btn"
+                aria-label="Toggle Music"
+                onClick={() => { handleMusicToggle(); closeCart(); }}
+                style={{ 
+                  position: "absolute",
+                  bottom: 12,
+                  width: 54,
+                  height: 54,
+                  borderRadius: "50%",
+                  background: isPlaying ? "#e11d48" : "#2e2e2e",
+                  color: "#ffffff",
+                  border: "4px solid var(--bg-primary)",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  boxShadow: "0 -2px 10px rgba(0,0,0,0.15)",
+                  transition: "all 0.3s ease",
+                  padding: 0
+                }}
+              >
+                <Music 
+                  size={18} 
+                  style={{ 
+                    animation: isPlaying ? "spin 4s linear infinite" : "none" 
+                  }} 
+                />
+              </button>
+              <span style={{ 
+                position: "absolute",
+                bottom: 4,
+                fontSize: 10, 
+                fontWeight: 700, 
+                textTransform: "uppercase", 
+                letterSpacing: "0.5px",
+                color: isPlaying ? "#e11d48" : "var(--text-muted)"
+              }}>
+                Music
+              </span>
+            </>
+          )}
         </div>
 
         {/* Cart */}
