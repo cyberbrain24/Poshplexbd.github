@@ -3,90 +3,10 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Heart, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
+import ProductCard from "../components/ProductCard";
 
 const formatBDT = (n: string | number) => `৳${Math.round(Number(n))}`;
-
-function WishlistProductCard({ product, onRemove }: { product: any; onRemove: (id: number) => void }) {
-  const [hovered, setHovered] = useState(false);
-  const mainImage = product.images?.find((i: any) => i.is_main) || product.images?.[0];
-  const imageUrl = mainImage?.url || `https://placehold.co/400x500/ebebeb/333?text=${encodeURIComponent(product.name)}`;
-  const secondImage = product.images?.[1];
-
-  const displayPrice = (() => {
-    const vs = (product.variants || []).filter((v: any) => v.is_active !== false);
-    if (!vs.length) return formatBDT(product.base_price || 0);
-    const prices = vs.map((v: any) => parseFloat(v.selling_price || v.price || 0));
-    const lo = Math.round(Math.min(...prices));
-    const hi = Math.round(Math.max(...prices));
-    return lo === hi ? formatBDT(lo) : `${formatBDT(lo)} – ${formatBDT(hi)}`;
-  })();
-
-  return (
-    <div style={{ position: "relative" }}>
-      <Link
-        href={`/product/${product.slug}`}
-        style={{ textDecoration: "none", color: "inherit", display: "block" }}
-      >
-        <div
-          style={{ position: "relative", background: "#f0f0f0", overflow: "hidden", aspectRatio: "3/4" }}
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
-        >
-          <Image
-            src={hovered && secondImage ? secondImage.url : imageUrl}
-            alt={product.name}
-            fill
-            sizes="(max-width: 768px) 50vw, 25vw"
-            style={{
-              objectFit: "cover",
-              transition: "transform 0.4s ease",
-              transform: hovered ? "scale(1.04)" : "scale(1)",
-            }}
-          />
-        </div>
-        <div style={{ paddingTop: 8, paddingBottom: 4 }}>
-          <p style={{ fontSize: 10, color: "#888", marginBottom: 2, letterSpacing: "0.2px", textTransform: "uppercase" }}>
-            {product.category?.name || product.categories?.[0]?.name || "Apparel"}
-          </p>
-          <h3 style={{ fontSize: 11, fontWeight: 600, color: "#111", margin: "0 0 2px", lineHeight: 1.3, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {product.name}
-          </h3>
-          <span style={{ fontSize: 11, fontWeight: 700, color: "#111" }}>
-            {displayPrice}
-          </span>
-        </div>
-      </Link>
-      
-      {/* Remove from wishlist button */}
-      <button
-        onClick={(e) => {
-          e.preventDefault();
-          onRemove(product.id);
-        }}
-        style={{
-          position: "absolute",
-          top: 10,
-          right: 10,
-          width: 32,
-          height: 32,
-          borderRadius: "50%",
-          background: "rgba(255,255,255,0.9)",
-          border: "none",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          cursor: "pointer",
-          boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
-          zIndex: 2,
-        }}
-        title="Remove from wishlist"
-      >
-        <Trash2 size={14} color="#e11d48" />
-      </button>
-    </div>
-  );
-}
 
 export default function WishlistPage() {
   const [wishlistIds, setWishlistIds] = useState<number[]>([]);
@@ -205,7 +125,7 @@ export default function WishlistPage() {
             }}
           >
             {products.map(p => (
-              <WishlistProductCard key={p.id} product={p} onRemove={handleRemove} />
+              <ProductCard key={p.id} product={p} onRemove={handleRemove} />
             ))}
           </div>
         )}

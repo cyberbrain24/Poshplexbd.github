@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Search, X } from "lucide-react";
+import ProductCard from "../components/ProductCard";
 
 const formatBDT = (n: string | number) => `৳${Math.round(Number(n))}`;
 
@@ -18,64 +19,6 @@ const COLOR_HEX: Record<string, string> = {
 const toHex = (name: string) =>
   COLOR_HEX[name.toLowerCase()] || "#555555";
 
-/* ─── reusable compact product card ─────────────────── */
-function ProductCard({ product, priority = false }: { product: any; priority?: boolean }) {
-  const [hovered, setHovered] = useState(false);
-  const mainImage = product.images?.find((i: any) => i.is_main) || product.images?.[0];
-  const imageUrl = mainImage?.url || `https://placehold.co/400x500/ebebeb/333?text=${encodeURIComponent(product.name)}`;
-  const secondImage = product.images?.[1];
-
-  const displayPrice = (() => {
-    const vs = (product.variants || []).filter((v: any) => v.is_active !== false);
-    if (!vs.length) return formatBDT(product.base_price || 0);
-    const prices = vs.map((v: any) => parseFloat(v.selling_price || v.price || 0));
-    const lo = Math.round(Math.min(...prices));
-    const hi = Math.round(Math.max(...prices));
-    return lo === hi ? formatBDT(lo) : `${formatBDT(lo)} – ${formatBDT(hi)}`;
-  })();
-
-  return (
-    <Link
-      href={`/product/${product.slug}`}
-      style={{ textDecoration: "none", color: "inherit", display: "flex", flexDirection: "column", height: "100%" }}
-    >
-      <div
-        style={{ position: "relative", background: "#f0f0f0", overflow: "hidden", aspectRatio: "3/4" }}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-      >
-        <Image
-          src={hovered && secondImage ? secondImage.url : imageUrl}
-          alt={product.name}
-          fill
-          priority={priority}
-          sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 12.5vw"
-          style={{
-            objectFit: "cover",
-            transition: "transform 0.4s ease",
-            transform: hovered ? "scale(1.04)" : "scale(1)",
-          }}
-        />
-        {product.is_featured && (
-          <div style={{ position: "absolute", top: 8, left: 8, background: "#111", color: "#fff", fontSize: 8, fontWeight: 800, letterSpacing: "1.2px", padding: "2px 6px" }}>
-            NEW
-          </div>
-        )}
-      </div>
-      <div style={{ paddingTop: 8, paddingBottom: 4 }}>
-        <p style={{ fontSize: 10, color: "#888", marginBottom: 2, letterSpacing: "0.2px", textTransform: "uppercase" }}>
-          {product.category?.name || product.categories?.[0]?.name || "Apparel"}
-        </p>
-        <h3 style={{ fontSize: 11, fontWeight: 600, color: "#111", margin: "0 0 2px", lineHeight: 1.3, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {product.name}
-        </h3>
-        <span style={{ fontSize: 11, fontWeight: 700, color: "#111" }}>
-          {displayPrice}
-        </span>
-      </div>
-    </Link>
-  );
-}
 
 export default function CatalogPage() {
   const [products, setProducts] = useState<any[]>([]);

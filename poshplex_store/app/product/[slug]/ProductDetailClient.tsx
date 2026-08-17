@@ -8,6 +8,7 @@ import { Heart, Star, ChevronDown, ChevronUp, Minus, Plus, Camera, X, Send, Chev
 import { toast } from 'react-hot-toast';
 import { fetchWithAuth } from "../../utils/fetchWithAuth";
 import { useCart } from "../../../context/CartContext";
+import ProductCard from "../../components/ProductCard";
 
 const formatBDT = (n: string | number) => `৳${Math.round(Number(n))}`;
 
@@ -32,66 +33,6 @@ const getAttributeWeight = (k: string) => {
 /* ─── accordion ─────────────────────────────────────── */
 type AccordionSection = "description" | "sizeGuide" | "care" | "reviews";
 
-/* ─── local helper product card ─────────────────────── */
-function ProductCard({ product }: { product: any }) {
-  const [imgHovered, setImgHovered] = useState(false);
-  const mainImage = product.images?.find((i: any) => i.is_main) || product.images?.[0];
-  const imageUrl = mainImage?.url || `https://placehold.co/400x500/ebebeb/333.png?text=${encodeURIComponent(product.name || "Product")}`;
-  const secondImage = product.images?.[1];
-
-  const displayPrice = (() => {
-    const vs = (product.variants || []).filter((v: any) => v.is_active !== false);
-    if (!vs.length) return formatBDT(product.base_price || 0);
-    const prices = vs.map((v: any) => parseFloat(v.selling_price || v.price || 0));
-    const lo = Math.round(Math.min(...prices));
-    const hi = Math.round(Math.max(...prices));
-    return lo === hi ? formatBDT(lo) : `${formatBDT(lo)} – ${formatBDT(hi)}`;
-  })();
-
-  return (
-    <Link
-      href={`/product/${product.slug}`}
-      style={{ textDecoration: "none", color: "inherit", display: "block" }}
-    >
-      <div
-        style={{ position: "relative", background: "#f0f0f0", overflow: "hidden", aspectRatio: "3/4" }}
-        onMouseEnter={() => setImgHovered(true)}
-        onMouseLeave={() => setImgHovered(false)}
-      >
-        <Image
-          src={imgHovered && secondImage?.url ? secondImage.url : (imageUrl || "https://placehold.co/400x500/ebebeb/333.png?text=Product")}
-          alt={product.name || "Product"}
-          fill
-          unoptimized={(imageUrl || "").includes('placehold.co')}
-          sizes="(max-width: 768px) 50vw, 25vw"
-          style={{
-            objectFit: "cover",
-            transition: "transform 0.4s ease",
-            transform: imgHovered ? "scale(1.04)" : "scale(1)",
-          }}
-        />
-        {product.is_featured && (
-          <div style={{ position: "absolute", top: 10, left: 10, background: "#111", color: "#fff", fontSize: 9, fontWeight: 800, letterSpacing: "1.2px", padding: "3px 8px" }}>
-            NEW
-          </div>
-        )}
-      </div>
-      <div style={{ paddingTop: 10, paddingBottom: 6 }}>
-        <p style={{ fontSize: 11, color: "#666", marginBottom: 3, letterSpacing: "0.2px" }}>
-          {product.category?.name || product.categories?.[0]?.name || ""}
-        </p>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 6 }}>
-          <h3 style={{ fontSize: 13, fontWeight: 600, color: "#111", margin: 0, lineHeight: 1.35, flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {product.name}
-          </h3>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "#111", flexShrink: 0 }}>
-            {displayPrice}
-          </span>
-        </div>
-      </div>
-    </Link>
-  );
-}
 
 export default function ProductDetailClient({ product }: { product: any }) {
   const router = useRouter();
