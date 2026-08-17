@@ -447,17 +447,15 @@ input:focus, select:focus, textarea:focus {
 
 /* Media Query Display Utilities */
 @media (max-width: 768px) { .hide-on-mobile { display: none !important; } }
-@media (min-width: 769px) { .hide-on-desktop { display: none !important; } }
+@media (min-width: 769px) { .hide-on-desktop { display: none !important; } }
 
- @ m e d i a   ( m a x - w i d t h :   7 6 8 p x )   { 
-     . p r o d u c t - t w o - c o l   { 
-         g r i d - t e m p l a t e - c o l u m n s :   1 f r   ! i m p o r t a n t ; 
-     } 
- } 
- @ m e d i a   ( m i n - w i d t h :   7 6 9 p x )   { 
-     . p r o d u c t - t w o - c o l   { 
-         g r i d - t e m p l a t e - c o l u m n s :   1 f r   1 f r   ! i m p o r t a n t ; 
-     } 
- } 
-  
- 
+@media (max-width: 768px) {
+  .product-two-col {
+    grid-template-columns: 1fr !important;
+  }
+}
+@media (min-width: 769px) {
+  .product-two-col {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
