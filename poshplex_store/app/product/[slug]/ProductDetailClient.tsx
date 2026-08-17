@@ -412,7 +412,6 @@ export default function ProductDetailClient({ product }: { product: any }) {
         className="product-two-col"
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 1fr",
           gap: 0,
           maxWidth: 1400,
           margin: "0 auto",
