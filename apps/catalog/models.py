@@ -3,6 +3,58 @@ from django.core.exceptions import ValidationError
 from django.core.cache import cache
 from django.conf import settings
 
+import os
+import re
+
+def slugify_name(name):
+    # Basic slugify for paths
+    return re.sub(r'[^a-zA-Z0-9_\-\.]', '_', name)
+
+def get_product_folder_path(product, base_folder="products"):
+    """
+    Returns path: parent_category/subcategory/base_folder/
+    """
+    parent_cat = "uncategorized"
+    sub_cat = "general"
+    
+    cat = product.category
+    if not cat and product.categories.exists():
+        cat = product.categories.first()
+        
+    if cat:
+        if cat.parent:
+            parent_cat = slugify_name(cat.parent.name)
+            sub_cat = slugify_name(cat.name)
+        else:
+            parent_cat = slugify_name(cat.name)
+            sub_cat = "general"
+            
+    return f"{parent_cat}/{sub_cat}/{base_folder}"
+
+def product_image_upload_path(instance, filename):
+    ext = os.path.splitext(filename)[1]
+    product = instance.product
+    
+    # Generate folder path
+    folder_path = get_product_folder_path(product, "products")
+    
+    # Base name is product name
+    base_name = slugify_name(product.name)
+    
+    # If this is not the first image, append a number
+    if instance.pk:
+        # It's an existing image being updated, try to keep its order or ID
+        new_filename = f"{base_name}_{instance.pk}{ext}"
+    else:
+        # Check how many images exist
+        count = product.images.count()
+        if count == 0:
+            new_filename = f"{base_name}{ext}"
+        else:
+            new_filename = f"{base_name}_{count + 1}{ext}"
+            
+    return os.path.join(folder_path, new_filename)
+
 class Category(models.Model):
     objects = models.Manager()
     name = models.CharField(max_length=100)
@@ -202,7 +254,7 @@ class Product(models.Model):
 class ProductImage(models.Model):
     objects = models.Manager()
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
-    image = models.FileField(upload_to='product_images/')
+    image = models.FileField(upload_to=product_image_upload_path)
     alt_text = models.CharField(max_length=255, blank=True, null=True)
     is_main = models.BooleanField(default=False)
     color_tag = models.CharField(max_length=100, blank=True, null=True)

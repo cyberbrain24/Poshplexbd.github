@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q
-from ninja import Router, Schema, File
+from ninja import Router, Schema, File, Form
 from ninja.files import UploadedFile
 from ninja.errors import HttpError
 
@@ -945,16 +945,39 @@ import os
 from django.core.files.storage import default_storage
 
 @router.post("/reviews/upload-photo", auth=BearerAuth())
-def upload_review_photo(request, file: UploadedFile = File(...)):
+def upload_review_photo(request, file: UploadedFile = File(...), product_id: Optional[int] = Form(None)):
     """Upload a photo for a review, optimizing to WebP format."""
     try:
+        from apps.catalog.models import Product, slugify_name, get_product_folder_path
+        import uuid
+        
+        prefix = "reviews"
+        new_filename = None
+        
+        if product_id:
+            try:
+                product = Product.objects.get(id=product_id)
+                prefix = get_product_folder_path(product, "product_reviews")
+                base_name = slugify_name(product.name)
+                # Random hex to prevent conflicts
+                new_filename = f"{base_name}_review_{uuid.uuid4().hex[:6]}.webp"
+            except Product.DoesNotExist:
+                pass
+                
+        # Handle optimization and saving
         from apps.image_optimizer.services import optimize_and_save_image
-        url = optimize_and_save_image(file, max_width=700, prefix="reviews")
+        url = optimize_and_save_image(file, max_width=700, prefix=prefix, custom_filename=new_filename)
         return {"url": url}
     except Exception as e:
         import uuid
         ext = os.path.splitext(file.name)[1]
-        filename = f"reviews/{uuid.uuid4().hex}{ext}"
+        
+        if product_id and 'new_filename' in locals() and new_filename:
+            # Fallback if optimization fails but we have a product
+            filename = f"{prefix}/{new_filename.replace('.webp', ext)}"
+        else:
+            filename = f"reviews/{uuid.uuid4().hex}{ext}"
+            
         path = default_storage.save(filename, file)
         url = default_storage.url(path)
         if url and not (url.startswith("http://") or url.startswith("https://")):

@@ -5,7 +5,7 @@ from PIL import Image
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 
-def optimize_and_save_image(file, max_width: int, prefix: str) -> str:
+def optimize_and_save_image(file, max_width: int, prefix: str, custom_filename: str = None) -> str:
     """
     Optimizes an uploaded image by resizing it to a maximum width (maintaining aspect ratio),
     converting it to WebP, and saving it to default_storage.
@@ -14,6 +14,7 @@ def optimize_and_save_image(file, max_width: int, prefix: str) -> str:
         file: The uploaded file object.
         max_width: The maximum allowed width in pixels.
         prefix: The folder prefix for saving (e.g., 'profiles', 'reviews').
+        custom_filename: Optional filename to use instead of uuid.
         
     Returns:
         The fully qualified URL to the saved image.
@@ -29,7 +30,10 @@ def optimize_and_save_image(file, max_width: int, prefix: str) -> str:
     buffer = BytesIO()
     img.convert('RGB').save(buffer, format='WEBP', quality=85)
     
-    filename = f"{prefix}/{uuid.uuid4().hex}.webp"
+    if custom_filename:
+        filename = f"{prefix}/{custom_filename}"
+    else:
+        filename = f"{prefix}/{uuid.uuid4().hex}.webp"
     
     path = default_storage.save(filename, ContentFile(buffer.getvalue()))
     url = default_storage.url(path)

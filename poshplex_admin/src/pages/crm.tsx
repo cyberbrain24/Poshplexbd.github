@@ -206,6 +206,7 @@ const Reviews: React.FC = () => {
             <Upload
               action={`${CATALOG_URL}/reviews/upload-photo`}
               headers={{ Authorization: `Bearer ${uploadToken}` }}
+              data={{ product_id: editingReview?.product_id }}
               listType="picture-card"
               fileList={imageList}
               onChange={handleUploadChange}
@@ -241,6 +242,7 @@ const Reviews: React.FC = () => {
             <Upload
               action={`${CATALOG_URL}/reviews/upload-photo`}
               headers={{ Authorization: `Bearer ${uploadToken}` }}
+              data={{ product_id: createForm.getFieldValue('product_id') }}
               listType="picture-card"
               fileList={createImageList}
               onChange={handleCreateUploadChange}

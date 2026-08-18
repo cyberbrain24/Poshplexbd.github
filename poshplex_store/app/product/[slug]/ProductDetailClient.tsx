@@ -263,6 +263,9 @@ export default function ProductDetailClient({ product }: { product: any }) {
     for (const file of Array.from(files)) {
       const fd = new FormData();
       fd.append("file", file);
+      if (product?.id) {
+        fd.append("product_id", product.id.toString());
+      }
       try {
         const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const res = await fetch(`${API_URL}/api/v1/catalog/reviews/upload-photo`, {
