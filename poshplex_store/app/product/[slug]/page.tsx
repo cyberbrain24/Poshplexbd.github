@@ -7,15 +7,18 @@ type Props = {
 };
 
 async function getProduct(slug: string) {
-  try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/products/${slug}`, { next: { revalidate: 60 } });
-    if (res.ok) {
-      return await res.json();
-    }
-  } catch (err) {
-    // Backend unavailable
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/products/${slug}`, { next: { revalidate: 60 } });
+  
+  if (res.ok) {
+    return await res.json();
   }
-  return null;
+  
+  if (res.status === 404) {
+    return null; // Product explicitly not found
+  }
+  
+  // Prevent Next.js from caching a temporary backend crash as a permanent 'Not Found' page
+  throw new Error(`Backend unavailable: ${res.status}`);
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
