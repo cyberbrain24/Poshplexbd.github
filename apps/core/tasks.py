@@ -39,17 +39,13 @@ def send_automated_notification(event_type: str, context: dict):
             phone = context.get("phone")
             
             if phone:
-                # Dispatch to BulkSMSBD Non-Mask 09617
                 try:
-                    payload = {
-                        "api_key": "JC59LubvFuo7pxEOMHL9",
-                        "senderid": "09617",
-                        "number": phone,
-                        "message": message,
-                        "type": "text"
-                    }
-                    resp = requests.post("http://bulksmsbd.net/api/smsapi", data=payload, timeout=5)
-                    logger.info(f"Dispatched SMS to {phone}: {message} | Resp: {resp.text}")
+                    from apps.integration.services import send_sms_notification
+                    success = send_sms_notification(phone, message)
+                    if success:
+                        logger.info(f"Dispatched SMS to {phone}")
+                    else:
+                        logger.error(f"SMS Dispatch failed for {phone}")
                 except Exception as e:
                     logger.error(f"SMS Dispatch failed: {e}")
             else:

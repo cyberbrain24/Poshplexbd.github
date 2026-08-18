@@ -26,7 +26,7 @@ class BulkSMSBDProvider(BaseSMSProvider):
     """BulkSMSBD Gateway implementation."""
     def __init__(self, api_key: str = None, sender_id: str = None):
         self.api_key = api_key or "JC59LubvFuo7pxEOMHL9"
-        self.sender_id = sender_id if sender_id is not None else "" # Use dynamically configured Sender ID from Admin Panel
+        self.sender_id = sender_id if sender_id else "8809648910527" # Fallback to valid Sender ID
         self.base_url = "http://bulksmsbd.net/api/smsapi"
 
     def send_sms(self, to_number: str, message: str) -> bool:
