@@ -3,10 +3,10 @@
 import React, { useMemo } from "react";
 import { Permanent_Marker, Rock_Salt, Sedgwick_Ave_Display, Caveat } from "next/font/google";
 
-const permanentMarker = Permanent_Marker({ weight: "400", subsets: ["latin"] });
-const rockSalt = Rock_Salt({ weight: "400", subsets: ["latin"] });
-const sedgwick = Sedgwick_Ave_Display({ weight: "400", subsets: ["latin"] });
-const caveat = Caveat({ weight: ["700"], subsets: ["latin"] });
+const permanentMarker = Permanent_Marker({ weight: "400", subsets: ["latin"], preload: false });
+const rockSalt = Rock_Salt({ weight: "400", subsets: ["latin"], preload: false });
+const sedgwick = Sedgwick_Ave_Display({ weight: "400", subsets: ["latin"], preload: false });
+const caveat = Caveat({ weight: ["700"], subsets: ["latin"], preload: false });
 
 const fonts = [permanentMarker.className, rockSalt.className, sedgwick.className, caveat.className];
 const words = ["STYLE", "LEGEND", "STREET", "POSHPLEX", "URBAN", "DESIGN", "SKETCH", "GRAFFITI", "ORIGINAL", "ART", "HEAVYWEIGHT", "BOXY", "DHAKA", "CULTURE", "CREATIVE"];

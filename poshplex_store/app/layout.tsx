@@ -13,6 +13,7 @@ import Footer from "./components/Footer";
 const outfit = Outfit({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700", "800"],
+  preload: false,
 });
 
 export async function generateMetadata() {
