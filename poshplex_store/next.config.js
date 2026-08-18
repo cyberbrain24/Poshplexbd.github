@@ -60,6 +60,14 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: '*.r2.dev',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.poshplexbd.com',
+      },
+      {
+        protocol: 'https',
         hostname: 'images.unsplash.com',
       },
     ],
