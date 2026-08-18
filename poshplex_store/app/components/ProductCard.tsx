@@ -76,6 +76,7 @@ export default function ProductCard({
     <div style={{ position: "relative", display: "flex", flexDirection: "column", height: "100%" }}>
       <Link
         href={`/product/${product.slug}`}
+        prefetch={true}
         style={{ textDecoration: "none", color: "inherit", display: "flex", flexDirection: "column", flex: 1 }}
       >
         <div style={{ position: "relative", background: "#f0f0f0", overflow: "hidden", aspectRatio: "3/4" }}>
