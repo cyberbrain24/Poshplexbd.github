@@ -127,7 +127,7 @@ export default function ProductDetailClient({ product }: { product: any }) {
             setAttachedPhotos(myReview.images || []);
           }
         }
-      } catch {}
+      } catch { }
     };
     checkMyReview();
   }, [product.id]);
@@ -282,7 +282,7 @@ export default function ProductDetailClient({ product }: { product: any }) {
     const token = localStorage.getItem("poshplex_access_token");
     const headers: HeadersInit = { "Content-Type": "application/json" };
     if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
+      headers["Authorization"] = `Bearer ${token}`;
     }
 
     try {
@@ -307,8 +307,8 @@ export default function ProductDetailClient({ product }: { product: any }) {
         const err = await res.json();
         setSubmitMsg(err.detail || "Failed to submit review.");
       }
-    } catch { 
-      setSubmitMsg("Network error. Please try again."); 
+    } catch {
+      setSubmitMsg("Network error. Please try again.");
     }
   };
 
@@ -363,8 +363,8 @@ export default function ProductDetailClient({ product }: { product: any }) {
 
         {/* LEFT: Image Gallery */}
         <div className="product-gallery-container" style={{ position: "relative", width: "100%", background: "#f0f0f3", overflow: "hidden" }}>
-          <div 
-            className="product-gallery-inner hide-scrollbar" 
+          <div
+            className="product-gallery-inner hide-scrollbar"
             style={{ display: "flex", overflowX: "auto", scrollSnapType: "x mandatory", width: "100%", cursor: "zoom-in", scrollBehavior: "smooth" }}
             onScroll={handleGalleryScroll}
             id="gallery-scroll-container"
@@ -386,18 +386,18 @@ export default function ProductDetailClient({ product }: { product: any }) {
                 </div>
               ))
             ) : (
-                <div suppressHydrationWarning style={{ flex: "0 0 100%", scrollSnapAlign: "start", position: "relative", width: "100%", aspectRatio: "1/1" }}>
-                  <Image
-                    src={`https://placehold.co/600x600/f0f0f0/999.png?text=${encodeURIComponent(product.name)}`}
-                    alt={product.name}
-                    fill
-                    priority
-                    unoptimized
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                    className="product-hero-img object-contain"
-                    style={{ objectFit: 'contain' }}
-                  />
-                </div>
+              <div suppressHydrationWarning style={{ flex: "0 0 100%", scrollSnapAlign: "start", position: "relative", width: "100%", aspectRatio: "1/1" }}>
+                <Image
+                  src={`https://placehold.co/600x600/f0f0f0/999.png?text=${encodeURIComponent(product.name)}`}
+                  alt={product.name}
+                  fill
+                  priority
+                  unoptimized
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  className="product-hero-img object-contain"
+                  style={{ objectFit: 'contain' }}
+                />
+              </div>
             )}
           </div>
 
@@ -422,7 +422,7 @@ export default function ProductDetailClient({ product }: { product: any }) {
               >
                 <ChevronLeft size={24} color="#111" />
               </button>
-              
+
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -535,55 +535,55 @@ export default function ProductDetailClient({ product }: { product: any }) {
                 })
                 .map(([key, valueSet]) => {
                   const isColor = key.toLowerCase() === "color" || key.toLowerCase() === "colour";
-                return (
-                  <div key={key}>
-                    <p style={{ fontSize: 12, fontWeight: 500, color: "#2f2f2f", marginBottom: 10, letterSpacing: "0.2px" }}>
-                      Choose {key.charAt(0).toUpperCase() + key.slice(1)}
-                    </p>
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }} className="selectors-flex">
-                      {Array.from(valueSet).map((val) => {
-                        const isSelected = selectedAttributes[key] === val;
-                        if (isColor) {
+                  return (
+                    <div key={key}>
+                      <p style={{ fontSize: 12, fontWeight: 500, color: "#2f2f2f", marginBottom: 10, letterSpacing: "0.2px" }}>
+                        Choose {key.charAt(0).toUpperCase() + key.slice(1)}
+                      </p>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }} className="selectors-flex">
+                        {Array.from(valueSet).map((val) => {
+                          const isSelected = selectedAttributes[key] === val;
+                          if (isColor) {
+                            return (
+                              <button
+                                key={val}
+                                title={val}
+                                onClick={() => selectAttr(key, val)}
+                                style={{
+                                  width: 28, height: 28, borderRadius: "50%",
+                                  background: toHex(val),
+                                  border: "1px solid rgba(0,0,0,0.2)",
+                                  outline: isSelected ? "2px solid #111" : "none",
+                                  outlineOffset: 2,
+                                  cursor: "pointer",
+                                  transition: "outline 0.15s",
+                                }}
+                              />
+                            );
+                          }
                           return (
                             <button
                               key={val}
-                              title={val}
                               onClick={() => selectAttr(key, val)}
                               style={{
-                                width: 28, height: 28, borderRadius: "50%",
-                                background: toHex(val),
-                                border: "1px solid rgba(0,0,0,0.2)",
-                                outline: isSelected ? "2px solid #111" : "none",
-                                outlineOffset: 2,
-                                cursor: "pointer",
-                                transition: "outline 0.15s",
+                                padding: "6px 14px",
+                                border: isSelected ? "1.5px solid #111" : "1.5px solid #ddd",
+                                background: isSelected ? "#111" : "#fff",
+                                color: isSelected ? "#fff" : "#111",
+                                fontSize: 13, fontWeight: 400,
+                                cursor: "pointer", borderRadius: 2,
+                                transition: "all 0.15s",
+                                minWidth: 38,
                               }}
-                            />
+                            >
+                              {val}
+                            </button>
                           );
-                        }
-                        return (
-                          <button
-                            key={val}
-                            onClick={() => selectAttr(key, val)}
-                            style={{
-                              padding: "6px 14px",
-                              border: isSelected ? "1.5px solid #111" : "1.5px solid #ddd",
-                              background: isSelected ? "#111" : "#fff",
-                              color: isSelected ? "#fff" : "#111",
-                              fontSize: 13, fontWeight: 400,
-                              cursor: "pointer", borderRadius: 2,
-                              transition: "all 0.15s",
-                              minWidth: 38,
-                            }}
-                          >
-                            {val}
-                          </button>
-                        );
-                      })}
+                        })}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           )}
 
@@ -843,7 +843,7 @@ export default function ProductDetailClient({ product }: { product: any }) {
                                   style={{ position: "relative", background: "var(--bg-secondary)", border: "1px solid var(--border-glass)", display: "flex", flexDirection: "column" }}
                                 >
                                   {thumb && (
-                                    <div 
+                                    <div
                                       style={{ width: "100%", aspectRatio: "3/4", position: "relative", cursor: "zoom-in" }}
                                       onClick={() => setLightboxUrl(thumb)}
                                     >
