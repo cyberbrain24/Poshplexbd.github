@@ -79,6 +79,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   }
   return (
     <html lang="en" className={outfit.className} suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://media.poshplexbd.com" />
+      </head>
       <body suppressHydrationWarning>
         <GlobalErrorBoundary>
           <CartProvider>
