@@ -411,6 +411,31 @@ export const Catalog: React.FC = () => {
     setIsProductModalOpen(true);
   };
 
+  // Drag and Drop for Upload Gallery
+  const sensor = useSensor(PointerSensor, {
+    activationConstraint: { distance: 10 },
+  });
+
+  const onDragEnd = ({ active, over }: any) => {
+    if (active.id !== over?.id) {
+      setFileList((prev) => {
+        const activeIndex = prev.findIndex((i) => i.uid === active.id);
+        const overIndex = prev.findIndex((i) => i.uid === over?.id);
+        const newArray = arrayMove(prev, activeIndex, overIndex);
+        if (newArray.length > 0) {
+            setMainImageUid(newArray[0].uid);
+        }
+        return newArray;
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (fileList.length > 0 && (!mainImageUid || !fileList.some(f => f.uid === mainImageUid))) {
+      setMainImageUid(fileList[0].uid);
+    }
+  }, [fileList, mainImageUid]);
+
   // Open Add Product Modal
   const openAddModal = () => {
     setEditingProduct(null);
@@ -1844,14 +1869,21 @@ export const Catalog: React.FC = () => {
           /* Tab B: Media Uploads */
           { label: "Media Gallery", key: "media", forceRender: true, children: (
               <>
-              <Upload
-                listType="picture-card"
-                fileList={fileList}
-                beforeUpload={() => false}
-                onChange={({ fileList: newFileList }) => setFileList(newFileList)}
-              >
-                {fileList.length >= 8 ? null : <div><PlusOutlined /><div style={{ marginTop: 8 }}>Upload</div></div>}
-              </Upload>
+              <DndContext sensors={[sensor]} onDragEnd={onDragEnd}>
+                <SortableContext items={fileList.map((i) => i.uid)} strategy={horizontalListSortingStrategy}>
+                  <Upload
+                    listType="picture-card"
+                    fileList={fileList}
+                    beforeUpload={() => false}
+                    onChange={({ fileList: newFileList }) => setFileList(newFileList)}
+                    itemRender={(originNode, file) => (
+                      <DraggableUploadListItem originNode={originNode} file={file} />
+                    )}
+                  >
+                    {fileList.length >= 8 ? null : <div><PlusOutlined /><div style={{ marginTop: 8 }}>Upload</div></div>}
+                  </Upload>
+                </SortableContext>
+              </DndContext>
               {fileList.length > 0 && (
                 <div style={{ marginTop: 16, marginBottom: 24 }}>
                   <p>Select Main Image:</p>
@@ -1860,7 +1892,13 @@ export const Catalog: React.FC = () => {
                       <Button 
                         key={file.uid} 
                         type={mainImageUid === file.uid ? "primary" : "default"}
-                        onClick={() => setMainImageUid(file.uid)}
+                        onClick={() => {
+                          setMainImageUid(file.uid);
+                          setFileList((prev) => {
+                            const activeIndex = prev.findIndex((i) => i.uid === file.uid);
+                            return arrayMove(prev, activeIndex, 0);
+                          });
+                        }}
                       >
                         {file.name || 'Image'}
                       </Button>
