@@ -65,7 +65,6 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
     { key: "/integrations", icon: <ApiOutlined />, label: "Integration Setup", module: "core" },
     { key: "/media", icon: <FolderOpenOutlined />, label: "Media Library", module: "media" },
     { key: "/music", icon: <SoundOutlined />, label: "Music Library", module: "music" },
-    { key: "/image-optimizer", icon: <PictureOutlined />, label: "Image Optimizer", module: "media" },
     { key: "/settings", icon: <SettingOutlined />, label: "Site Settings", module: "core" },
     { key: "/system-monitor", icon: <DesktopOutlined />, label: "System Monitor", module: "core" },
     { key: "/roles", icon: <TeamOutlined />, label: "Roles & Permissions", module: "core" },

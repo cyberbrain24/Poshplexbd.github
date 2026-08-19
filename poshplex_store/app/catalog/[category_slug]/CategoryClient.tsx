@@ -451,6 +451,12 @@ export default function CategoryClient({
     }
   }, [slug]);
 
+  // Sync server props to client state on navigation
+  useEffect(() => {
+    if (initialProducts.length > 0) setAllProducts(initialProducts);
+    if (initialCategoryTree.length > 0) setCategoryTree(initialCategoryTree);
+  }, [initialProducts, initialCategoryTree]);
+
   // Client-side fetch fallback / refresh if initial data is empty
   useEffect(() => {
     if (initialProducts.length > 0 && initialCategoryTree.length > 0) {
