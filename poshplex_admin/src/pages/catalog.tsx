@@ -46,6 +46,23 @@ const DraggableUploadListItem = ({ originNode, file }: DraggableUploadListItemPr
   );
 };
 
+const DebouncedSearchInput = ({ placeholder, onSearch, style }: { placeholder?: string, onSearch: (val: string) => void, style?: React.CSSProperties }) => {
+  const [val, setVal] = useState("");
+  useEffect(() => {
+    const timer = setTimeout(() => onSearch(val), 500);
+    return () => clearTimeout(timer);
+  }, [val, onSearch]);
+  return (
+    <Input 
+      placeholder={placeholder} 
+      style={style} 
+      value={val} 
+      onChange={(e) => setVal(e.target.value)} 
+      allowClear 
+    />
+  );
+};
+
 export const Catalog: React.FC = () => {
   const [activeTab, setActiveTab] = useState("1");
   const [products, setProducts] = useState<any[]>([]);
@@ -181,10 +198,7 @@ export const Catalog: React.FC = () => {
 
   // Fetch products when page, page size, or filters change
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchProducts();
-    }, 300);
-    return () => clearTimeout(timer);
+    fetchProducts();
   }, [searchText, filterCategory, filterBrand, filterStatus, currentPage, pageSize]);
 
   useEffect(() => {
@@ -1220,10 +1234,9 @@ export const Catalog: React.FC = () => {
           <Card
             title={
               <Space wrap size="middle">
-                <Input
+                <DebouncedSearchInput
                   placeholder="Search Name or SKU..."
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
+                  onSearch={setSearchText}
                   style={{ width: 220, borderRadius: 0 }}
                 />
                 <Select

@@ -40,14 +40,11 @@ def send_automated_notification(event_type: str, context: dict):
             
             if phone:
                 try:
-                    from apps.integration.services import send_sms_notification
-                    success = send_sms_notification(phone, message)
-                    if success:
-                        logger.info(f"Dispatched SMS to {phone}")
-                    else:
-                        logger.error(f"SMS Dispatch failed for {phone}")
+                    from apps.integration.tasks import send_customer_sms_task
+                    send_customer_sms_task.delay(phone, message)
+                    logger.info(f"Queued SMS to {phone}")
                 except Exception as e:
-                    logger.error(f"SMS Dispatch failed: {e}")
+                    logger.error(f"Failed to queue SMS: {e}")
             else:
                 logger.warning(f"SMS enabled for {event_type} but no phone number in context.")
 
@@ -62,8 +59,12 @@ def send_automated_notification(event_type: str, context: dict):
             email = context.get("email")
             
             if email:
-                logger.info(f"Dispatched Email to {email} | Subj: {subject} | Body: {body}")
-                # Mock email send for now to prevent spam
+                try:
+                    from apps.integration.tasks import send_customer_email_task
+                    send_customer_email_task.delay(email, subject, body)
+                    logger.info(f"Queued Email to {email} | Subj: {subject}")
+                except Exception as e:
+                    logger.error(f"Failed to queue Email: {e}")
             else:
                 logger.warning(f"Email enabled for {event_type} but no email in context.")
 

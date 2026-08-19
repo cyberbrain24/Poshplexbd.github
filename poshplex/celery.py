@@ -22,8 +22,4 @@ app.conf.beat_schedule = {
         'task': 'apps.core.tasks.clear_expired_sessions_task',
         'schedule': crontab(hour=0, minute=0),  # Run daily at midnight
     },
-    'drain-webhook-queue': {
-        'task': 'apps.integration.tasks.drain_webhook_queue_task',
-        'schedule': 10.0,  # Run every 10 seconds
-    },
 }
