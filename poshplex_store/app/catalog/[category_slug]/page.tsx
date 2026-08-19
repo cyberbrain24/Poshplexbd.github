@@ -16,7 +16,7 @@ export default async function CategoryPage({
   try {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
     const [prodRes, catRes] = await Promise.all([
-      fetch(`${API_URL}/api/v1/catalog/products?limit=100`, { next: { revalidate: 60 } }),
+      fetch(`${API_URL}/api/v1/catalog/products?category_slug=${slug}&limit=100`, { next: { revalidate: 60 } }),
       fetch(`${API_URL}/api/v1/catalog/categories/tree`, { next: { revalidate: 3600 } }),
     ]);
 

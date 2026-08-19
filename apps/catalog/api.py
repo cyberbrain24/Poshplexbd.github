@@ -155,6 +155,7 @@ def list_products(
     request, 
     search: Optional[str] = None, 
     category_id: Optional[int] = None, 
+    category_slug: Optional[str] = None,
     brand_id: Optional[int] = None, 
     is_active: Optional[bool] = None,
     page: int = 1,
@@ -164,7 +165,7 @@ def list_products(
     # Generate cache key based on query parameters
     from django.core.cache import cache
     
-    cache_key = f"products_list_{search}_{category_id}_{brand_id}_{is_active}_{page}_{limit}"
+    cache_key = f"products_list_{search}_{category_id}_{category_slug}_{brand_id}_{is_active}_{page}_{limit}"
     cached_data = cache.get(cache_key)
     
     if cached_data:
@@ -212,6 +213,16 @@ def list_products(
     # 2. Combined filter (AND logic)
     if category_id:
         qs = qs.filter(categories__id=category_id)
+    if category_slug:
+        from apps.catalog.models import Category
+        try:
+            cat = Category.objects.get(slug__iexact=category_slug)
+            child_ids = list(Category.objects.filter(parent=cat).values_list('id', flat=True))
+            grandchild_ids = list(Category.objects.filter(parent__id__in=child_ids).values_list('id', flat=True))
+            all_cat_ids = [cat.id] + child_ids + grandchild_ids
+            qs = qs.filter(categories__id__in=all_cat_ids)
+        except Category.DoesNotExist:
+            qs = qs.none()
     if brand_id:
         qs = qs.filter(brand_id=brand_id)
     if is_active is not None:
