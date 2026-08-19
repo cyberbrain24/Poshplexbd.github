@@ -177,3 +177,16 @@ class MediaUsage(models.Model):
 
     class Meta:
         unique_together = ('asset', 'content_type', 'object_id', 'usage_context')
+
+
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
+
+@receiver(post_delete, sender=MediaAsset)
+def auto_delete_file_on_delete_media_asset(sender, instance, **kwargs):
+    if instance.file:
+        if not MediaAsset.objects.filter(file=instance.file.name).exists():
+            try:
+                instance.file.delete(save=False)
+            except Exception:
+                pass

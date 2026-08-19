@@ -485,30 +485,30 @@ export default function CheckoutPage() {
           {/* Right Column: Order Summary */}
           <div style={{ position: "sticky", top: 120 }}>
             <div className="summary-card">
-              <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 24, color: "#ffffff", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: 20, textTransform: "uppercase" }}>Order Summary</h3>
+              <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 24, color: "#111111", borderBottom: "1px solid rgba(0,0,0,0.1)", paddingBottom: 20, textTransform: "uppercase" }}>Order Summary</h3>
               
               <div style={{ display: "flex", flexDirection: "column", gap: 20, marginBottom: 32, maxHeight: 400, overflowY: "auto", paddingRight: 8 }} className="custom-scrollbar">
                 {cart.map((item, i) => (
                   <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-                      <div style={{ width: 64, height: 64, position: "relative", backgroundColor: "#111", borderRadius: 6, overflow: "hidden", border: "1px solid rgba(255,255,255,0.05)" }}>
+                      <div style={{ width: 64, height: 64, position: "relative", backgroundColor: "#f5f5f5", borderRadius: 6, overflow: "hidden", border: "1px solid rgba(0,0,0,0.05)" }}>
                         {item.image && <Image src={item.image} alt={item.name} fill sizes="64px" priority={i < 4} style={{ objectFit: "cover" }} />}
                       </div>
                       <div>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: "#ffffff", marginBottom: 4 }}>{item.name}</div>
-                        <div style={{ fontSize: 13, color: "#aaaaaa", fontWeight: 500 }}>Qty: {item.quantity}</div>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: "#111111", marginBottom: 4 }}>{item.name}</div>
+                        <div style={{ fontSize: 13, color: "#555555", fontWeight: 500 }}>Qty: {item.quantity}</div>
                       </div>
                     </div>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: "#ffffff" }}>৳{(item.price * item.quantity).toFixed(2)}</div>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: "#111111" }}>৳{(item.price * item.quantity).toFixed(2)}</div>
                   </div>
                 ))}
               </div>
 
-              <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+              <div style={{ borderTop: "1px solid rgba(0,0,0,0.1)", paddingTop: 24, display: "flex", flexDirection: "column", gap: 16 }}>
                 
                 {/* PROMO CODE FIELD */}
-                <div style={{ marginBottom: 8, padding: 16, backgroundColor: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px dashed rgba(255,255,255,0.4)" }}>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#cccccc", marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.05em" }}>Have a Promo Code?</label>
+                <div style={{ marginBottom: 8, padding: 16, backgroundColor: "rgba(0,0,0,0.02)", borderRadius: 8, border: "1px dashed rgba(0,0,0,0.2)" }}>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#444444", marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.05em" }}>Have a Promo Code?</label>
                   <div style={{ display: "flex", gap: 8 }}>
                     <input 
                       type="text" 
@@ -516,13 +516,13 @@ export default function CheckoutPage() {
                       placeholder="ENTER CODE" 
                       value={promoCode}
                       onChange={(e) => setPromoCode(e.target.value)}
-                      style={{ flex: 1, padding: "12px 14px", backgroundColor: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 4, color: "#fff", outline: "none", textTransform: "uppercase", fontSize: 14, fontWeight: 600 }}
+                      style={{ flex: 1, padding: "12px 14px", backgroundColor: "rgba(255,255,255,0.5)", border: "1px solid rgba(0,0,0,0.1)", borderRadius: 4, color: "#111", outline: "none", textTransform: "uppercase", fontSize: 14, fontWeight: 600 }}
                     />
                     <button 
                       type="button" 
                       onClick={handleApplyPromo}
                       disabled={isCheckingPromo || !promoCode}
-                      style={{ padding: "0 24px", backgroundColor: "#fff", color: "#000", fontWeight: 800, border: "none", borderRadius: 4, cursor: (isCheckingPromo || !promoCode) ? "not-allowed" : "pointer", opacity: (isCheckingPromo || !promoCode) ? 0.7 : 1, transition: "all 0.2s" }}
+                      style={{ padding: "0 24px", backgroundColor: "#111", color: "#fff", fontWeight: 800, border: "none", borderRadius: 4, cursor: (isCheckingPromo || !promoCode) ? "not-allowed" : "pointer", opacity: (isCheckingPromo || !promoCode) ? 0.7 : 1, transition: "all 0.2s" }}
                     >
                       {isCheckingPromo ? "..." : "APPLY"}
                     </button>
@@ -531,7 +531,7 @@ export default function CheckoutPage() {
                   {appliedPromo && <div style={{ color: "#10b981", fontSize: 13, marginTop: 10, fontWeight: 700 }}>Promo {appliedPromo} applied successfully!</div>}
                 </div>
 
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 15, color: "#aaaaaa", fontWeight: 500 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 15, color: "#555555", fontWeight: 500 }}>
                   <span>Subtotal</span>
                   <span>৳{cartTotal.toFixed(2)}</span>
                 </div>
@@ -541,18 +541,18 @@ export default function CheckoutPage() {
                     <span>-৳{discountAmount.toFixed(2)}</span>
                   </div>
                 )}
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 15, color: "#aaaaaa", fontWeight: 500 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 15, color: "#555555", fontWeight: 500 }}>
                   <span>Shipping</span>
-                  <span style={{ color: "#ffffff" }}>{shippingCost > 0 ? `৳${shippingCost.toFixed(2)}` : "Calculated later"}</span>
+                  <span style={{ color: "#111111" }}>{shippingCost > 0 ? `৳${shippingCost.toFixed(2)}` : "Calculated later"}</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 24, fontWeight: 900, color: "#ffffff", marginTop: 12, paddingTop: 24, borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 24, fontWeight: 900, color: "#111111", marginTop: 12, paddingTop: 24, borderTop: "1px solid rgba(0,0,0,0.1)" }}>
                   <span>TOTAL</span>
                   <span>৳{Math.max(0, cartTotal + shippingCost - discountAmount).toFixed(2)}</span>
                 </div>
                 
                 {/* Delivery Note */}
-                <div style={{ marginTop: 16, padding: 12, backgroundColor: "rgba(255,255,255,0.05)", borderRadius: 6, fontSize: 13, color: "#bbbbbb", lineHeight: 1.6, borderLeft: "3px solid #10b981" }}>
-                  <div style={{ fontWeight: 700, color: "#ffffff", marginBottom: 4 }}>DELIVERY TERMS:</div>
+                <div style={{ marginTop: 16, padding: 12, backgroundColor: "rgba(0,0,0,0.03)", borderRadius: 6, fontSize: 13, color: "#444444", lineHeight: 1.6, borderLeft: "3px solid #10b981" }}>
+                  <div style={{ fontWeight: 700, color: "#111111", marginBottom: 4 }}>DELIVERY TERMS:</div>
                   <div>• Inside Dhaka: Cash on Delivery</div>
                   <div>• Outside Dhaka: Advance delivery charge need to be pay</div>
                 </div>
@@ -610,14 +610,16 @@ export default function CheckoutPage() {
         
         .summary-card {
           padding: 32px;
-          background-color: #2f2f2f;
-          border: 1px solid rgba(255,255,255,0.05);
+          background-color: rgba(255, 255, 255, 0.7);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border: 1px solid rgba(255, 255, 255, 0.5);
           border-radius: 12px;
-          box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+          box-shadow: 0 10px 30px rgba(0,0,0,0.05);
         }
 
         .promo-input::placeholder {
-          color: #bbbbbb;
+          color: #888888;
           opacity: 1;
         }
 
@@ -626,16 +628,20 @@ export default function CheckoutPage() {
         }
 
         .place-order-btn {
-          background-color: var(--text-main);
-          color: #ffffff;
+          background-color: rgba(255, 255, 255, 0.85);
+          backdrop-filter: blur(10px);
+          color: #111111;
           border-radius: 8px;
+          border: 1px solid rgba(0,0,0,0.1);
+          box-shadow: 0 4px 15px rgba(0,0,0,0.03);
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
         .place-order-btn:hover {
-          background-color: #e11d48; /* Blood Red */
-          color: #ffffff;
-          box-shadow: 0 0 25px rgba(225, 29, 72, 0.5);
+          background-color: #ffffff;
+          color: #000000;
+          border-color: rgba(0,0,0,0.2);
+          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
           transform: translateY(-2px);
         }
         

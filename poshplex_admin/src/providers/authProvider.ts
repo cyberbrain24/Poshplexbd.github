@@ -31,39 +31,47 @@ axios.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
-      if (isRefreshing) {
-        return new Promise(function(resolve, reject) {
-          failedQueue.push({ resolve, reject });
-        }).then(token => {
-          originalRequest.headers['Authorization'] = 'Bearer ' + token;
-          return axios(originalRequest);
-        }).catch(err => {
-          return Promise.reject(err);
-        });
-      }
-
-      originalRequest._retry = true;
-      isRefreshing = true;
-
-      return new Promise(function (resolve, reject) {
-        axios.post(`${API_URL}/core/refresh`, {}, { withCredentials: true })
-          .then(({ data }) => {
-            localStorage.setItem("poshplex_access_token", data.access_token);
-            originalRequest.headers['Authorization'] = 'Bearer ' + data.access_token;
-            processQueue(null, data.access_token);
-            resolve(axios(originalRequest));
-          })
-          .catch((err) => {
-            processQueue(err, null);
-            localStorage.removeItem("poshplex_access_token");
-            localStorage.removeItem("poshplex_user");
-            reject(err);
-          })
-          .finally(() => {
-            isRefreshing = false;
+    if (error.response?.status === 401) {
+      if (originalRequest && !originalRequest._retry) {
+        if (isRefreshing) {
+          return new Promise(function(resolve, reject) {
+            failedQueue.push({ resolve, reject });
+          }).then(token => {
+            originalRequest.headers['Authorization'] = 'Bearer ' + token;
+            return axios(originalRequest);
+          }).catch(err => {
+            return Promise.reject(err);
           });
-      });
+        }
+
+        originalRequest._retry = true;
+        isRefreshing = true;
+
+        return new Promise(function (resolve, reject) {
+          axios.post(`${API_URL}/core/refresh`, {}, { withCredentials: true })
+            .then(({ data }) => {
+              localStorage.setItem("poshplex_access_token", data.access_token);
+              originalRequest.headers['Authorization'] = 'Bearer ' + data.access_token;
+              processQueue(null, data.access_token);
+              resolve(axios(originalRequest));
+            })
+            .catch((err) => {
+              processQueue(err, null);
+              localStorage.removeItem("poshplex_access_token");
+              localStorage.removeItem("poshplex_user");
+              window.location.href = "/login";
+              reject(err);
+            })
+            .finally(() => {
+              isRefreshing = false;
+            });
+        });
+      } else {
+        // We already tried refreshing, or cannot retry. Force logout.
+        localStorage.removeItem("poshplex_access_token");
+        localStorage.removeItem("poshplex_user");
+        window.location.href = "/login";
+      }
     }
 
     return Promise.reject(error);

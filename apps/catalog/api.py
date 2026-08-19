@@ -105,7 +105,7 @@ class ProductCreateInputSchema(Schema):
     video_mute: Optional[bool] = True
     variants: List[VariantInputSchema] = []
     attributes: Optional[Dict[str, Any]] = {}
-    image_urls: Optional[List[str]] = []
+    image_urls: Optional[List[str]] = None
 
 class ImageResponseSchema(Schema):
     id: int
@@ -280,6 +280,7 @@ def post_product_endpoint(request, data: ProductCreateInputSchema):
         counter += 1
         
     try:
+        print("INCOMING VARIANTS:", data.variants)
         with transaction.atomic():
             product = Product.objects.create(
                 name=data.name,
@@ -530,8 +531,8 @@ def update_product_endpoint(request, slug: str, data: ProductCreateInputSchema):
                     except Exception:
                         pass
                     
-            # Safe clean: Deactivate (is_active=False) any variants not in input to protect past order SKUs
-            product.variants.exclude(id__in=incoming_variant_ids).update(is_active=False)
+            # Strict clean: Hard delete any variants not in input as requested by user
+            product.variants.exclude(id__in=incoming_variant_ids).delete()
             
             # Handle base product image_urls download & sync
             if getattr(data, 'image_urls', None) is not None:

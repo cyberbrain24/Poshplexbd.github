@@ -204,6 +204,24 @@ export default function ProductDetailClient({ product }: { product: any }) {
     });
   });
 
+  /* Auto-select single variation */
+  useEffect(() => {
+    const autoSelect: Record<string, string> = {};
+    let changed = false;
+    Object.entries(attributeGroups).forEach(([k, valueSet]) => {
+      if (valueSet.size === 1) {
+        const val = Array.from(valueSet)[0];
+        if (selectedAttributes[k] !== val) {
+          autoSelect[k] = val;
+          changed = true;
+        }
+      }
+    });
+    if (changed) {
+      setSelectedAttributes(prev => ({ ...prev, ...autoSelect }));
+    }
+  }, [product.variants]);
+
   const selectAttr = (key: string, val: string) => {
     setSelectedAttributes((prev) => ({ ...prev, [key]: val }));
   };
@@ -411,7 +429,13 @@ export default function ProductDetailClient({ product }: { product: any }) {
                 onClick={(e) => {
                   e.stopPropagation();
                   const el = document.getElementById("gallery-scroll-container");
-                  if (el) el.scrollBy({ left: -el.clientWidth, behavior: "smooth" });
+                  if (el) {
+                    if (activeImageIdx === 0) {
+                      el.scrollTo({ left: el.clientWidth * (images.length - 1), behavior: "smooth" });
+                    } else {
+                      el.scrollBy({ left: -el.clientWidth, behavior: "smooth" });
+                    }
+                  }
                 }}
                 style={{
                   position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)",
@@ -430,7 +454,13 @@ export default function ProductDetailClient({ product }: { product: any }) {
                 onClick={(e) => {
                   e.stopPropagation();
                   const el = document.getElementById("gallery-scroll-container");
-                  if (el) el.scrollBy({ left: el.clientWidth, behavior: "smooth" });
+                  if (el) {
+                    if (activeImageIdx === images.length - 1) {
+                      el.scrollTo({ left: 0, behavior: "smooth" });
+                    } else {
+                      el.scrollBy({ left: el.clientWidth, behavior: "smooth" });
+                    }
+                  }
                 }}
                 style={{
                   position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)",
@@ -911,13 +941,13 @@ export default function ProductDetailClient({ product }: { product: any }) {
       {lightboxUrl && (
         <div
           onClick={() => setLightboxUrl(null)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
         >
           <button onClick={() => setLightboxUrl(null)}
             style={{ position: "absolute", top: 20, right: 20, background: "none", border: "none", color: "#fff", cursor: "pointer" }}>
             <X size={30} />
           </button>
-          <div style={{ position: "relative", width: "80vw", height: "85vh" }} onClick={e => e.stopPropagation()}>
+          <div style={{ position: "relative", width: "80vw", height: "85vh" }}>
             <Image src={lightboxUrl} alt="Zoomed" fill sizes="80vw" style={{ objectFit: "contain" }} />
           </div>
         </div>

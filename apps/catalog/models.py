@@ -272,12 +272,19 @@ class ProductImage(models.Model):
 
             try:
                 from PIL import Image
-                img = Image.open(self.image)
+                # Read into memory so Pillow doesn't take ownership of the Django File handle
+                self.image.seek(0)
+                img_data = self.image.read()
+                img = Image.open(BytesIO(img_data))
+                
                 if img.format != 'WEBP':
                     buffer = BytesIO()
                     img.convert('RGB').save(buffer, format='WEBP', quality=85)
                     name = os.path.splitext(self.image.name)[0] + '.webp'
                     self.image.save(name, ContentFile(buffer.getvalue()), save=False)
+                
+                img.close()
+                self.image.seek(0) # Reset file pointer just in case
             except Exception:
                 pass
 
@@ -466,3 +473,27 @@ class ProductEmbedding(models.Model):
         return f"Embedding for [{self.product.sku}] {self.product.name} (dim={len(self.vector)})"
 
 
+
+
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
+
+@receiver(post_delete, sender=ProductImage, weak=False)
+def auto_delete_file_on_delete_product_image(sender, instance, **kwargs):
+    print(f"SIGNAL FIRED FOR PRODUCT IMAGE: {instance.image}")
+    if instance.image:
+        if not ProductImage.objects.filter(image=instance.image.name).exists():
+            try:
+                instance.image.delete(save=False)
+                print("DELETED PHYSICAL FILE!")
+            except Exception as e:
+                print(f"FAILED TO DELETE: {e}")
+
+@receiver(post_delete, sender=Category, weak=False)
+def auto_delete_file_on_delete_category(sender, instance, **kwargs):
+    if instance.image:
+        if not Category.objects.filter(image=instance.image.name).exists():
+            try:
+                instance.image.delete(save=False)
+            except Exception:
+                pass

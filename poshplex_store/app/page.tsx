@@ -134,14 +134,13 @@ export default async function Home() {
         >
           Shop by Category
         </h2>
-        <div style={{ display: "flex", justifyContent: "center", gap: 20, flexWrap: "wrap" }}>
+        <div className="home-categories-grid">
           {categories.map((cat: any) => (
             <Link key={cat.id} href={`/catalog/${cat.slug}`} style={{ textDecoration: "none" }}>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
                 <div
+                  className="category-image-wrapper"
                   style={{
-                    width: 160,
-                    height: 160,
                     position: "relative",
                     background: "#f1f1f1",
                     display: "flex",
@@ -153,19 +152,19 @@ export default async function Home() {
                   }}
                 >
                   {cat.image ? (
-                    <Image src={cat.image} alt="" fill sizes="160px" priority unoptimized style={{ objectFit: "cover" }} />
+                    <Image src={cat.image} alt="" fill sizes="(max-width: 768px) 33vw, 160px" priority unoptimized style={{ objectFit: "cover" }} />
                   ) : (
                     <span style={{ color: "#777", fontSize: 10, textTransform: "uppercase" }}>No Image</span>
                   )}
                 </div>
                 <span
+                  className="category-name-text"
                   style={{
                     color: "var(--text-main)",
                     fontWeight: 700,
-                    fontSize: 14,
                     textTransform: "uppercase",
                     textAlign: "center",
-                    letterSpacing: "1px"
+                    letterSpacing: "0.5px"
                   }}
                 >
                   {cat.name}
@@ -174,6 +173,36 @@ export default async function Home() {
             </Link>
           ))}
         </div>
+        <style dangerouslySetInnerHTML={{__html: `
+          .home-categories-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+          }
+          .category-image-wrapper {
+            width: 160px;
+            height: 160px;
+          }
+          .category-name-text {
+            font-size: 14px;
+          }
+          @media (max-width: 768px) {
+            .home-categories-grid {
+              display: grid;
+              grid-template-columns: repeat(3, 1fr);
+              gap: 12px;
+            }
+            .category-image-wrapper {
+              width: 100%;
+              aspect-ratio: 1/1;
+              height: auto;
+            }
+            .category-name-text {
+              font-size: 11px;
+            }
+          }
+        `}} />
       </section>
 
       {/* Featured Products */}

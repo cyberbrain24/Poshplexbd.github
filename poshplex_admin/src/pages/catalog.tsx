@@ -412,15 +412,19 @@ export const Catalog: React.FC = () => {
       let productId = editingProduct?.id;
       let isNew = false;
 
+      let createdProductData: any = null;
+
       if (editingProduct) {
-        await axios.put(`${API_URL}/products/${productId}`, payload, {
+        const res = await axios.put(`${API_URL}/products/${productId}`, payload, {
           headers: { Authorization: `Bearer ${token}` }
         });
+        createdProductData = res.data;
       } else {
         const res = await axios.post(`${API_URL}/products`, payload, {
           headers: { Authorization: `Bearer ${token}` }
         });
         productId = res.data.id;
+        createdProductData = res.data;
         isNew = true;
       }
 
@@ -448,10 +452,17 @@ export const Catalog: React.FC = () => {
         }
 
         if (needsSecondPass && productType === "variable") {
-          const updatedVariants = variantsList.map(v => ({
-            ...v,
-            image_id: uidMap[v.image_id] || (typeof v.image_id === 'number' ? v.image_id : null)
-          }));
+          const serverVariants = createdProductData?.variants || [];
+          
+          const updatedVariants = variantsList.map(v => {
+            const serverVariant = serverVariants.find((sv: any) => sv.sku === v.sku);
+            return {
+              ...v,
+              id: serverVariant ? serverVariant.id : v.id,
+              image_id: uidMap[v.image_id] || (typeof v.image_id === 'number' ? v.image_id : null)
+            };
+          });
+          
           await axios.put(`${API_URL}/products/${productId}`, {
              ...values,
              variants: updatedVariants
