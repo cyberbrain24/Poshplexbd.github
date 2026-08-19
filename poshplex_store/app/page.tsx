@@ -76,7 +76,7 @@ export default async function Home() {
   const desktopBannerUrl =
     settings?.desktop_hero_banner_url
       ? `${settings.desktop_hero_banner_url}`
-      : (settings?.banner_image_url ? `${settings.banner_image_url}` : "https://images.unsplash.com/photo-1509281373149-e957c6296406?q=80&w=1600&auto=format&fit=crop");
+      : (settings?.banner_image_url ? `${settings.banner_image_url}` : null);
 
   const mobileBannerUrl =
     settings?.mobile_hero_banner_url
@@ -86,39 +86,39 @@ export default async function Home() {
   return (
     <div style={{ paddingBottom: 100 }}>
       {/* Hero Section */}
-      <section
-        style={{
-          position: "relative",
-          width: "100%",
-          minHeight: "70vh",
-          overflow: "hidden",
-        }}
-      >
-        <Image
-          src={desktopBannerUrl}
-          alt="Streetwear Hero Desktop"
-          fill
-          priority
-          loading="eager"
-          fetchPriority="high"
-          unoptimized
-          sizes="100vw"
-          className="hide-on-mobile"
-          style={{ objectFit: "cover" }}
-        />
-        <Image
-          src={mobileBannerUrl}
-          alt="Streetwear Hero Mobile"
-          fill
-          priority
-          loading="eager"
-          fetchPriority="high"
-          unoptimized
-          sizes="100vw"
-          className="hide-on-desktop"
-          style={{ objectFit: "cover" }}
-        />
-      </section>
+      {desktopBannerUrl && (
+        <section
+          style={{
+            position: "relative",
+            width: "100%",
+            minHeight: "70vh",
+            overflow: "hidden",
+          }}
+        >
+          <Image
+            src={desktopBannerUrl}
+            alt="Streetwear Hero Desktop"
+            fill
+            priority
+            sizes="100vw"
+            className="hero-image-desktop"
+            style={{ objectFit: "cover" }}
+            unoptimized
+          />
+          {mobileBannerUrl && mobileBannerUrl !== desktopBannerUrl && (
+            <Image
+              src={mobileBannerUrl}
+              alt="Streetwear Hero Mobile"
+              fill
+              priority
+              sizes="100vw"
+              className="hero-image-mobile"
+              style={{ objectFit: "cover" }}
+              unoptimized
+            />
+          )}
+        </section>
+      )}
 
       {/* Categories */}
       <section className="container" style={{ paddingTop: 80, paddingBottom: 40 }}>
