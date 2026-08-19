@@ -432,13 +432,20 @@ export const Catalog: React.FC = () => {
         const uidMap: Record<string, number> = {};
         let needsSecondPass = false;
 
+        let currentOrder = 1;
         for (let i = 0; i < fileList.length; i++) {
           const file = fileList[i];
           if (file.originFileObj) {
             const formData = new FormData();
             formData.append("file", file.originFileObj);
-            if (mainImageUid === file.uid) formData.append("is_main", "true");
-            formData.append("order", i.toString());
+            
+            if (mainImageUid === file.uid) {
+                formData.append("is_main", "true");
+                formData.append("order", "0");
+            } else {
+                formData.append("order", currentOrder.toString());
+                currentOrder++;
+            }
 
             const upRes = await axios.post(`${API_URL}/products/${productId}/images`, formData, {
               headers: { 
