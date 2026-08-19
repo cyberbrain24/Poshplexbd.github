@@ -192,21 +192,8 @@ def list_products(
         except Exception as e:
             import logging
             logger = logging.getLogger(__name__)
-            logger.warning(f"RediSearch not available or failed: {e}. Falling back to slow Python difflib.")
-            import difflib
-            all_prods = list(qs.values('id', 'name'))
-            search_lower = search.lower()
-            for p in all_prods:
-                if p['id'] in exact_match_ids:
-                    continue
-                name_lower = p['name'].lower()
-                ratio = difflib.SequenceMatcher(None, search_lower, name_lower).ratio()
-                words = name_lower.split()
-                word_ratios = [difflib.SequenceMatcher(None, search_lower, w).ratio() for w in words]
-                max_word_ratio = max(word_ratios) if word_ratios else 0
-                if ratio > 0.5 or max_word_ratio > 0.6:
-                    fuzzy_match_ids.append(p['id'])
-                
+            logger.warning(f"RediSearch not available or failed: {e}. Falling back to Django ORM exact search.")
+            
         matched_ids = set(exact_match_ids + fuzzy_match_ids)
         qs = qs.filter(id__in=matched_ids).distinct()
         
@@ -712,6 +699,10 @@ def upload_product_image_endpoint(
         base_url = os.environ.get('SITE_BASE_URL', 'http://localhost:8000')
         url = f"{base_url.rstrip('/')}{url}"
         
+    from django.core.cache import cache
+    if hasattr(cache, 'delete_pattern'):
+        cache.delete_pattern("products_list_*")
+        
     return {
         "id": img.id,
         "url": url,
@@ -738,6 +729,10 @@ def update_product_image_endpoint(request, product_id: int, image_id: int, data:
     if url and not (url.startswith("http://") or url.startswith("https://")):
         base_url = os.environ.get('SITE_BASE_URL', 'http://localhost:8000')
         url = f"{base_url.rstrip('/')}{url}"
+        
+    from django.core.cache import cache
+    if hasattr(cache, 'delete_pattern'):
+        cache.delete_pattern("products_list_*")
         
     return {
         "id": img.id,
