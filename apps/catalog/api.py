@@ -115,6 +115,10 @@ class ImageResponseSchema(Schema):
     color_tag: Optional[str] = None
     order: int
 
+class ImageUpdateSchema(Schema):
+    is_main: Optional[bool] = None
+    order: Optional[int] = None
+
 class ProductDetailResponseSchema(Schema):
     id: int
     name: str
@@ -693,6 +697,33 @@ def upload_product_image_endpoint(
         order=order
     )
     url = img.image.url
+    if url and not (url.startswith("http://") or url.startswith("https://")):
+        base_url = os.environ.get('SITE_BASE_URL', 'http://localhost:8000')
+        url = f"{base_url.rstrip('/')}{url}"
+        
+    return {
+        "id": img.id,
+        "url": url,
+        "alt_text": img.alt_text,
+        "is_main": img.is_main,
+        "color_tag": img.color_tag,
+        "order": img.order
+    }
+
+@router.put("/products/{product_id}/images/{image_id}", response=ImageResponseSchema, auth=BearerAuth())
+def update_product_image_endpoint(request, product_id: int, image_id: int, data: ImageUpdateSchema):
+    """Update existing product image properties like order and is_main."""
+    enforce_permission(request, "catalog", "edit_catalog")
+    img = get_object_or_404(ProductImage, id=image_id, product_id=product_id)
+    
+    if data.is_main is not None:
+        img.is_main = data.is_main
+    if data.order is not None:
+        img.order = data.order
+        
+    img.save(update_fields=['is_main', 'order'])
+    
+    url = img.image.url if getattr(img, 'image', None) and getattr(img.image, 'url', None) else ""
     if url and not (url.startswith("http://") or url.startswith("https://")):
         base_url = os.environ.get('SITE_BASE_URL', 'http://localhost:8000')
         url = f"{base_url.rstrip('/')}{url}"

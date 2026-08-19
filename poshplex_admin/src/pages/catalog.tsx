@@ -457,9 +457,10 @@ export const Catalog: React.FC = () => {
         image_id: typeof v.image_id === 'number' ? v.image_id : null
       }));
 
-      const filenames = values.image_filenames
-        ? values.image_filenames.split(',').map((s: string) => s.trim()).filter((s: string) => s)
-        : [];
+      const filenames = fileList
+        .filter(f => !f.originFileObj)
+        .map(f => f.url ? f.url.split('/').pop() || "" : "")
+        .filter(s => s);
 
       const { image_filenames, ...restValues } = values;
 
@@ -494,17 +495,15 @@ export const Catalog: React.FC = () => {
         let currentOrder = 1;
         for (let i = 0; i < fileList.length; i++) {
           const file = fileList[i];
+          const isMain = mainImageUid === file.uid;
+          const assignedOrder = isMain ? 0 : currentOrder;
+          if (!isMain) currentOrder++;
+
           if (file.originFileObj) {
             const formData = new FormData();
             formData.append("file", file.originFileObj);
-            
-            if (mainImageUid === file.uid) {
-                formData.append("is_main", "true");
-                formData.append("order", "0");
-            } else {
-                formData.append("order", currentOrder.toString());
-                currentOrder++;
-            }
+            formData.append("is_main", isMain ? "true" : "false");
+            formData.append("order", assignedOrder.toString());
 
             const upRes = await axios.post(`${API_URL}/products/${productId}/images`, formData, {
               headers: { 
@@ -514,6 +513,17 @@ export const Catalog: React.FC = () => {
             });
             uidMap[file.uid] = upRes.data.id;
             needsSecondPass = true;
+          } else {
+            // Existing image: update its is_main and order via the new PUT endpoint
+            const imageId = file.response?.id || file.uid;
+            if (imageId && !isNaN(Number(imageId))) {
+              await axios.put(`${API_URL}/products/${productId}/images/${imageId}`, {
+                is_main: isMain,
+                order: assignedOrder
+              }, {
+                headers: { Authorization: `Bearer ${token}` }
+              });
+            }
           }
         }
 
