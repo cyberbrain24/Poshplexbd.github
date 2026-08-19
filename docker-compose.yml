@@ -37,7 +37,7 @@ services:
     container_name: poshplex_redis
     restart: unless-stopped
     environment:
-      REDIS_ARGS: "--maxmemory 2000mb --maxmemory-policy allkeys-lru"
+      REDIS_ARGS: "--maxmemory 2000mb --maxmemory-policy volatile-lru --appendonly yes"
     volumes:
       - redis_data:/data
     ports:
@@ -138,7 +138,7 @@ services:
       - "admin.poshplexbd.com:host-gateway"
     environment:
       NEXT_PUBLIC_API_URL: "https://store.poshplexbd.com"
-      REDIS_URL: "redis://redis:6379/1"
+      REDIS_URL: "redis://redis:6379/2"
     ports:
       - "3000:3000"
     depends_on:
