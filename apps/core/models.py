@@ -158,6 +158,7 @@ class MediaAsset(models.Model):
     file_name = models.CharField(max_length=255)
     mime_type = models.CharField(max_length=100)
     file_size = models.BigIntegerField(help_text="File size in bytes")
+    alt_text = models.CharField(max_length=255, blank=True, null=True, help_text="SEO alt text")
     uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

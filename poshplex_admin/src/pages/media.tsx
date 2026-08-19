@@ -16,6 +16,7 @@ const { Text } = Typography;
 export const MediaLibrary: React.FC = () => {
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [editingAltText, setEditingAltText] = useState("");
 
   const [searchText, setSearchText] = useState("");
   const [visibleCount, setVisibleCount] = useState(32);
@@ -69,7 +70,24 @@ export const MediaLibrary: React.FC = () => {
 
   const openPreview = (asset: any) => {
     setSelectedAsset(asset);
+    setEditingAltText(asset.alt_text || "");
     setIsPreviewOpen(true);
+  };
+
+  const saveAltText = async () => {
+    if (!selectedAsset) return;
+    try {
+      const token = localStorage.getItem("poshplex_access_token");
+      await axios.patch(`${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000'))}/api/v1/core/media/${selectedAsset.id}/seo`, {
+        alt_text: editingAltText
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      message.success("SEO details updated successfully.");
+      refetch();
+    } catch (err: any) {
+      message.error(err.response?.data?.detail || "Update failed");
+    }
   };
 
     // mediaColumns removed in favor of grid layout
@@ -148,6 +166,16 @@ export const MediaLibrary: React.FC = () => {
                   <Text ellipsis style={{ width: "100%", fontSize: 11, display: "block" }} title={record.file_name}>
                     {record.file_name}
                   </Text>
+                  
+                  {record.usage && (
+                    <Tag color="purple" style={{ marginTop: 4, display: 'block', marginInlineEnd: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {record.usage}
+                    </Tag>
+                  )}
+                  {record.link_type === "outside" && (
+                     <Tag color="cyan" style={{ marginTop: 4, display: 'block', marginInlineEnd: 0 }}>External Link</Tag>
+                  )}
+                  
                   <Space style={{ marginTop: 4, display: "flex", justifyContent: "center" }}>
                     <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => openPreview(record)} />
                     <Popconfirm title="Delete this media asset?" onConfirm={() => handleDelete(record.id)}><Button type="text" danger size="small" icon={<DeleteOutlined />} /></Popconfirm>
@@ -203,8 +231,20 @@ export const MediaLibrary: React.FC = () => {
             <h3 style={{ margin: 0 }}>{selectedAsset.file_name}</h3>
             <Text type="secondary">{selectedAsset.mime_type} | {(selectedAsset.file_size / (1024 * 1024)).toFixed(2)} MB</Text>
             
-            <div style={{ textAlign: "left", width: "100%", marginTop: 12 }}>
-              <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>This file can be deleted if it is not bound to any storefront components. The system will automatically check for active references if you attempt to delete it.</p>
+            <div style={{ marginTop: 16, width: "100%", textAlign: "left" }}>
+              <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>SEO Details (Alt Text / Title)</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <Input 
+                  value={editingAltText} 
+                  onChange={(e) => setEditingAltText(e.target.value)} 
+                  placeholder="Enter descriptive alt text for SEO..." 
+                />
+                <Button type="primary" onClick={saveAltText}>Save</Button>
+              </div>
+            </div>
+            
+            <div style={{ textAlign: "left", width: "100%", marginTop: 16 }}>
+              <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>This file can be deleted if it is not bound to any storefront components. For images belonging to a specific Product or Category, please delete them from their respective pages in the Catalog module.</p>
             </div>
           </Space>
         );

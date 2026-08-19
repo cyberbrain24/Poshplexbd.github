@@ -155,13 +155,17 @@ class AuditLogSchema(Schema):
     new_values: Dict[str, Any]
     timestamp: str
 
-class MediaAssetSchema(Schema):
-    id: int
+class UnifiedMediaSchema(Schema):
+    id: str
     file_name: str
     mime_type: str
     file_size: int
     url: str
     created_at: str
+    usage: str = ""
+    link_type: str = "local"
+    alt_text: str = ""
+    model_type: str = "MediaAsset"
 
 # --- Auth Endpoints ---
 
@@ -603,28 +607,101 @@ def get_audit_logs(request, page: int = 1, limit: int = 50):
         })
     return res
 
-@router.get("/media", response=List[MediaAssetSchema], auth=BearerAuth())
+@router.get("/media", response=List[UnifiedMediaSchema], auth=BearerAuth())
 def list_media(request):
-    """List all media assets."""
+    """List all media assets unified."""
     enforce_permission(request, "media", "view")
-    assets = MediaAsset.objects.all().order_by('-created_at')
+    
+    from apps.catalog.models import ProductImage, Category, Product
+    base_url = os.environ.get('SITE_BASE_URL', 'http://localhost:8000').rstrip('/')
+    
     res = []
+    
+    # 1. Central Media Assets
+    assets = MediaAsset.objects.all().order_by('-created_at')
     for asset in assets:
         url = asset.file.url if asset.file else ""
         if url and not (url.startswith("http://") or url.startswith("https://")):
-            base_url = os.environ.get('SITE_BASE_URL', 'http://localhost:8000')
-            url = f"{base_url.rstrip('/')}{url}"
+            url = f"{base_url}{url}"
+            
         res.append({
-            "id": asset.id,
+            "id": f"asset_{asset.id}",
             "file_name": asset.file_name,
             "mime_type": asset.mime_type,
             "file_size": asset.file_size,
             "url": url,
-            "created_at": asset.created_at.isoformat()
+            "created_at": asset.created_at.isoformat(),
+            "usage": "Central Library",
+            "link_type": "local",
+            "alt_text": asset.alt_text or "",
+            "model_type": "MediaAsset"
         })
+        
+    # 2. Product Images
+    p_images = ProductImage.objects.select_related('product').all().order_by('-id')
+    for img in p_images:
+        url = img.image.url if img.image else ""
+        if url and not (url.startswith("http://") or url.startswith("https://")):
+            url = f"{base_url}{url}"
+            
+        file_name = os.path.basename(img.image.name) if img.image else f"product_{img.product.id}_image"
+        size = img.image.size if img.image else 0
+        
+        res.append({
+            "id": f"productimage_{img.id}",
+            "file_name": file_name,
+            "mime_type": "image/webp", # Mostly webp based on our save logic
+            "file_size": size,
+            "url": url,
+            "created_at": img.product.created_at.isoformat() if img.product else "",
+            "usage": f"Product: {img.product.name}",
+            "link_type": "local",
+            "alt_text": img.alt_text or "",
+            "model_type": "ProductImage"
+        })
+        
+    # 3. Category Images
+    cats = Category.objects.exclude(image="").exclude(image__isnull=True).order_by('-id')
+    for cat in cats:
+        url = cat.image.url if cat.image else ""
+        if url and not (url.startswith("http://") or url.startswith("https://")):
+            url = f"{base_url}{url}"
+            
+        file_name = os.path.basename(cat.image.name) if cat.image else f"category_{cat.id}_image"
+        size = cat.image.size if cat.image else 0
+        
+        res.append({
+            "id": f"category_{cat.id}",
+            "file_name": file_name,
+            "mime_type": "image/webp",
+            "file_size": size,
+            "url": url,
+            "created_at": "",
+            "usage": f"Category: {cat.name}",
+            "link_type": "local",
+            "alt_text": cat.image_alt_text or "",
+            "model_type": "Category"
+        })
+        
+    # 4. Product Videos (YouTube)
+    products = Product.objects.exclude(youtube_video_url="").exclude(youtube_video_url__isnull=True).order_by('-created_at')
+    for prod in products:
+        res.append({
+            "id": f"video_{prod.id}",
+            "file_name": "YouTube Video",
+            "mime_type": "video/youtube",
+            "file_size": 0,
+            "url": prod.youtube_video_url,
+            "created_at": prod.created_at.isoformat(),
+            "usage": f"Product Video: {prod.name}",
+            "link_type": "outside",
+            "alt_text": "YouTube Video embed",
+            "model_type": "ProductVideo"
+        })
+
     return res
 
-@router.post("/media", response=MediaAssetSchema, auth=BearerAuth())
+@router.post("/media", response=UnifiedMediaSchema, auth=BearerAuth())
 def upload_media(request, file: UploadedFile = File(...)):
     """Upload asset into the central media library."""
     enforce_permission(request, "media", "create")
@@ -652,12 +729,16 @@ def upload_media(request, file: UploadedFile = File(...)):
             base_url = os.environ.get('SITE_BASE_URL', 'http://localhost:8000')
             url = f"{base_url.rstrip('/')}{url}"
         return {
-            "id": existing_asset.id,
+            "id": f"asset_{existing_asset.id}",
             "file_name": existing_asset.file_name,
             "mime_type": existing_asset.mime_type,
             "file_size": existing_asset.file_size,
             "url": url,
-            "created_at": existing_asset.created_at.isoformat()
+            "created_at": existing_asset.created_at.isoformat(),
+            "usage": "Central Library",
+            "link_type": "local",
+            "alt_text": existing_asset.alt_text or "",
+            "model_type": "MediaAsset"
         }
 
     asset = MediaAsset.objects.create(
@@ -672,18 +753,56 @@ def upload_media(request, file: UploadedFile = File(...)):
         base_url = os.environ.get('SITE_BASE_URL', 'http://localhost:8000')
         url = f"{base_url.rstrip('/')}{url}"
     return {
-        "id": asset.id,
+        "id": f"asset_{asset.id}",
         "file_name": asset.file_name,
         "mime_type": asset.mime_type,
         "file_size": asset.file_size,
         "url": url,
-        "created_at": asset.created_at.isoformat()
+        "created_at": asset.created_at.isoformat(),
+        "usage": "Central Library",
+        "link_type": "local",
+        "alt_text": asset.alt_text or "",
+        "model_type": "MediaAsset"
     }
 
-@router.delete("/media/{asset_id}", auth=BearerAuth())
-def delete_media(request, asset_id: int):
+class UpdateMediaSeoSchema(Schema):
+    alt_text: str
+
+@router.patch("/media/{unified_id}/seo", auth=BearerAuth())
+def update_media_seo(request, unified_id: str, data: UpdateMediaSeoSchema):
+    """Update SEO alt text for any media type."""
+    enforce_permission(request, "media", "edit")
+    from apps.catalog.models import ProductImage, Category
+    
+    if unified_id.startswith("asset_"):
+        asset_id = int(unified_id.replace("asset_", ""))
+        asset = get_object_or_404(MediaAsset, id=asset_id)
+        asset.alt_text = data.alt_text
+        asset.save()
+    elif unified_id.startswith("productimage_"):
+        img_id = int(unified_id.replace("productimage_", ""))
+        img = get_object_or_404(ProductImage, id=img_id)
+        img.alt_text = data.alt_text
+        img.save()
+    elif unified_id.startswith("category_"):
+        cat_id = int(unified_id.replace("category_", ""))
+        cat = get_object_or_404(Category, id=cat_id)
+        cat.image_alt_text = data.alt_text
+        cat.save()
+    else:
+        raise HttpError(400, "Cannot update SEO for this media type.")
+        
+    return {"success": True}
+
+@router.delete("/media/{unified_id}", auth=BearerAuth())
+def delete_media(request, unified_id: str):
     """Delete a media asset."""
     enforce_permission(request, "media", "delete")
+    
+    if not unified_id.startswith("asset_"):
+        raise HttpError(400, "This media belongs to a specific catalog item. Please delete it from the Catalog module.")
+        
+    asset_id = int(unified_id.replace("asset_", ""))
     asset = get_object_or_404(MediaAsset, id=asset_id)
     
     # Check for active references before deleting
@@ -693,14 +812,15 @@ def delete_media(request, asset_id: int):
         from apps.catalog.models import Product, Category
         for p in Product.objects.filter(Q(description__icontains=url) | Q(short_description__icontains=url)):
             usages.append(f"Product: {p.name}")
-        for c in Category.objects.filter(slug__icontains=asset.file_name): # Approximate check
-            pass
             
     if usages:
         raise HttpError(409, {"detail": "Asset currently in use", "usages": usages})
         
     if asset.file:
-        asset.file.delete(save=False)
+        try:
+            asset.file.delete(save=False)
+        except:
+            pass
     asset.delete()
     return {"success": True}
 

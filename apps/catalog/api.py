@@ -674,10 +674,10 @@ def bulk_upload_endpoint(request, file: UploadedFile = File(...)):
 def upload_product_image_endpoint(
     request, 
     product_id: int, 
-    alt_text: Optional[str] = None, 
-    is_main: Optional[bool] = False, 
-    color_tag: Optional[str] = None, 
-    order: Optional[int] = 0,
+    alt_text: Optional[str] = Form(None), 
+    is_main: Optional[bool] = Form(False), 
+    color_tag: Optional[str] = Form(None), 
+    order: Optional[int] = Form(0),
     file: UploadedFile = File(...)
 ):
     """Upload product images converting automatically to optimized WebP (Admin only)."""

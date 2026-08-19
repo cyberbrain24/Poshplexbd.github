@@ -60,6 +60,7 @@ class Category(models.Model):
     name = models.CharField(max_length=100)
     slug = models.SlugField(max_length=100, unique=True)
     image = models.FileField(upload_to='category_images/', null=True, blank=True)
+    image_alt_text = models.CharField(max_length=255, blank=True, null=True, help_text="SEO alt text for category image")
     parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='children')
     is_active = models.BooleanField(default=True)
     listing_order = models.IntegerField(default=0, help_text="Used for manual display ordering (lower numbers appear first).")
