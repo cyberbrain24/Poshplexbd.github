@@ -424,42 +424,54 @@ export const Catalog: React.FC = () => {
         isNew = true;
       }
 
-      const uidMap: Record<string, number> = {};
-      let needsSecondPass = false;
+      try {
+        const uidMap: Record<string, number> = {};
+        let needsSecondPass = false;
 
-      for (let i = 0; i < fileList.length; i++) {
-        const file = fileList[i];
-        if (file.originFileObj) {
-          const formData = new FormData();
-          formData.append("file", file.originFileObj);
-          if (mainImageUid === file.uid) formData.append("is_main", "true");
-          formData.append("order", i.toString());
+        for (let i = 0; i < fileList.length; i++) {
+          const file = fileList[i];
+          if (file.originFileObj) {
+            const formData = new FormData();
+            formData.append("file", file.originFileObj);
+            if (mainImageUid === file.uid) formData.append("is_main", "true");
+            formData.append("order", i.toString());
 
-          const upRes = await axios.post(`${API_URL}/products/${productId}/images`, formData, {
-            headers: { 
-              "Content-Type": "multipart/form-data",
-              Authorization: `Bearer ${token}` 
-            }
-          });
-          uidMap[file.uid] = upRes.data.id;
-          needsSecondPass = true;
+            const upRes = await axios.post(`${API_URL}/products/${productId}/images`, formData, {
+              headers: { 
+                "Content-Type": "multipart/form-data",
+                Authorization: `Bearer ${token}` 
+              }
+            });
+            uidMap[file.uid] = upRes.data.id;
+            needsSecondPass = true;
+          }
         }
-      }
 
-      if (needsSecondPass && productType === "variable") {
-        const updatedVariants = variantsList.map(v => ({
-          ...v,
-          image_id: uidMap[v.image_id] || (typeof v.image_id === 'number' ? v.image_id : null)
-        }));
-        await axios.put(`${API_URL}/products/${productId}`, {
-           ...values,
-           variants: updatedVariants
-        }, { headers: { Authorization: `Bearer ${token}` } });
-      }
+        if (needsSecondPass && productType === "variable") {
+          const updatedVariants = variantsList.map(v => ({
+            ...v,
+            image_id: uidMap[v.image_id] || (typeof v.image_id === 'number' ? v.image_id : null)
+          }));
+          await axios.put(`${API_URL}/products/${productId}`, {
+             ...values,
+             variants: updatedVariants
+          }, { headers: { Authorization: `Bearer ${token}` } });
+        }
 
-      message.success(isNew ? "Product created successfully." : "Product updated successfully.");
-      setIsProductModalOpen(false);
-      fetchProducts();
+        message.success(isNew ? "Product created successfully." : "Product updated successfully.");
+        setIsProductModalOpen(false);
+        fetchProducts();
+      } catch (innerErr) {
+        if (isNew && productId) {
+          try {
+            await axios.delete(`${API_URL}/products/${productId}`, { headers: { Authorization: `Bearer ${token}` } });
+            console.log("Rolled back partially created product:", productId);
+          } catch (rollbackErr) {
+            console.error("Critical: Failed to rollback partially created product", rollbackErr);
+          }
+        }
+        throw innerErr;
+      }
     } catch (err: any) {
       const data = err.response?.data;
       let errMsg = "Failed to save product.";
@@ -503,7 +515,15 @@ export const Catalog: React.FC = () => {
           parts.push(size.toUpperCase());
         }
         
-        const genSku = `${productForm.getFieldValue("sku") || "SKU"}-${parts.join("-")}`;
+        let baseSku = productForm.getFieldValue("sku");
+        if (!baseSku) {
+          const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+          const namePrefix = (productForm.getFieldValue("name") || "PROD").substring(0, 6).toUpperCase().replace(/[^A-Z0-9]/g, "");
+          baseSku = `${namePrefix}-${randomSuffix}`;
+          productForm.setFieldsValue({ sku: baseSku });
+        }
+        
+        const genSku = `${baseSku}-${parts.join("-")}`;
         
         // Prevent duplicate mapping combo
         const exists = variantsList.some(v => 
