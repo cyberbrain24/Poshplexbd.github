@@ -9,8 +9,42 @@ import {
   DownloadOutlined
 } from "@ant-design/icons";
 import axios from "axios";
+import type { UploadFile } from "antd/es/upload/interface";
+import { DndContext, PointerSensor, useSensor } from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  horizontalListSortingStrategy
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 const API_URL = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/catalog";
+
+interface DraggableUploadListItemProps {
+  originNode: React.ReactElement<any, string | React.JSXElementConstructor<any>>;
+  file: UploadFile<any>;
+}
+
+const DraggableUploadListItem = ({ originNode, file }: DraggableUploadListItemProps) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: file.uid,
+  });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    cursor: 'move',
+    height: '100%',
+    ...(isDragging ? { zIndex: 9999, opacity: 0.8 } : {}),
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      {originNode}
+    </div>
+  );
+};
 
 export const Catalog: React.FC = () => {
   const [activeTab, setActiveTab] = useState("1");
