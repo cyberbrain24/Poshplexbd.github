@@ -244,7 +244,7 @@ export default function ProductDetailClient({ product }: { product: any }) {
   }, [selectedAttributes, matchedVariant, product.images]);
 
   const allSelected =
-    Object.keys(attributeGroups).length > 0 &&
+    Object.keys(attributeGroups).length === 0 ||
     Object.keys(attributeGroups).every((k) => selectedAttributes[k]);
 
   /* ── images ── */
@@ -254,18 +254,26 @@ export default function ProductDetailClient({ product }: { product: any }) {
 
   /* ── add to cart ── */
   const handleAddToCart = () => {
-    if (!allSelected || !matchedVariant) return;
-    const img =
-      images.find((i: any) => i.id === matchedVariant.image_id)?.url ||
-      mainImage?.url ||
-      "";
+    const hasAttributes = Object.keys(attributeGroups).length > 0;
+    if (hasAttributes && (!allSelected || !matchedVariant)) return;
+
+    const img = matchedVariant
+      ? (images.find((i: any) => i.id === matchedVariant.image_id)?.url || mainImage?.url || "")
+      : (mainImage?.url || "");
+      
+    const finalSku = matchedVariant ? matchedVariant.sku : product.sku;
+    const finalPrice = matchedVariant 
+      ? parseFloat(matchedVariant.selling_price || matchedVariant.price)
+      : parseFloat(product.selling_price || product.price || product.base_price || 0);
+    const finalAttributes = matchedVariant ? matchedVariant.attributes : {};
+
     addToCart({
-      sku: matchedVariant.sku,
+      sku: finalSku || `PROD-${product.id}`,
       name: product.name,
-      price: parseFloat(matchedVariant.selling_price || matchedVariant.price),
+      price: finalPrice,
       quantity,
       image: img,
-      attributes: matchedVariant.attributes,
+      attributes: finalAttributes,
     });
   };
 
