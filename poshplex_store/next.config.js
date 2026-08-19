@@ -39,6 +39,10 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'media.poshplexbd.com',
+      },
+      {
+        protocol: 'https',
         hostname: 'api.poshplexbd.com',
         pathname: '/media/**',
       },
