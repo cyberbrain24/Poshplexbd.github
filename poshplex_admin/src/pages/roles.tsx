@@ -115,7 +115,7 @@ export const RolesPage: React.FC = () => {
         onOk={() => form.submit()}
         width={800}
       >
-        <Form form={form} layout="vertical" onFinish={handleSave}>
+        <Form form={form} name="rolesForm" layout="vertical" onFinish={handleSave}>
           <Form.Item name="name" label="Role Name" rules={[{ required: true }]}>
             <Input />
           </Form.Item>

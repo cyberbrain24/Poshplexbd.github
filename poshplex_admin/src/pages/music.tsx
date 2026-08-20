@@ -278,7 +278,7 @@ export const MusicLibrary: React.FC = () => {
         }}
         onOk={() => form.submit()}
       >
-        <Form form={form} onFinish={handleSave} layout="vertical">
+        <Form form={form} name="musicForm" onFinish={handleSave} layout="vertical">
           <Form.Item name="title" label="Track Title" rules={[{ required: true }]}>
             <Input style={{ borderRadius: 0 }} placeholder="e.g. Street Lo-Fi Beat" />
           </Form.Item>

@@ -240,7 +240,7 @@ const TasksPage: React.FC = () => {
         }}
         onOk={() => createForm.submit()}
       >
-        <Form form={createForm} layout="vertical" onFinish={handleCreateOrEdit}>
+        <Form form={createForm} name="taskCreateForm" layout="vertical" onFinish={handleCreateOrEdit}>
           <Form.Item name="title" label="Task Title" rules={[{ required: true }]}>
             <Input />
           </Form.Item>
@@ -265,7 +265,7 @@ const TasksPage: React.FC = () => {
         onCancel={() => setIsCompleteModalOpen(false)}
         onOk={() => completeForm.submit()}
       >
-        <Form form={completeForm} layout="vertical" onFinish={handleComplete}>
+        <Form form={completeForm} name="taskCompleteForm" layout="vertical" onFinish={handleComplete}>
           <p>Mark <strong>{completingTask?.title}</strong> as completed?</p>
           <Form.Item name="comment" label="Completion Comment (Optional)">
             <Input.TextArea rows={3} placeholder="Add a comment about the completion..." />

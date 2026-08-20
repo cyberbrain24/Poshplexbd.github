@@ -192,7 +192,7 @@ export const PromoCodes: React.FC = () => {
         onOk={() => form.submit()}
         width="min(650px, 96vw)"
       >
-        <Form form={form} onFinish={handleSave} layout="vertical">
+        <Form form={form} name="promo-codesForm" onFinish={handleSave} layout="vertical">
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item name="code" label="Promo Coupon Code(s) - Use comma for bulk" rules={[{ required: true }]}>

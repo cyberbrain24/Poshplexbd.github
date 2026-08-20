@@ -192,7 +192,7 @@ const Reviews: React.FC = () => {
       />
 
       <Modal title="Edit Review" open={isModalOpen} onCancel={() => setIsModalOpen(false)} onOk={() => form.submit()} destroyOnClose>
-        <Form form={form} layout="vertical" onFinish={handleEditSubmit}>
+        <Form form={form} name="crmForm" layout="vertical" onFinish={handleEditSubmit}>
           <Form.Item label="Rating" name="rating" rules={[{ required: true }]}>
             <Rate />
           </Form.Item>
@@ -218,7 +218,7 @@ const Reviews: React.FC = () => {
       </Modal>
 
       <Modal title="Create Review" open={isCreateModalOpen} onCancel={() => setIsCreateModalOpen(false)} onOk={() => createForm.submit()} destroyOnClose>
-        <Form form={createForm} layout="vertical" onFinish={handleCreateSubmit}>
+        <Form form={createForm} name="taskCreateForm" layout="vertical" onFinish={handleCreateSubmit}>
           <Form.Item label="Customer" name="customer_phone" rules={[{ required: true }]}>
             <Select showSearch placeholder="Select a customer" optionFilterProp="children" filterOption={(input, option: any) => option.children.join('').toLowerCase().includes(input.toLowerCase())}>
               {customers.map(c => <Select.Option key={c.phone} value={c.phone}>{c.phone} - {c.user?.username || ''}</Select.Option>)}
@@ -347,7 +347,7 @@ const MembershipTiers: React.FC = () => {
         onCancel={() => { setIsModalOpen(false); setSelectedTier(null); }}
         onOk={() => form.submit()}
       >
-        <Form form={form} onFinish={handleSave} layout="vertical">
+        <Form form={form} name="crmForm" onFinish={handleSave} layout="vertical">
           <Form.Item name="name" label="Tier Name" rules={[{ required: true }]}>
             <Input placeholder="e.g., VIP, Gold, Diamond" style={{ borderRadius: 0 }} />
           </Form.Item>
@@ -1228,7 +1228,7 @@ export const CRM: React.FC = () => {
         onOk={() => form.submit()}
         width="min(700px, 96vw)"
       >
-        <Form form={form} onFinish={handleSave} layout="vertical">
+        <Form form={form} name="crmForm" onFinish={handleSave} layout="vertical">
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item name="name" label="Customer Name" rules={[{ required: true }]}>

@@ -113,7 +113,7 @@ export const SettingsPage: React.FC = () => {
             <Row gutter={[24, 24]}>
               <Col xs={24} lg={16}>
                 <Card title={<Space><SettingOutlined /><span>Storefront Configuration</span></Space>}>
-                  <Form form={generalForm} layout="vertical" onFinish={(vals) => onSave("general", vals, "General settings")} requiredMark={false}>
+                  <Form form={generalForm} name="settingsGeneralForm" layout="vertical" onFinish={(vals) => onSave("general", vals, "General settings")} requiredMark={false}>
                     <Form.Item name="desktop_hero_banner_url" label="Desktop Hero Banner Image">
                       <Select
                         showSearch placeholder="Select banner from Media Library or paste custom URL below"
@@ -172,7 +172,7 @@ export const SettingsPage: React.FC = () => {
             <Row gutter={[24, 24]}>
               <Col xs={24} lg={16}>
                 <Card title={<Space><SearchOutlined /><span>SEO Configuration</span></Space>}>
-                  <Form form={seoForm} layout="vertical" onFinish={(vals) => onSave("seo", vals, "SEO settings")} requiredMark={false}>
+                  <Form form={seoForm} name="settingsSeoForm" layout="vertical" onFinish={(vals) => onSave("seo", vals, "SEO settings")} requiredMark={false}>
                     <Form.Item name="meta_title" label="Meta Title" help="Ideal length: 50-60 characters" rules={[{ required: true }]}>
                       <Input placeholder="e.g. Poshplex Storefront | Heavyweight Streetwear Brand" style={{ borderRadius: 0 }} />
                     </Form.Item>

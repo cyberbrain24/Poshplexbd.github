@@ -370,7 +370,7 @@ const PrintFilesLibrary: React.FC = () => {
         }
         styles={{ body: { paddingBottom: 80 } }}
       >
-        <Form form={form} layout="vertical">
+        <Form form={form} name="printingForm" layout="vertical">
           <Form.Item name="name" label="Printing File Name" rules={[{ required: true, message: "Name is required" }]}>
             <Input placeholder="e.g. Skull Tee — Front & Back Print" />
           </Form.Item>
