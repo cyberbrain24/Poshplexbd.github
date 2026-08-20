@@ -113,7 +113,7 @@ export const StaffPage: React.FC = () => {
         onCancel={() => setIsModalVisible(false)}
         onOk={() => form.submit()}
       >
-        <Form form={form} layout="vertical" onFinish={handleSave}>
+        <Form form={form} name="staffForm" layout="vertical" onFinish={handleSave}>
           <Form.Item name="username" label="Username" rules={[{ required: true }]}>
             <Input disabled={!!editingId} />
           </Form.Item>
