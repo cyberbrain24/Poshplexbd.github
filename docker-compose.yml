@@ -10,7 +10,7 @@ services:
   # PostgreSQL 16 — Primary Application Database
   # ----------------------------------------------------------
   postgres:
-    image: pgvector/pgvector:pg16-alpine
+    image: pgvector/pgvector:pg16
     container_name: poshplex_postgres
     restart: unless-stopped
     command: postgres -c shared_buffers=1GB -c effective_cache_size=2GB -c shared_preload_libraries='pg_prewarm' -c pg_prewarm.autoprewarm=true
