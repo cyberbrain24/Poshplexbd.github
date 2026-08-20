@@ -84,7 +84,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 3000);
       try {
-        const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const API = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const res = await fetch(`${API}/api/v1/music/tracks`, { signal: controller.signal });
         clearTimeout(timeout);
         if (res.ok) {
@@ -125,7 +125,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     if (!currentTrack) return;
 
-    const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const API = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
     const audioUrlToPlay = currentTrack.audio_url.startsWith("http")
       ? currentTrack.audio_url
       : `${API}${currentTrack.audio_url}`;
@@ -231,7 +231,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       // within the click event loop for iOS Safari compatibility.
       const track = tracks[index];
       if (track && audioRef.current) {
-        const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const API = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const audioUrlToPlay = track.audio_url.startsWith("http")
           ? track.audio_url
           : `${API}${track.audio_url}`;

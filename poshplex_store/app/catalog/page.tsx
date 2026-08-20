@@ -50,7 +50,7 @@ export default function CatalogPage() {
   useEffect(() => {
     const fetchCats = async () => {
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const API_URL = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const catRes = await fetch(`${API_URL}/api/v1/catalog/categories/tree`, { cache: 'no-store' });
         if (catRes.ok) {
           const cats = await catRes.json();
@@ -68,7 +68,7 @@ export default function CatalogPage() {
     const fetchProducts = async () => {
       setIsLoading(true);
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const API_URL = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const url = new URL(`${API_URL}/api/v1/catalog/products`);
         url.searchParams.set("limit", "100");
         if (searchQuery.trim()) {

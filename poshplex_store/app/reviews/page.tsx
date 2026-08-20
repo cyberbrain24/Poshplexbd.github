@@ -19,7 +19,7 @@ export default function ReviewsDirectory() {
       else if (filter === "4star_plus") queryParams = "?min_rating=4";
       else if (filter === "photos") queryParams = "?with_photos=true";
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/reviews${queryParams}`);
+      const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/reviews${queryParams}`);
       if (res.ok) {
         const data = await res.json();
         setReviews(data);

@@ -25,7 +25,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
     console.error("Uncaught error:", error, errorInfo);
 
     // POST error to unified ingest endpoint
-    const ingestUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/monitor/ingest-client-error`;
+    const ingestUrl = `${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/monitor/ingest-client-error`;
     
     fetch(ingestUrl, {
       method: "POST",

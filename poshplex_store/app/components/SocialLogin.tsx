@@ -14,7 +14,7 @@ export default function SocialLogin() {
 
   const handleSocialCallback = async (provider: string, token: string) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/social-login`, {
+      const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/social-login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ provider, token }),
@@ -43,7 +43,7 @@ export default function SocialLogin() {
     setError("");
     
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const settingsRes = await fetch(`${apiUrl}/api/v1/core/settings/social_auth`);
       const settingsData = await settingsRes.json();
       const clientId = settingsData?.value?.google_client_id || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;

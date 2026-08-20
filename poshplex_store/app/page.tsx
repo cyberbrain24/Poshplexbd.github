@@ -6,7 +6,7 @@ import FeaturedReviewsCarousel from "./components/FeaturedReviewsCarousel";
 
 async function getFeaturedProducts() {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/products`, {
+    const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/products`, {
       next: { revalidate: 60 },
     });
     if (res.ok) {
@@ -23,7 +23,7 @@ async function getFeaturedProducts() {
 // within a render pass, but we keep the same options so the cache entry is shared.
 async function getCategories() {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/categories/tree`, { next: { revalidate: 60 } });
+    const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/categories/tree`, { next: { revalidate: 60 } });
     if (res.ok) {
       const data = await res.json();
       return Array.isArray(data) ? data : [];
@@ -40,7 +40,7 @@ const formatPrice = (bdt: string | number) => {
 
 async function getGeneralSettings() {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/general`, {
+    const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/general`, {
       next: { revalidate: 60 },
     });
     if (res.ok) {

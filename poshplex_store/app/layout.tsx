@@ -20,13 +20,13 @@ const outfit = Outfit({
 export async function generateMetadata() {
   try {
     const [resSeo, resGen, resTracking] = await Promise.all([
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/seo`, {
+      fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/seo`, {
         next: { revalidate: 3600 }
       }),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/general`, {
+      fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/general`, {
         next: { revalidate: 3600 }
       }),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/tracking_pixels`, {
+      fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/tracking_pixels`, {
         next: { revalidate: 3600 }
       })
     ]);
@@ -73,7 +73,7 @@ export const viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   let categories: any[] = [];
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/categories/tree`, { next: { revalidate: 3600 } });
+    const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/categories/tree`, { next: { revalidate: 3600 } });
     if (res.ok) {
       const data = await res.json();
       categories = Array.isArray(data) ? data : [];
@@ -83,7 +83,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   }
   let fbPixelId = process.env.NEXT_PUBLIC_FB_PIXEL_ID || "";
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/tracking_pixels`, { next: { revalidate: 3600 } });
+    const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/tracking_pixels`, { next: { revalidate: 3600 } });
     if (res.ok) {
       const data = await res.json();
       if (data?.value?.fb_pixel) {

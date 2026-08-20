@@ -18,7 +18,7 @@ export async function POST(req: Request) {
 
     try {
       const settingsRes = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/tracking_pixels`,
+        `${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/tracking_pixels`,
         { next: { revalidate: 60 } }
       );
       if (settingsRes.ok) {

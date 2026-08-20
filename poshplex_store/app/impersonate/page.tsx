@@ -17,7 +17,7 @@ function ImpersonateContent() {
 
     const authenticateImpersonation = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/me`, {
+        const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/me`, {
           headers: {
             "Authorization": `Bearer ${token}`
           },

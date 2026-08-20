@@ -99,7 +99,7 @@ export default function ProfilePage() {
     formData.append("file", file);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/crm/customers/me/upload-profile-image`, {
+      const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/crm/customers/me/upload-profile-image`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -122,7 +122,7 @@ export default function ProfilePage() {
 
   const fetchDistricts = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/orders/locations/districts`);
+      const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/orders/locations/districts`);
       if (res.ok) {
         const data = await res.json();
         setDistricts(data);
@@ -138,7 +138,7 @@ export default function ProfilePage() {
       return;
     }
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/orders/locations/thanas?district_id=${districtId}`);
+      const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/orders/locations/thanas?district_id=${districtId}`);
       if (res.ok) {
         const data = await res.json();
         setThanas(data);
@@ -197,7 +197,7 @@ export default function ProfilePage() {
       : null;
       
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/crm/customers/me/profile`, {
+      const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/crm/customers/me/profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -239,7 +239,7 @@ export default function ProfilePage() {
     }
     setChangePwdLoading(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/change-password`, {
+      const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/change-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -280,7 +280,7 @@ export default function ProfilePage() {
   // Fetch customer orders
   const loadProfileOrders = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/orders/my-orders`, {
+      const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/orders/my-orders`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -308,7 +308,7 @@ export default function ProfilePage() {
   // Fetch customer reviews
   const loadUserReviews = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/my-reviews`, {
+      const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/my-reviews`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -336,7 +336,7 @@ export default function ProfilePage() {
   const loadCustomerProfile = async () => {
     if (!token) return;
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/crm/customers/me`, {
+      const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/crm/customers/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -362,7 +362,7 @@ export default function ProfilePage() {
       return;
     }
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/crm/customers/me/address`, {
+      const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/crm/customers/me/address`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -402,7 +402,7 @@ export default function ProfilePage() {
     setAuthError("");
     setAuthLoading(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/customer-login`, {
+      const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/customer-login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone: authPhone, password: authPassword }),
@@ -432,7 +432,7 @@ export default function ProfilePage() {
     setAuthLoading(true);
     const regBirthdate = regBirthYear && regBirthMonth && regBirthDay ? `${regBirthYear}-${regBirthMonth.padStart(2, '0')}-${regBirthDay.padStart(2, '0')}` : "";
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/customer-register`, {
+      const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/customer-register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ full_name: regFullName, phone: regPhone, birthdate: regBirthdate, password: regPassword }),
@@ -460,7 +460,7 @@ export default function ProfilePage() {
     setForgotError("");
     setForgotLoading(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/customer-forgot-password/request-otp`, {
+      const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/customer-forgot-password/request-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier: forgotPhone })
@@ -488,7 +488,7 @@ export default function ProfilePage() {
     }
     setForgotLoading(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/customer-forgot-password/reset`, {
+      const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/customer-forgot-password/reset`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier: forgotPhone, otp: forgotOtp, new_password: newPassword })
@@ -517,7 +517,7 @@ export default function ProfilePage() {
     if (!confirm("Are you sure you want to delete this review?")) return;
     
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/my-reviews/${reviewId}`, {
+      const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/my-reviews/${reviewId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -542,7 +542,7 @@ export default function ProfilePage() {
     if (!editingReview) return;
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/products/${editingReview.product_id}/reviews`, {
+      const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/products/${editingReview.product_id}/reviews`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1284,7 +1284,7 @@ export default function ProfilePage() {
         <button 
           onClick={async () => {
             try {
-              await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/logout`, {
+              await fetchWithAuth(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/logout`, {
                 method: "POST"
               });
             } catch (err) {

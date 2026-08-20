@@ -126,10 +126,12 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: "https://poshplexbd.com"
+        INTERNAL_API_URL: "http://backend:8000"
     container_name: poshplex_store
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_API_URL: "https://poshplexbd.com"
+      INTERNAL_API_URL: "http://backend:8000"
       REDIS_URL: "redis://redis:6379/2"
     extra_hosts:
       - "poshplexbd.com:host-gateway"

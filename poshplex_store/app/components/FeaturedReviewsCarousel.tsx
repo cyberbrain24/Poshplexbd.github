@@ -16,7 +16,7 @@ export default function FeaturedReviewsCarousel() {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 3000);
       try {
-        const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const API = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const res = await fetch(`${API}/api/v1/catalog/reviews?is_featured=true`, { signal: controller.signal });
         clearTimeout(timeout);
         if (res.ok) {

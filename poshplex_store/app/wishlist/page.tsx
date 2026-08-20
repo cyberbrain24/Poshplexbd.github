@@ -39,7 +39,7 @@ export default function WishlistPage() {
     const fetchProducts = async () => {
       setIsLoading(true);
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const API_URL = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         // Fetch products that match the wishlist IDs
         // In a real app with many products, you'd pass IDs to backend, here we fetch a batch
         const res = await fetch(`${API_URL}/api/v1/catalog/products?limit=500`);

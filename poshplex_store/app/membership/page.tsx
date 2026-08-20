@@ -12,7 +12,7 @@ export default function MembershipDirectory() {
   // Load public membership tiers
   const fetchTiers = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/crm/tiers`);
+      const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/crm/tiers`);
       if (res.ok) {
         const data = await res.json();
         // Only show active public tiers
@@ -27,7 +27,7 @@ export default function MembershipDirectory() {
   const fetchMembers = async () => {
     setLoading(true);
     try {
-      let url = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/crm/public-members`;
+      let url = `${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/crm/public-members`;
       if (selectedTierId) {
         url += `?tier_id=${selectedTierId}`;
       }

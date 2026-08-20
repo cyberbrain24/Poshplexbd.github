@@ -108,7 +108,7 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
       }
       setIsSearching(true);
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/products?search=${encodeURIComponent(searchQuery)}&limit=5`);
+        const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/products?search=${encodeURIComponent(searchQuery)}&limit=5`);
         if (res.ok) {
           const data = await res.json();
           setSearchResults(data.results || []);

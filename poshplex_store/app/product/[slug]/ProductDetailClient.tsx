@@ -128,7 +128,7 @@ export default function ProductDetailClient({ product }: { product: any }) {
       const token = localStorage.getItem("poshplex_access_token");
       if (!token) return;
       try {
-        const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/my-reviews`);
+        const res = await fetchWithAuth(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/my-reviews`);
         if (res.ok) {
           const data = await res.json();
           const myReview = data.find((r: any) => r.product_id === product.id);
@@ -149,7 +149,7 @@ export default function ProductDetailClient({ product }: { product: any }) {
   useEffect(() => {
     (async () => {
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const API_URL = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const res = await fetch(
           `${API_URL}/api/v1/catalog/products/${product.slug}/reviews`
         );
@@ -181,7 +181,7 @@ export default function ProductDetailClient({ product }: { product: any }) {
     const fetchRelated = async () => {
       try {
         setIsRelatedLoading(true);
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const API_URL = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const res = await fetch(`${API_URL}/api/v1/catalog/products?limit=100`);
         if (res.ok) {
           const data = await res.json();
@@ -306,7 +306,7 @@ export default function ProductDetailClient({ product }: { product: any }) {
         fd.append("product_id", product.id.toString());
       }
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const API_URL = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const res = await fetch(`${API_URL}/api/v1/catalog/reviews/upload-photo`, {
           method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd,
         });
@@ -329,7 +329,7 @@ export default function ProductDetailClient({ product }: { product: any }) {
 
     try {
       const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/products/${product.slug}/reviews`,
+        `${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/products/${product.slug}/reviews`,
         {
           method: "POST",
           headers,

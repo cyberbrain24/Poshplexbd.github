@@ -163,7 +163,7 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     // Fetch payment methods
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/orders/payments/methods`)
+    fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/orders/payments/methods`)
       .then(res => res.json())
       .then(data => {
         setPaymentMethods(data);
@@ -174,7 +174,7 @@ export default function CheckoutPage() {
       .catch(err => console.error("Failed to load payment methods", err));
 
     // Fetch districts
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/orders/locations/districts`)
+    fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/orders/locations/districts`)
       .then(res => res.json())
       .then(data => {
         setDistricts(data);
@@ -184,7 +184,7 @@ export default function CheckoutPage() {
     // Auto-fill if user is logged in
     const token = localStorage.getItem("poshplex_access_token");
     if (token) {
-      fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/crm/customers/me`, {
+      fetchWithAuth(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/crm/customers/me`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       .then(res => res.json())
@@ -211,7 +211,7 @@ export default function CheckoutPage() {
   // Fetch thanas when district changes
   useEffect(() => {
     if (formData.districtId) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/orders/locations/thanas?district_id=${formData.districtId}`)
+      fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/orders/locations/thanas?district_id=${formData.districtId}`)
         .then(res => res.json())
         .then(data => {
           setThanas(data);
@@ -237,7 +237,7 @@ export default function CheckoutPage() {
     setIsCheckingPromo(true);
     setPromoError("");
     try {
-      const url = new URL(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/marketing/validate`);
+      const url = new URL(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/marketing/validate`);
       url.searchParams.append("code", promoCode);
       url.searchParams.append("subtotal", cartTotal.toString());
       if (formData.phone) url.searchParams.append("phone", formData.phone);
@@ -317,7 +317,7 @@ export default function CheckoutPage() {
         headers["Authorization"] = `Bearer ${token}`;
       }
 
-      const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/orders/checkout`, {
+      const res = await fetchWithAuth(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/orders/checkout`, {
         method: "POST",
         headers,
         body: JSON.stringify(payload)
