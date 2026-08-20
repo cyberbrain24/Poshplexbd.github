@@ -167,6 +167,7 @@ export const FloatingPlayer: React.FC = () => {
   };
 
   const displayTime = dragTime !== null ? dragTime : currentTime;
+  const progressPercent = duration > 0 ? (displayTime / duration) * 100 : 0;
 
   return (
     <div 
@@ -238,14 +239,19 @@ export const FloatingPlayer: React.FC = () => {
           max={duration || 100}
           step="0.1"
           value={displayTime || 0}
-          onChange={(e) => setDragTime(parseFloat(e.target.value))}
-          onPointerUp={(e) => {
-            const time = parseFloat(e.currentTarget.value);
+          onChange={(e) => {
+            const time = parseFloat(e.target.value);
+            setDragTime(time);
             seek(time);
+          }}
+          onPointerUp={() => {
             setDragTime(null);
           }}
           className="player-slider"
-          style={{ flex: 1 }}
+          style={{ 
+            flex: 1,
+            background: `linear-gradient(to right, #ffffff ${progressPercent}%, rgba(255, 255, 255, 0.2) ${progressPercent}%)`
+          }}
         />
         
         <span style={{ fontSize: 10, color: "#888", minWidth: 32 }}>
