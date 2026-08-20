@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Card, Button, Space, Modal, Form, Input, Select, Upload, InputNumber,
   message, Tabs, Table, Tag, Tooltip, Popconfirm, Image, Row, Col,
@@ -11,8 +11,8 @@ import {
 } from "@ant-design/icons";
 import axios from "axios";
 
-const API = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/printing";
-const CATALOG_API = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/catalog";
+const API = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/printing";
+const CATALOG_API = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/catalog";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -23,9 +23,9 @@ function authHeaders() {
   return { Authorization: `Bearer ${token}` };
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
 // Types
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface PrintingFile {
   id: number;
@@ -68,9 +68,9 @@ interface PreparedList {
   items: PreparedItem[];
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Tab 1 â€” Print Files Library
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
+// Tab 1 — Print Files Library
+// ─────────────────────────────────────────────────────────────────────────────
 
 const PrintFilesLibrary: React.FC = () => {
   const [files, setFiles] = useState<PrintingFile[]>([]);
@@ -153,7 +153,7 @@ const PrintFilesLibrary: React.FC = () => {
       setSaving(true);
 
       if (!editingFile) {
-        // CREATE â€” multipart upload
+        // CREATE — multipart upload
         if (!design1File) {
           message.error("Design File 1 is required.");
           setSaving(false);
@@ -333,7 +333,7 @@ const PrintFilesLibrary: React.FC = () => {
                   </div>
                   <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                     <Tag style={{ fontSize: 9, padding: "0 4px", margin: 0, lineHeight: "16px" }} color="blue">
-                      {file.design_file_1_width_mm}Ã—{file.design_file_1_height_mm}mm
+                      {file.design_file_1_width_mm}×{file.design_file_1_height_mm}mm
                     </Tag>
                     {file.design_file_2_url && (
                       <Tag style={{ fontSize: 9, padding: "0 4px", margin: 0, lineHeight: "16px" }} color="geekblue">D2</Tag>
@@ -372,7 +372,7 @@ const PrintFilesLibrary: React.FC = () => {
       >
         <Form form={form} layout="vertical">
           <Form.Item name="name" label="Printing File Name" rules={[{ required: true, message: "Name is required" }]}>
-            <Input placeholder="e.g. Skull Tee â€” Front & Back Print" />
+            <Input placeholder="e.g. Skull Tee — Front & Back Print" />
           </Form.Item>
 
           <Form.Item name="product_id" label="Related Product" rules={[{ required: true, message: "Product is required" }]}>
@@ -421,7 +421,7 @@ const PrintFilesLibrary: React.FC = () => {
               accept="image/*,.pdf,.ai,.psd,.eps"
             >
               <Button icon={<UploadOutlined />} style={{ marginBottom: 8 }}>
-                {design1File ? `âœ“ ${design1File.name}` : (editingFile ? "Replace Design File 1" : "Upload Design File 1")}
+                {design1File ? `✓ ${design1File.name}` : (editingFile ? "Replace Design File 1" : "Upload Design File 1")}
               </Button>
             </Upload>
             {design1Preview && (
@@ -468,7 +468,7 @@ const PrintFilesLibrary: React.FC = () => {
               accept="image/*,.pdf,.ai,.psd,.eps"
             >
               <Button icon={<UploadOutlined />} style={{ marginBottom: 8 }}>
-                {design2File ? `âœ“ ${design2File.name}` : (editingFile && editingFile.design_file_2_url ? "Replace Design File 2" : "Upload Design File 2 (optional)")}
+                {design2File ? `✓ ${design2File.name}` : (editingFile && editingFile.design_file_2_url ? "Replace Design File 2" : "Upload Design File 2 (optional)")}
               </Button>
             </Upload>
             {design2Preview && (
@@ -501,9 +501,9 @@ const PrintFilesLibrary: React.FC = () => {
   );
 };
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Tab 2 â€” Prepare Print
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
+// Tab 2 — Prepare Print
+// ─────────────────────────────────────────────────────────────────────────────
 
 const PreparePrint: React.FC = () => {
   const [mode, setMode] = useState<"build" | "saved">("build");
@@ -759,7 +759,7 @@ const PreparePrint: React.FC = () => {
         </Radio.Button>
       </Radio.Group>
 
-      {/* â”€â”€ BUILD MODE â”€â”€ */}
+      {/* ── BUILD MODE ── */}
       {mode === "build" && (
         <Row gutter={[16, 16]}>
           {/* Left: filter & source panel */}
@@ -1012,7 +1012,7 @@ const PreparePrint: React.FC = () => {
         </Row>
       )}
 
-      {/* â”€â”€ SAVED LISTS MODE â”€â”€ */}
+      {/* ── SAVED LISTS MODE ── */}
       {mode === "saved" && (
         <Card
           title={<Space><OrderedListOutlined style={{ color: "var(--accent-purple)" }} /><span>Saved Print Lists</span></Space>}
@@ -1052,12 +1052,12 @@ const PreparePrint: React.FC = () => {
                         title: "Sizes",
                         render: (r: any) => (
                           <Space>
-                            <Tag color="blue">{r.design_file_1_width_mm}Ã—{r.design_file_1_height_mm}mm</Tag>
-                            {r.design_file_2_url && <Tag color="geekblue">D2: {r.design_file_2_width_mm}Ã—{r.design_file_2_height_mm}mm</Tag>}
+                            <Tag color="blue">{r.design_file_1_width_mm}×{r.design_file_1_height_mm}mm</Tag>
+                            {r.design_file_2_url && <Tag color="geekblue">D2: {r.design_file_2_width_mm}×{r.design_file_2_height_mm}mm</Tag>}
                           </Space>
                         ),
                       },
-                      { title: "Order Ref", dataIndex: "order_number", render: (v) => v ? <Tag color="purple">{v}</Tag> : "â€”" },
+                      { title: "Order Ref", dataIndex: "order_number", render: (v) => v ? <Tag color="purple">{v}</Tag> : "—" },
                       { title: "Qty", dataIndex: "quantity", render: (v) => <b style={{ color: "var(--accent-purple)" }}>{v}</b>, width: 60 },
                     ]}
                   />
@@ -1091,7 +1091,7 @@ const PreparePrint: React.FC = () => {
               {
                 title: "Notes",
                 dataIndex: "notes",
-                render: (v) => v ? <Text style={{ color: "var(--text-muted)", fontSize: 12 }}>{v}</Text> : "â€”",
+                render: (v) => v ? <Text style={{ color: "var(--text-muted)", fontSize: 12 }}>{v}</Text> : "—",
               },
               {
                 title: "Actions",
@@ -1200,9 +1200,9 @@ const PreparePrint: React.FC = () => {
   );
 };
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
 // Main Page
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const PrintingQueue: React.FC = () => {
   return (

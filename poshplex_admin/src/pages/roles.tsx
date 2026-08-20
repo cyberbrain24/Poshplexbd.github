@@ -3,7 +3,7 @@ import { Table, Button, Modal, Form, Input, Checkbox, message, Typography, Card,
 import { PlusOutlined, DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import axios from "axios";
 import { useCan } from "@refinedev/core";
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000')) + "/api/v1";
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000')) + "/api/v1";
 
 const { Title } = Typography;
 

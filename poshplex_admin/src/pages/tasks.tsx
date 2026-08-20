@@ -4,7 +4,7 @@ import { CheckSquareOutlined, DeleteOutlined, PlusOutlined, CheckOutlined, EditO
 import axios from "axios";
 import { useCan, useGetIdentity } from "@refinedev/core";
 
-const API_BASE = import.meta.env.VITE_API_URL || ((import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000')) + "/api/v1");
+const API_BASE = import.meta.env.VITE_API_URL || ((import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000')) + "/api/v1");
 
 interface Task {
   id: number;

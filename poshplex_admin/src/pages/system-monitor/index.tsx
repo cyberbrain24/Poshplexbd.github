@@ -33,7 +33,7 @@ interface ErrorLog {
   user_agent?: string;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000')) + "/api/v1";
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000')) + "/api/v1";
 
 export const SystemMonitor: React.FC = () => {
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);

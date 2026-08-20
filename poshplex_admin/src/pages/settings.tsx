@@ -23,7 +23,7 @@ export const SettingsPage: React.FC = () => {
         
         // Load general settings
         try {
-          const resGen = await axios.get((import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/core/settings/general", { headers });
+          const resGen = await axios.get((import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/core/settings/general", { headers });
           if (resGen.data && resGen.data.value) {
             generalForm.setFieldsValue({
               ...resGen.data.value,
@@ -45,7 +45,7 @@ export const SettingsPage: React.FC = () => {
 
         // Load seo settings
         try {
-          const resSeo = await axios.get((import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/core/settings/seo", { headers });
+          const resSeo = await axios.get((import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/core/settings/seo", { headers });
           if (resSeo.data && resSeo.data.value) {
             seoForm.setFieldsValue(resSeo.data.value);
           }
@@ -69,7 +69,7 @@ export const SettingsPage: React.FC = () => {
     try {
       const token = localStorage.getItem("poshplex_access_token") || localStorage.getItem("poshplex_token");
       await axios.post(
-        (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/core/settings",
+        (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/core/settings",
         { key, value: values, description },
         { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
       );
@@ -81,12 +81,12 @@ export const SettingsPage: React.FC = () => {
 
   const imageSelectOptions = [
     ...mediaFiles.filter((f: any) => f.mime_type?.startsWith("image/")).map((f: any) => ({
-      value: f.url || `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000'))}/media/${f.file}`,
+      value: f.url || `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}/media/${f.file}`,
       label: f.file_name,
       customLabel: (
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 0" }}>
           <img
-            src={f.url || `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://store.poshplexbd.com' : 'http://localhost:8000'))}/media/${f.file}`}
+            src={f.url || `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}/media/${f.file}`}
             alt=""
             style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 4, border: "1px solid #333" }}
           />
