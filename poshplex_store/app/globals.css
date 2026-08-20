@@ -459,3 +459,14 @@ input:focus, select:focus, textarea:focus {
     grid-template-columns: 1fr 1fr !important;
   }
 }
+
+ @ m e d i a   ( m a x - w i d t h :   7 6 8 p x )   { 
+     / *   D i s a b l e   a l l   a n i m a t i o n s   a n d   t r a n s i t i o n s   o n   m o b i l e   f o r   f a s t e r   l o a d / r e n d e r   s p e e d   * / 
+     * ,   * : : b e f o r e ,   * : : a f t e r   { 
+         a n i m a t i o n - d u r a t i o n :   0 . 0 0 1 s   ! i m p o r t a n t ; 
+         a n i m a t i o n - i t e r a t i o n - c o u n t :   1   ! i m p o r t a n t ; 
+         t r a n s i t i o n - d u r a t i o n :   0 . 0 0 1 s   ! i m p o r t a n t ; 
+     } 
+ } 
+  
+ 
