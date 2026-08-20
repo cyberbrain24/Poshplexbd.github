@@ -201,8 +201,17 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const play = () => {
     setIsMuted(false);
     setIsPlaying(true);
+    if (audioRef.current) {
+      audioRef.current.play().catch(() => setIsPlaying(false));
+    }
   };
-  const pause = () => setIsPlaying(false);
+  
+  const pause = () => {
+    setIsPlaying(false);
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+  };
 
   const toggleLoop = () => setIsLooping(prev => !prev);
   
@@ -217,6 +226,23 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (index >= 0 && index < tracks.length) {
       setCurrentIndex(index);
       setIsPlaying(true);
+      
+      // On direct track selection, we must handle the src change immediately 
+      // within the click event loop for iOS Safari compatibility.
+      const track = tracks[index];
+      if (track && audioRef.current) {
+        const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const audioUrlToPlay = track.audio_url.startsWith("http")
+          ? track.audio_url
+          : `${API}${track.audio_url}`;
+        
+        const isSameSrc = audioRef.current.src === audioUrlToPlay || audioRef.current.src.endsWith(track.audio_url);
+        if (!isSameSrc) {
+          audioRef.current.src = audioUrlToPlay;
+          audioRef.current.load();
+        }
+        audioRef.current.play().catch(() => setIsPlaying(false));
+      }
     }
   };
 
@@ -235,9 +261,21 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const changeVolume = (v: number) => {
     setVolume(v);
     if (v > 0) setIsMuted(false);
+    if (audioRef.current) {
+      audioRef.current.volume = v;
+      if (v > 0) audioRef.current.muted = false;
+    }
   };
 
-  const toggleMute = () => setIsMuted(!isMuted);
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
+    if (audioRef.current) {
+      audioRef.current.muted = !isMuted;
+      if (isMuted && volume === 0) {
+        changeVolume(0.5); // restore some volume if unmuting from 0
+      }
+    }
+  };
 
   const toggleMinimize = () => {
     const nextMinimized = !isMinimized;

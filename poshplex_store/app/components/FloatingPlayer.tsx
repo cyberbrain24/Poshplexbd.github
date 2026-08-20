@@ -399,9 +399,6 @@ export const FloatingPlayer: React.FC = () => {
           .floating-audio-player.minimized {
             display: none !important;
           }
-          .minimize-btn {
-            display: none !important;
-          }
         }
         @keyframes spin {
           from { transform: rotate(0deg); }
