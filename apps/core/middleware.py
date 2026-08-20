@@ -38,6 +38,11 @@ class CorsMiddleware:
         response["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
         response["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
         response["Access-Control-Allow-Credentials"] = "true"
+        
+        # Ensure API responses are never cached by edge networks (like Cloudflare) or browsers
+        if request.path.startswith('/api/'):
+            response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+            
         return response
 
 
