@@ -27,6 +27,11 @@ DEBUG = env('DEBUG')
 APPEND_SLASH = False  # Django-Ninja APIs do not use Django URL patterns; disable redirect-on-missing-slash
 
 ALLOWED_HOSTS = env('ALLOWED_HOSTS')
+if 'api.poshplexbd.com' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('api.poshplexbd.com')
+if 'testserver' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('testserver')
+
 
 # Application definition
 INSTALLED_APPS = [

@@ -27,7 +27,7 @@ class BulkSMSBDProvider(BaseSMSProvider):
     def __init__(self, api_key: str = None, sender_id: str = None):
         self.api_key = api_key or "JC59LubvFuo7pxEOMHL9"
         self.sender_id = sender_id if sender_id else "8809648910527" # Fallback to valid Sender ID
-        self.base_url = "http://bulksmsbd.net/api/smsapi"
+        self.base_url = "https://bulksmsbd.net/api/smsapi"
 
     def send_sms(self, to_number: str, message: str) -> bool:
         try:
