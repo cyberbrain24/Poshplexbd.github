@@ -100,7 +100,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="preconnect" href="https://media.poshplexbd.com" />
       </head>
       <body suppressHydrationWarning>
-        <FacebookPixel fbPixelId={fbPixelId} />
+        <React.Suspense fallback={null}>
+          <FacebookPixel fbPixelId={fbPixelId} />
+        </React.Suspense>
         <GlobalErrorBoundary>
           <CartProvider>
             <MusicProvider>
