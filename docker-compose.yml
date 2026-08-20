@@ -131,6 +131,9 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: "https://poshplexbd.com"
       REDIS_URL: "redis://redis:6379/2"
+    extra_hosts:
+      - "poshplexbd.com:host-gateway"
+      - "admin.poshplexbd.com:host-gateway"
     ports:
       - "3000:3000"
     depends_on:
@@ -147,6 +150,9 @@ services:
     restart: unless-stopped
     environment:
       VITE_API_URL: "https://admin.poshplexbd.com/api/v1"
+    extra_hosts:
+      - "poshplexbd.com:host-gateway"
+      - "admin.poshplexbd.com:host-gateway"
     ports:
       - "3001:3001"
     depends_on:
