@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import * as fpixel from "../lib/fpixel";
 
 export interface CartItem {
   sku: string;
@@ -55,6 +56,16 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (existing) return prev.map((i) => i.sku === item.sku ? { ...i, quantity: i.quantity + item.quantity } : i);
       return [...prev, item];
     });
+
+    // Fire FB AddToCart event
+    fpixel.trackEvent("AddToCart", {
+      content_ids: [item.sku],
+      content_name: item.name,
+      content_type: "product",
+      value: item.price * item.quantity,
+      currency: "BDT",
+    });
+
     // Show toast then open drawer
     setToastItem(item);
     setTimeout(() => setToastItem(null), 3000);

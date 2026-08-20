@@ -9,6 +9,7 @@ import { toast } from 'react-hot-toast';
 import { fetchWithAuth } from "../../utils/fetchWithAuth";
 import { useCart } from "../../../context/CartContext";
 import ProductCard from "../../components/ProductCard";
+import * as fpixel from "../../../lib/fpixel";
 
 const formatBDT = (n: string | number) => `৳${Math.round(Number(n))}`;
 
@@ -43,6 +44,18 @@ export default function ProductDetailClient({ product }: { product: any }) {
   const [quantity, setQuantity] = useState(1);
   const [wishlisted, setWishlisted] = useState(false);
   const [activeImageIdx, setActiveImageIdx] = useState(0);
+
+  useEffect(() => {
+    if (product) {
+      fpixel.trackEvent("ViewContent", {
+        content_name: product.name,
+        content_ids: [product.sku || product.id],
+        content_type: "product",
+        value: parseFloat(product.selling_price || product.price || product.base_price || 0),
+        currency: "BDT",
+      });
+    }
+  }, [product]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {

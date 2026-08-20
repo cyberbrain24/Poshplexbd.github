@@ -52,6 +52,7 @@ export const Integrations: React.FC = () => {
         dhl_account: configSetting?.value?.dhl_credentials?.account_number || "",
 
         fb_pixel: pixelsSetting?.value?.fb_pixel || "",
+        fb_capi_token: pixelsSetting?.value?.fb_capi_token || "",
         tiktok_pixel: pixelsSetting?.value?.tiktok_pixel || "",
         google_ga: pixelsSetting?.value?.google_ga || "",
 
@@ -106,6 +107,7 @@ export const Integrations: React.FC = () => {
       key: "tracking_pixels",
       value: {
         fb_pixel: values.fb_pixel,
+        fb_capi_token: values.fb_capi_token,
         tiktok_pixel: values.tiktok_pixel,
         google_ga: values.google_ga,
       },
@@ -317,17 +319,22 @@ export const Integrations: React.FC = () => {
                 <Col xs={24}>
                   <Divider orientation="left"><SafetyCertificateOutlined /> Tracking Pixels & Analytics</Divider>
                 </Col>
-                <Col xs={24} md={8}>
+                <Col xs={24} md={12}>
                   <Form.Item name="fb_pixel" label="Facebook Pixel ID">
                     <Input placeholder="Meta Pixel number" />
                   </Form.Item>
                 </Col>
-                <Col xs={24} md={8}>
+                <Col xs={24} md={12}>
+                  <Form.Item name="fb_capi_token" label="FB Conversions API Access Token">
+                    <Input.Password placeholder="EAAR... token" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={12}>
                   <Form.Item name="tiktok_pixel" label="TikTok Pixel ID">
                     <Input placeholder="TikTok developer pixel ID" />
                   </Form.Item>
                 </Col>
-                <Col xs={24} md={8}>
+                <Col xs={24} md={12}>
                   <Form.Item name="google_ga" label="Google Analytics ID (G-XXXX)">
                     <Input placeholder="GA Measurement ID" />
                   </Form.Item>

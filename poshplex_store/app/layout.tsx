@@ -9,6 +9,7 @@ import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
 import CartDrawer from "./components/CartDrawer";
 import Footer from "./components/Footer";
+import FacebookPixel from "./components/FacebookPixel";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -18,11 +19,14 @@ const outfit = Outfit({
 
 export async function generateMetadata() {
   try {
-    const [resSeo, resGen] = await Promise.all([
+    const [resSeo, resGen, resTracking] = await Promise.all([
       fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/seo`, {
         next: { revalidate: 3600 }
       }),
       fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/general`, {
+        next: { revalidate: 3600 }
+      }),
+      fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/tracking_pixels`, {
         next: { revalidate: 3600 }
       })
     ]);
@@ -77,12 +81,26 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   } catch (err) {
     console.error("Failed to fetch categories for footer:", err);
   }
+  let fbPixelId = process.env.NEXT_PUBLIC_FB_PIXEL_ID || "";
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/tracking_pixels`, { next: { revalidate: 3600 } });
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.value?.fb_pixel) {
+        fbPixelId = data.value.fb_pixel;
+      }
+    }
+  } catch (err) {
+    console.error("Failed to fetch tracking_pixels:", err);
+  }
+
   return (
     <html lang="en" className={outfit.className} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://media.poshplexbd.com" />
       </head>
       <body suppressHydrationWarning>
+        <FacebookPixel fbPixelId={fbPixelId} />
         <GlobalErrorBoundary>
           <CartProvider>
             <MusicProvider>
