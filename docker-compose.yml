@@ -88,10 +88,6 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    extra_hosts:
-      - "poshplexbd.com:host-gateway"
-      - "api.poshplexbd.com:host-gateway"
-      - "admin.poshplexbd.com:host-gateway"
     command: >
       sh -c "
         celery -A poshplex worker -l info --concurrency=2 --max-tasks-per-child=100
@@ -132,10 +128,6 @@ services:
         NEXT_PUBLIC_API_URL: "https://poshplexbd.com"
     container_name: poshplex_store
     restart: unless-stopped
-    extra_hosts:
-      - "poshplexbd.com:host-gateway"
-      - "api.poshplexbd.com:host-gateway"
-      - "admin.poshplexbd.com:host-gateway"
     environment:
       NEXT_PUBLIC_API_URL: "https://poshplexbd.com"
       REDIS_URL: "redis://redis:6379/2"
@@ -153,10 +145,6 @@ services:
       dockerfile: Dockerfile
     container_name: poshplex_admin
     restart: unless-stopped
-    extra_hosts:
-      - "poshplexbd.com:host-gateway"
-      - "api.poshplexbd.com:host-gateway"
-      - "admin.poshplexbd.com:host-gateway"
     environment:
       VITE_API_URL: "https://admin.poshplexbd.com/api/v1"
     ports:
