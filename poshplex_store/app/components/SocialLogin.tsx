@@ -38,28 +38,29 @@ export default function SocialLogin() {
     }
   };
 
-  const loginWithGoogle = () => {
+  const loginWithGoogle = async () => {
     setIsLoading("google");
     setError("");
     
-    // In a real production app, we would load the Google JS SDK properly.
-    // For this mockup/integration, we simulate the token retrieval for demo purposes,
-    // or you'd use a package like @react-oauth/google.
-    // We will just alert the user to complete setup if they haven't configured a proper package.
-    
-    // Since we don't have the Google script injected, let's just trigger a warning.
-    // If you actually provide a Client ID, we would redirect to Google OAuth URL and handle callback.
-    
-    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-    if (!clientId) {
-      setError("Google Login is not fully configured (missing Client ID).");
-      setIsLoading(null);
-      return;
-    }
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const settingsRes = await fetch(`${apiUrl}/api/v1/core/settings/social_auth`);
+      const settingsData = await settingsRes.json();
+      const clientId = settingsData?.value?.google_client_id || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
-    const redirectUri = typeof window !== 'undefined' ? `${window.location.origin}/login` : '';
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=id_token&scope=email profile&nonce=12345`;
-    window.location.href = authUrl;
+      if (!clientId) {
+        setError("Google Login is not fully configured (missing Client ID).");
+        setIsLoading(null);
+        return;
+      }
+
+      const redirectUri = typeof window !== 'undefined' ? `${window.location.origin}/login` : '';
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=id_token&scope=email profile&nonce=12345`;
+      window.location.href = authUrl;
+    } catch (err) {
+      setError("Failed to initialize Google Login. Check connection.");
+      setIsLoading(null);
+    }
   };
 
   const loginWithFacebook = () => {

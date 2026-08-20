@@ -57,6 +57,7 @@ export const Integrations: React.FC = () => {
         google_ga: pixelsSetting?.value?.google_ga || "",
 
         google_client_id: socialSetting?.value?.google_client_id || "",
+        google_client_secret: socialSetting?.value?.google_client_secret || "",
         facebook_app_id: socialSetting?.value?.facebook_app_id || "",
       });
 
@@ -118,6 +119,7 @@ export const Integrations: React.FC = () => {
       key: "social_auth",
       value: {
         google_client_id: values.google_client_id,
+        google_client_secret: values.google_client_secret,
         facebook_app_id: values.facebook_app_id,
       },
       description: "OAuth App Client IDs",
@@ -350,6 +352,11 @@ export const Integrations: React.FC = () => {
                 <Col xs={24} md={12}>
                   <Form.Item name="google_client_id" label="Google OAuth Client ID">
                     <Input placeholder="xxxxxx-yyyyyy.apps.googleusercontent.com" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={12}>
+                  <Form.Item name="google_client_secret" label="Google OAuth Client Secret">
+                    <Input.Password placeholder="GOCSPX-..." />
                   </Form.Item>
                 </Col>
                 <Col xs={24} md={12}>

@@ -595,14 +595,14 @@ def save_setting(request, data: SiteSettingInputSchema):
     """Create or update a site setting (Requires admin permission)."""
     enforce_permission(request, "core", "edit_settings")
     
-    # If the setting is social_auth and the payload is missing secrets, 
+    # If the setting is social_auth and the payload is missing secrets (or they are empty strings),
     # preserve the existing secrets so they aren't overwritten by the redacted frontend view.
     new_value = dict(data.value)
     if data.key == "social_auth":
         existing = SiteSetting.get_value(data.key) or {}
-        if "google_client_secret" not in new_value and "google_client_secret" in existing:
+        if not new_value.get("google_client_secret") and existing.get("google_client_secret"):
             new_value["google_client_secret"] = existing["google_client_secret"]
-        if "facebook_client_secret" not in new_value and "facebook_client_secret" in existing:
+        if not new_value.get("facebook_client_secret") and existing.get("facebook_client_secret"):
             new_value["facebook_client_secret"] = existing["facebook_client_secret"]
 
     setting, created = SiteSetting.objects.update_or_create(
