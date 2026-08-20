@@ -239,17 +239,10 @@ export const FloatingPlayer: React.FC = () => {
           step="0.1"
           value={displayTime || 0}
           onChange={(e) => setDragTime(parseFloat(e.target.value))}
-          onMouseUp={() => {
-            if (dragTime !== null) {
-              seek(dragTime);
-              setDragTime(null);
-            }
-          }}
-          onTouchEnd={() => {
-            if (dragTime !== null) {
-              seek(dragTime);
-              setDragTime(null);
-            }
+          onPointerUp={(e) => {
+            const time = parseFloat(e.currentTarget.value);
+            seek(time);
+            setDragTime(null);
           }}
           className="player-slider"
           style={{ flex: 1 }}
