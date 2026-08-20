@@ -568,20 +568,46 @@ def list_settings(request):
 
 @router.get("/settings/{key}", response=SiteSettingSchema)
 def get_setting(request, key: str):
-    """Retrieve value of a specific setting key (Requires authentication)."""
+    """Retrieve value of a specific setting key (Publicly accessible)."""
     val = SiteSetting.get_value(key)
     if val is None:
         return {"key": key, "value": {}}
-    setting = SiteSetting.objects.get(key=key)
-    return setting
+    
+    # Redact sensitive fields for public endpoint
+    redacted_val = dict(val)
+    if key == "social_auth":
+        redacted_val.pop("google_client_secret", None)
+        redacted_val.pop("facebook_client_secret", None)
+        
+    return {"key": key, "value": redacted_val, "description": SiteSetting.objects.get(key=key).description}
+
+@router.get("/settings-admin/{key}", response=SiteSettingSchema, auth=BearerAuth())
+def get_admin_setting(request, key: str):
+    """Retrieve value of a specific setting key including secrets (Requires admin permission)."""
+    enforce_permission(request, "core", "edit_settings")
+    val = SiteSetting.get_value(key)
+    if val is None:
+        return {"key": key, "value": {}}
+    return SiteSetting.objects.get(key=key)
 
 @router.post("/settings", response=SiteSettingSchema, auth=BearerAuth())
 def save_setting(request, data: SiteSettingInputSchema):
     """Create or update a site setting (Requires admin permission)."""
     enforce_permission(request, "core", "edit_settings")
+    
+    # If the setting is social_auth and the payload is missing secrets, 
+    # preserve the existing secrets so they aren't overwritten by the redacted frontend view.
+    new_value = dict(data.value)
+    if data.key == "social_auth":
+        existing = SiteSetting.get_value(data.key) or {}
+        if "google_client_secret" not in new_value and "google_client_secret" in existing:
+            new_value["google_client_secret"] = existing["google_client_secret"]
+        if "facebook_client_secret" not in new_value and "facebook_client_secret" in existing:
+            new_value["facebook_client_secret"] = existing["facebook_client_secret"]
+
     setting, created = SiteSetting.objects.update_or_create(
         key=data.key,
-        defaults={"value": data.value, "description": data.description}
+        defaults={"value": new_value, "description": data.description}
     )
     return setting
 
