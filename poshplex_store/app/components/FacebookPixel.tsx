@@ -3,7 +3,7 @@
 import React, { useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import Script from "next/script";
-import * as fpixel from "../lib/fpixel";
+import * as fpixel from "../../lib/fpixel";
 
 interface Props {
   fbPixelId: string;
