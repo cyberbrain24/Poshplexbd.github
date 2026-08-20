@@ -89,7 +89,7 @@ services:
     env_file:
       - .env
     extra_hosts:
-      - "store.poshplexbd.com:host-gateway"
+      - "poshplexbd.com:host-gateway"
       - "api.poshplexbd.com:host-gateway"
       - "admin.poshplexbd.com:host-gateway"
     command: >
@@ -129,15 +129,15 @@ services:
       context: ./poshplex_store
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: "https://store.poshplexbd.com"
+        NEXT_PUBLIC_API_URL: "https://poshplexbd.com"
     container_name: poshplex_store
     restart: unless-stopped
     extra_hosts:
-      - "store.poshplexbd.com:host-gateway"
+      - "poshplexbd.com:host-gateway"
       - "api.poshplexbd.com:host-gateway"
       - "admin.poshplexbd.com:host-gateway"
     environment:
-      NEXT_PUBLIC_API_URL: "https://store.poshplexbd.com"
+      NEXT_PUBLIC_API_URL: "https://poshplexbd.com"
       REDIS_URL: "redis://redis:6379/2"
     ports:
       - "3000:3000"
@@ -154,7 +154,7 @@ services:
     container_name: poshplex_admin
     restart: unless-stopped
     extra_hosts:
-      - "store.poshplexbd.com:host-gateway"
+      - "poshplexbd.com:host-gateway"
       - "api.poshplexbd.com:host-gateway"
       - "admin.poshplexbd.com:host-gateway"
     environment:
