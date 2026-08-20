@@ -19,6 +19,10 @@ RUN echo 'server { \
         index index.html index.htm; \
         try_files $uri $uri/ /index.html; \
     } \
+    location ~* \.html$ { \
+        root /usr/share/nginx/html; \
+        add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"; \
+    } \
 }' > /etc/nginx/conf.d/default.conf
 
 EXPOSE 3001
