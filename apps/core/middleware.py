@@ -63,6 +63,10 @@ class RateLimitMiddleware:
             return self.get_response(request)
 
         ip = self._get_client_ip(request)
+        
+        # Skip rate limiting for internal server-to-server communication (Next.js fetching Django)
+        if ip.startswith('172.') or ip.startswith('192.168.') or ip.startswith('10.') or ip == '127.0.0.1':
+            return self.get_response(request)
         cache_key = f"rl_{ip}"
         now = time.time()
         window_start = now - 60  # 1-minute sliding window
