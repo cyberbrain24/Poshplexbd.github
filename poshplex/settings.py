@@ -31,6 +31,8 @@ if 'api.poshplexbd.com' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('api.poshplexbd.com')
 if 'testserver' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('testserver')
+if 'backend' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('backend')
 
 
 # Application definition

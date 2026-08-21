@@ -127,7 +127,7 @@ services:
       network: host
       args:
         NEXT_PUBLIC_API_URL: "https://poshplexbd.com"
-        INTERNAL_API_URL: "http://127.0.0.1:8000"
+        INTERNAL_API_URL: "https://poshplexbd.com"
     container_name: poshplex_store
     restart: unless-stopped
     environment:
