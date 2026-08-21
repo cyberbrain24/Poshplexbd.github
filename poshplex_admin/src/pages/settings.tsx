@@ -9,6 +9,7 @@ const { Title, Paragraph } = Typography;
 export const SettingsPage: React.FC = () => {
   const [generalForm] = Form.useForm();
   const [seoForm] = Form.useForm();
+  const [storageForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
 
   // Fetch media library assets for the banner/og_image select dropdown
@@ -55,6 +56,23 @@ export const SettingsPage: React.FC = () => {
             meta_description: "Heavyweight distressed boxy street-culture brand. Mapped deliveries across Banani, Dhaka, Bangladesh.",
             meta_keywords: "poshplex, streetwear, dhaka, heavyweight, t-shirts",
             og_image_url: ""
+          });
+        }
+
+        // Load storage settings
+        try {
+          const resStorage = await axios.get((import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/core/settings/cloudflare_r2_config", { headers });
+          if (resStorage.data && resStorage.data.value) {
+            storageForm.setFieldsValue(resStorage.data.value);
+          }
+        } catch (err) {
+          storageForm.setFieldsValue({
+            use_r2: false,
+            bucket_name: "",
+            endpoint_url: "",
+            custom_domain: "",
+            access_key_id: "",
+            secret_access_key: ""
           });
         }
       } catch (err) {
@@ -194,6 +212,45 @@ export const SettingsPage: React.FC = () => {
                     </Form.Item>
                     <Form.Item style={{ marginBottom: 0 }}>
                       <Button type="primary" htmlType="submit" icon={<SaveOutlined />} loading={loading}>Save SEO Settings</Button>
+                    </Form.Item>
+                  </Form>
+                </Card>
+              </Col>
+            </Row>
+          )
+        },
+        {
+          key: "storage",
+          label: <span><SettingOutlined /> Storage Integration</span>,
+          forceRender: true,
+          children: (
+            <Row gutter={[24, 24]}>
+              <Col xs={24} lg={16}>
+                <Card title={<Space><SettingOutlined /><span>Cloudflare R2 / S3 Configuration</span></Space>}>
+                  <Form form={storageForm} name="settingsStorageForm" layout="vertical" onFinish={(vals) => onSave("cloudflare_r2_config", vals, "Cloudflare R2 settings")} requiredMark={false}>
+                    <Paragraph type="secondary" style={{ marginBottom: 24 }}>
+                      Configure a custom S3-compatible storage provider (like Cloudflare R2 or AWS S3) for your media files. If disabled, files will be saved directly to the VPS local disk.
+                    </Paragraph>
+                    <Form.Item name="use_r2" valuePropName="checked" label="Storage Mode">
+                        <Select options={[{value: true, label: "Cloudflare R2 / S3 (External)"}, {value: false, label: "Local Disk (Internal VPS)"}]} />
+                    </Form.Item>
+                    <Form.Item name="bucket_name" label="Bucket Name">
+                      <Input placeholder="e.g. poshplexbd-vps" style={{ borderRadius: 0 }} />
+                    </Form.Item>
+                    <Form.Item name="endpoint_url" label="Endpoint URL">
+                      <Input placeholder="e.g. https://<account_id>.r2.cloudflarestorage.com" style={{ borderRadius: 0 }} />
+                    </Form.Item>
+                    <Form.Item name="custom_domain" label="Custom Domain (Optional)">
+                      <Input placeholder="e.g. media.poshplexbd.com" style={{ borderRadius: 0 }} />
+                    </Form.Item>
+                    <Form.Item name="access_key_id" label="Access Key ID">
+                      <Input placeholder="e.g. 324d208a4618b4db91c..." style={{ borderRadius: 0 }} />
+                    </Form.Item>
+                    <Form.Item name="secret_access_key" label="Secret Access Key">
+                      <Input.Password placeholder="e.g. f6c473a7e80e47078f4a..." style={{ borderRadius: 0 }} />
+                    </Form.Item>
+                    <Form.Item style={{ marginBottom: 0 }}>
+                      <Button type="primary" htmlType="submit" icon={<SaveOutlined />} loading={loading}>Save Storage Settings</Button>
                     </Form.Item>
                   </Form>
                 </Card>

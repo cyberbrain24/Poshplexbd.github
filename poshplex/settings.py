@@ -143,29 +143,31 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # CLOUDFLARE R2 / S3 STORAGE
 # --------------------------
 USE_CLOUDFLARE_R2 = env('USE_CLOUDFLARE_R2', default=False, cast=bool)
-if USE_CLOUDFLARE_R2:
-    if 'storages' not in INSTALLED_APPS:
-        INSTALLED_APPS.append('storages')
-    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-    AWS_ACCESS_KEY_ID = env('R2_ACCESS_KEY_ID', default='')
-    AWS_SECRET_ACCESS_KEY = env('R2_SECRET_ACCESS_KEY', default='')
-    AWS_STORAGE_BUCKET_NAME = env('R2_BUCKET_NAME', default='')
-    AWS_S3_ENDPOINT_URL = env('R2_ENDPOINT_URL', default='')
-    AWS_S3_CUSTOM_DOMAIN = env('R2_CUSTOM_DOMAIN', default='')
-    if not AWS_S3_CUSTOM_DOMAIN:
-        AWS_S3_CUSTOM_DOMAIN = None
-    AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
-    AWS_DEFAULT_ACL = None # Cloudflare R2 doesn't support ACLs
-    AWS_S3_SIGNATURE_VERSION = 's3v4'
-    AWS_S3_FILE_OVERWRITE = False
+
+# We always add storages to INSTALLED_APPS so it's available for DynamicStorageRouter
+if 'storages' not in INSTALLED_APPS:
+    INSTALLED_APPS.append('storages')
     
-    # If a custom domain is provided, use it for media URLs
-    if AWS_S3_CUSTOM_DOMAIN:
-        MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
-    else:
-        # Fallback to the ugly endpoint URL if no custom domain or .r2.dev is provided
-        # Though usually R2 provides a pub-*.r2.dev URL which should go into custom domain
-        MEDIA_URL = f'{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/'
+DEFAULT_FILE_STORAGE = 'apps.core.storage.DynamicStorageRouter'
+
+# Fallbacks for initial startup or migrations before DB is populated
+AWS_ACCESS_KEY_ID = env('R2_ACCESS_KEY_ID', default='')
+AWS_SECRET_ACCESS_KEY = env('R2_SECRET_ACCESS_KEY', default='')
+AWS_STORAGE_BUCKET_NAME = env('R2_BUCKET_NAME', default='')
+AWS_S3_ENDPOINT_URL = env('R2_ENDPOINT_URL', default='')
+AWS_S3_CUSTOM_DOMAIN = env('R2_CUSTOM_DOMAIN', default='')
+if not AWS_S3_CUSTOM_DOMAIN:
+    AWS_S3_CUSTOM_DOMAIN = None
+
+# Custom router handles MEDIA_URL dynamically by overriding the url() method,
+# but we still need a global MEDIA_URL for local development.
+# If a custom domain is provided in env, use it as fallback for MEDIA_URL
+if AWS_S3_CUSTOM_DOMAIN:
+    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
+elif USE_CLOUDFLARE_R2 and AWS_S3_ENDPOINT_URL:
+    MEDIA_URL = f'{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/'
+else:
+    MEDIA_URL = '/media/'
 
 
 # Default primary key field type
