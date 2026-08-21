@@ -313,8 +313,8 @@ export const Catalog: React.FC = () => {
       fetchProducts();
     } catch (err: any) {
       Modal.error({
-        title: "Product Deletion Blocked",
-        content: err.response?.data?.message || "This product cannot be deleted as it appears in past orders."
+        title: "Product Deletion Failed",
+        content: err.response?.data?.message || err.response?.data?.detail || "An unexpected error occurred while deleting the product."
       });
     }
   };
