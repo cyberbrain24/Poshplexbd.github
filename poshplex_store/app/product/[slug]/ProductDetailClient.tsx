@@ -35,7 +35,15 @@ const getAttributeWeight = (k: string) => {
 type AccordionSection = "description" | "sizeGuide" | "care" | "reviews";
 
 
-export default function ProductDetailClient({ product }: { product: any }) {
+export default function ProductDetailClient({ 
+  product, 
+  initialReviews = [], 
+  initialRelatedProducts = [] 
+}: { 
+  product: any, 
+  initialReviews?: any[], 
+  initialRelatedProducts?: any[] 
+}) {
   const router = useRouter();
   const { addToCart } = useCart();
 
@@ -47,13 +55,27 @@ export default function ProductDetailClient({ product }: { product: any }) {
 
   useEffect(() => {
     if (product) {
-      fpixel.trackEvent("ViewContent", {
-        content_name: product.name,
-        content_ids: [product.sku || product.id],
-        content_type: "product",
-        value: parseFloat(product.selling_price || product.price || product.base_price || 0),
-        currency: "BDT",
-      });
+      if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+        window.requestIdleCallback(() => {
+          fpixel.trackEvent("ViewContent", {
+            content_name: product.name,
+            content_ids: [product.sku || product.id],
+            content_type: "product",
+            value: parseFloat(product.selling_price || product.price || product.base_price || 0),
+            currency: "BDT",
+          });
+        });
+      } else {
+        setTimeout(() => {
+          fpixel.trackEvent("ViewContent", {
+            content_name: product.name,
+            content_ids: [product.sku || product.id],
+            content_type: "product",
+            value: parseFloat(product.selling_price || product.price || product.base_price || 0),
+            currency: "BDT",
+          });
+        }, 1000);
+      }
     }
   }, [product]);
 
@@ -106,11 +128,17 @@ export default function ProductDetailClient({ product }: { product: any }) {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   /* reviews */
-  const [reviews, setReviews] = useState<any[]>([]);
-  const [avgRating, setAvgRating] = useState(product.rating_average || 0);
-  const [reviewCount, setReviewCount] = useState(product.rating_count || 0);
-  const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
-  const [isRelatedLoading, setIsRelatedLoading] = useState(true);
+  const [reviews, setReviews] = useState<any[]>(initialReviews);
+  const [avgRating, setAvgRating] = useState(() => {
+    if (initialReviews.length) {
+      const sum = initialReviews.reduce((a: number, r: any) => a + r.rating, 0);
+      return +(sum / initialReviews.length).toFixed(1);
+    }
+    return product.rating_average || 0;
+  });
+  const [reviewCount, setReviewCount] = useState(initialReviews.length || product.rating_count || 0);
+  const [relatedProducts, setRelatedProducts] = useState<any[]>(initialRelatedProducts);
+  const [isRelatedLoading, setIsRelatedLoading] = useState(false);
 
   /* review form */
   const [reviewRating, setReviewRating] = useState(5);
@@ -145,27 +173,6 @@ export default function ProductDetailClient({ product }: { product: any }) {
     checkMyReview();
   }, [product.id]);
 
-  /* ── load reviews ── */
-  useEffect(() => {
-    (async () => {
-      try {
-        const API_URL = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-        const res = await fetch(
-          `${API_URL}/api/v1/catalog/products/${product.slug}/reviews`
-        );
-        if (res.ok) {
-          const data = await res.json();
-          setReviews(data);
-          if (data.length) {
-            const sum = data.reduce((a: number, r: any) => a + r.rating, 0);
-            setAvgRating(+(sum / data.length).toFixed(1));
-            setReviewCount(data.length);
-          }
-        }
-      } catch { }
-    })();
-  }, [product.slug]);
-
   /* ── auto-open review form if edit_review is true ── */
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -175,38 +182,6 @@ export default function ProductDetailClient({ product }: { product: any }) {
       }
     }
   }, []);
-
-  /* ── load related products ── */
-  useEffect(() => {
-    const fetchRelated = async () => {
-      try {
-        setIsRelatedLoading(true);
-        const API_URL = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-        const res = await fetch(`${API_URL}/api/v1/catalog/products?limit=100`);
-        if (res.ok) {
-          const data = await res.json();
-          const list = data.results || data || [];
-          const filtered = list.filter((p: any) => p.id !== product.id);
-          const currentCatSlug = product.category?.slug || product.categories?.[0]?.slug;
-          const sameCategory = filtered.filter((p: any) => {
-            const slugs = [p.category?.slug, ...(p.categories || []).map((c: any) => c.slug)].filter(Boolean);
-            return currentCatSlug && slugs.includes(currentCatSlug);
-          });
-          if (sameCategory.length >= 4) {
-            setRelatedProducts(sameCategory);
-          } else {
-            const combined = [...sameCategory, ...filtered.filter((p: any) => !sameCategory.includes(p))];
-            setRelatedProducts(combined);
-          }
-        }
-      } catch (err) {
-        console.error("Failed to load related products:", err);
-      } finally {
-        setIsRelatedLoading(false);
-      }
-    };
-    fetchRelated();
-  }, [product.id, product.category, product.categories]);
 
   /* ── variant helpers ── */
   const attributeGroups: Record<string, Set<string>> = {};
@@ -419,7 +394,6 @@ export default function ProductDetailClient({ product }: { product: any }) {
                     alt={`${product.name} view ${idx + 1}`}
                     fill
                     priority
-                    unoptimized
                     sizes="(max-width: 768px) 100vw, 50vw"
                     className="product-hero-img object-contain"
                     style={{ objectFit: 'contain' }}
@@ -434,7 +408,6 @@ export default function ProductDetailClient({ product }: { product: any }) {
                   alt={product.name}
                   fill
                   priority
-                  unoptimized
                   sizes="(max-width: 768px) 100vw, 50vw"
                   className="product-hero-img object-contain"
                   style={{ objectFit: 'contain' }}

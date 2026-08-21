@@ -17,8 +17,48 @@ async function getProduct(slug: string) {
     return null; // Product explicitly not found
   }
   
-  // Prevent Next.js from caching a temporary backend crash as a permanent 'Not Found' page
+// Prevent Next.js from caching a temporary backend crash as a permanent 'Not Found' page
   throw new Error(`Backend unavailable: ${res.status}`);
+}
+
+async function getReviews(slug: string) {
+  try {
+    const API_URL = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const res = await fetch(`${API_URL}/api/v1/catalog/products/${slug}/reviews`, { next: { revalidate: 60 } });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.error("Failed to fetch reviews:", err);
+  }
+  return [];
+}
+
+async function getRelatedProducts(product: any) {
+  try {
+    const API_URL = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const res = await fetch(`${API_URL}/api/v1/catalog/products?limit=100`, { next: { revalidate: 60 } });
+    if (res.ok) {
+      const data = await res.json();
+      const list = data.results || data || [];
+      const filtered = list.filter((p: any) => p.id !== product.id);
+      const currentCatSlug = product.category?.slug || product.categories?.[0]?.slug;
+      
+      const sameCategory = filtered.filter((p: any) => {
+        const slugs = [p.category?.slug, ...(p.categories || []).map((c: any) => c.slug)].filter(Boolean);
+        return currentCatSlug && slugs.includes(currentCatSlug);
+      });
+      
+      if (sameCategory.length >= 4) {
+        return sameCategory;
+      } else {
+        return [...sameCategory, ...filtered.filter((p: any) => !sameCategory.includes(p))];
+      }
+    }
+  } catch (err) {
+    console.error("Failed to fetch related products:", err);
+  }
+  return [];
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -52,5 +92,12 @@ export default async function ProductPage({ params }: Props) {
       </div>
     );
   }
-  return <ProductDetailClient product={product} />;
+
+  // Fetch reviews and related products in parallel on the server
+  const [reviews, relatedProducts] = await Promise.all([
+    getReviews(params.slug),
+    getRelatedProducts(product)
+  ]);
+
+  return <ProductDetailClient product={product} initialReviews={reviews} initialRelatedProducts={relatedProducts} />;
 }
