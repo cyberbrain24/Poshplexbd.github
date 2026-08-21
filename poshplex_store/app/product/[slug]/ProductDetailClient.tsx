@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { Heart, Star, ChevronDown, ChevronUp, Minus, Plus, Camera, X, Send, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from 'react-hot-toast';
 import { fetchWithAuth } from "../../utils/fetchWithAuth";
@@ -389,30 +388,22 @@ export default function ProductDetailClient({
             {images.length > 0 ? (
               images.map((img: any, idx: number) => (
                 <div key={idx} suppressHydrationWarning style={{ flex: "0 0 100%", scrollSnapAlign: "start", position: "relative", width: "100%", aspectRatio: "1/1" }}>
-                  <Image
+                  <img
                     src={img.url || "https://placehold.co/600x600/f0f0f0/999.png?text=No+Image"}
                     alt={`${product.name} view ${idx + 1}`}
-                    fill
-                    priority
-                    unoptimized
-                    sizes="(max-width: 768px) 100vw, 50vw"
                     className="product-hero-img object-contain"
-                    style={{ objectFit: 'contain' }}
+                    style={{ width: "100%", height: "100%", objectFit: 'contain', position: 'absolute', top: 0, left: 0 }}
                     onClick={() => setLightboxUrl(img.url)}
                   />
                 </div>
               ))
             ) : (
               <div suppressHydrationWarning style={{ flex: "0 0 100%", scrollSnapAlign: "start", position: "relative", width: "100%", aspectRatio: "1/1" }}>
-                <Image
+                <img
                   src={`https://placehold.co/600x600/f0f0f0/999.png?text=${encodeURIComponent(product.name)}`}
                   alt={product.name}
-                  fill
-                  priority
-                  unoptimized
-                  sizes="(max-width: 768px) 100vw, 50vw"
                   className="product-hero-img object-contain"
-                  style={{ objectFit: 'contain' }}
+                  style={{ width: "100%", height: "100%", objectFit: 'contain', position: 'absolute', top: 0, left: 0 }}
                 />
               </div>
             )}
@@ -842,7 +833,7 @@ export default function ProductDetailClient({
                             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                               {attachedPhotos.map((url, i) => (
                                 <div key={i} style={{ position: "relative", width: 52, height: 52 }}>
-                                  <Image src={url} alt="" fill style={{ objectFit: "cover", borderRadius: 4 }} />
+                                  <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 4, position: "absolute", top: 0, left: 0 }} />
                                   <button type="button" onClick={() => setAttachedPhotos(p => p.filter((_, j) => j !== i))}
                                     style={{ position: "absolute", top: -4, right: -4, width: 16, height: 16, background: "#e11d48", color: "#fff", border: "none", borderRadius: "50%", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                                   >×</button>
@@ -876,7 +867,7 @@ export default function ProductDetailClient({
                                       style={{ width: "100%", aspectRatio: "3/4", position: "relative", cursor: "zoom-in" }}
                                       onClick={() => setLightboxUrl(thumb)}
                                     >
-                                      <Image src={thumb} alt="Review" fill style={{ objectFit: "cover" }} />
+                                      <img src={thumb} alt="Review" style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", top: 0, left: 0 }} />
                                     </div>
                                   )}
                                   <div style={{ padding: "12px", display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
@@ -944,7 +935,7 @@ export default function ProductDetailClient({
             <X size={30} />
           </button>
           <div style={{ position: "relative", width: "80vw", height: "85vh" }}>
-            <Image src={lightboxUrl} alt="Zoomed" fill sizes="80vw" style={{ objectFit: "contain" }} />
+            <img src={lightboxUrl} alt="Zoomed" style={{ width: "100%", height: "100%", objectFit: "contain", position: "absolute", top: 0, left: 0 }} />
           </div>
         </div>
       )}
