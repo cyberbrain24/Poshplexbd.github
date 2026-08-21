@@ -32,8 +32,6 @@ const withPWA = require("@ducanh2912/next-pwa").default({
 
 const nextConfig = {
   reactStrictMode: true,
-  cacheHandler: process.env.NODE_ENV === "production" ? require.resolve("./cache-handler.js") : undefined,
-  cacheMaxMemorySize: 0, // Disable Next.js default in-memory cache to force Redis usage
   output: 'standalone',
   eslint: {
     ignoreDuringBuilds: true,
