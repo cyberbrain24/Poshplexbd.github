@@ -8,6 +8,25 @@ const withPWA = require("@ducanh2912/next-pwa").default({
   disable: process.env.NODE_ENV === "development",
   workboxOptions: {
     disableDevLogs: true,
+    // Exclude media files, API calls, and any localhost references from SW caching
+    // This prevents broken localhost:8000 URLs from being permanently cached
+    exclude: [
+      /\/media\//,
+      /localhost/,
+      /127\.0\.0\.1/,
+    ],
+    runtimeCaching: [
+      {
+        // Never cache media files - always fetch fresh from the server
+        urlPattern: /\/media\/.*/,
+        handler: 'NetworkOnly',
+      },
+      {
+        // Never cache API responses in SW - let Next.js handle caching
+        urlPattern: /\/api\/.*/,
+        handler: 'NetworkOnly',
+      },
+    ],
   },
 });
 
