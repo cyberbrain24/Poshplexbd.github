@@ -17,3 +17,4 @@ google-auth
 requests
 django-storages[s3]
 boto3
+django-cleanup==9.0.0
