@@ -103,6 +103,7 @@ export default async function Home() {
             sizes="100vw"
             className="hero-image-desktop"
             style={{ objectFit: "cover" }}
+            unoptimized
           />
           {mobileBannerUrl && mobileBannerUrl !== desktopBannerUrl && (
             <Image
@@ -113,6 +114,7 @@ export default async function Home() {
               sizes="100vw"
               className="hero-image-mobile"
               style={{ objectFit: "cover" }}
+              unoptimized
             />
           )}
         </section>
@@ -150,7 +152,7 @@ export default async function Home() {
                   }}
                 >
                   {cat.image ? (
-                    <Image src={cat.image} alt="" fill sizes="(max-width: 768px) 33vw, 160px" priority style={{ objectFit: "cover" }} />
+                    <Image src={cat.image} alt="" fill sizes="(max-width: 768px) 33vw, 160px" priority unoptimized style={{ objectFit: "cover" }} />
                   ) : (
                     <span style={{ color: "#777", fontSize: 10, textTransform: "uppercase" }}>No Image</span>
                   )}
@@ -262,6 +264,7 @@ export default async function Home() {
                     alt={product.name}
                     fill
                     priority={i < 4}
+                    unoptimized
                     sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 240px"
                     style={{ objectFit: "cover" }}
                   />

@@ -394,6 +394,7 @@ export default function ProductDetailClient({
                     alt={`${product.name} view ${idx + 1}`}
                     fill
                     priority
+                    unoptimized
                     sizes="(max-width: 768px) 100vw, 50vw"
                     className="product-hero-img object-contain"
                     style={{ objectFit: 'contain' }}
@@ -408,6 +409,7 @@ export default function ProductDetailClient({
                   alt={product.name}
                   fill
                   priority
+                  unoptimized
                   sizes="(max-width: 768px) 100vw, 50vw"
                   className="product-hero-img object-contain"
                   style={{ objectFit: 'contain' }}
