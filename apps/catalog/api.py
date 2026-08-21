@@ -696,7 +696,7 @@ def upload_product_image_endpoint(
     )
     url = img.image.url
     if url and not (url.startswith("http://") or url.startswith("https://")):
-        base_url = os.environ.get('SITE_BASE_URL', 'http://localhost:8000')
+        base_url = os.environ.get('SITE_BASE_URL', 'https://poshplexbd.com' if not __import__('django.conf').conf.settings.DEBUG else 'http://localhost:8000')
         url = f"{base_url.rstrip('/')}{url}"
         
     from django.core.cache import cache
@@ -727,7 +727,7 @@ def update_product_image_endpoint(request, product_id: int, image_id: int, data:
     
     url = img.image.url if getattr(img, 'image', None) and getattr(img.image, 'url', None) else ""
     if url and not (url.startswith("http://") or url.startswith("https://")):
-        base_url = os.environ.get('SITE_BASE_URL', 'http://localhost:8000')
+        base_url = os.environ.get('SITE_BASE_URL', 'https://poshplexbd.com' if not __import__('django.conf').conf.settings.DEBUG else 'http://localhost:8000')
         url = f"{base_url.rstrip('/')}{url}"
         
     from django.core.cache import cache
@@ -849,7 +849,7 @@ def upload_category_image(request, cat_id: int, file: UploadedFile = File(...)):
     from apps.catalog.services import cache
     cache.delete("category_tree")
     import os
-    base_url = os.environ.get('SITE_BASE_URL', 'http://localhost:8000')
+    base_url = os.environ.get('SITE_BASE_URL', 'https://poshplexbd.com' if not __import__('django.conf').conf.settings.DEBUG else 'http://localhost:8000')
     url = cat.image.url
     if url and not (url.startswith("http://") or url.startswith("https://")):
         url = f"{base_url.rstrip('/')}{url}"
@@ -1019,7 +1019,7 @@ def upload_review_photo(request, file: UploadedFile = File(...), product_id: Opt
         path = default_storage.save(filename, file)
         url = default_storage.url(path)
         if url and not (url.startswith("http://") or url.startswith("https://")):
-            base_url = os.environ.get('SITE_BASE_URL', 'http://localhost:8000')
+            base_url = os.environ.get('SITE_BASE_URL', 'https://poshplexbd.com' if not __import__('django.conf').conf.settings.DEBUG else 'http://localhost:8000')
             url = f"{base_url.rstrip('/')}{url}"
         return {"url": url}
 

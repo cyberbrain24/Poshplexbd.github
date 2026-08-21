@@ -39,7 +39,7 @@ def optimize_and_save_image(file, max_width: int, prefix: str, custom_filename: 
     url = default_storage.url(path)
     
     if url and not (url.startswith("http://") or url.startswith("https://")):
-        base_url = os.environ.get('SITE_BASE_URL', 'http://localhost:8000')
+        base_url = os.environ.get('SITE_BASE_URL', 'https://poshplexbd.com' if not __import__('django.conf').conf.settings.DEBUG else 'http://localhost:8000')
         url = f"{base_url.rstrip('/')}{url}"
         
     return url

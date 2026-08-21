@@ -29,6 +29,8 @@ APPEND_SLASH = False  # Django-Ninja APIs do not use Django URL patterns; disabl
 ALLOWED_HOSTS = env('ALLOWED_HOSTS')
 if 'api.poshplexbd.com' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('api.poshplexbd.com')
+if 'poshplexbd.com' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('poshplexbd.com')
 if 'testserver' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('testserver')
 if 'backend' not in ALLOWED_HOSTS:

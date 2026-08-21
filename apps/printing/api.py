@@ -117,7 +117,7 @@ def _file_url(file_field) -> Optional[str]:
     except Exception:
         return None
     if url and not url.startswith("http"):
-        base = os.environ.get("SITE_BASE_URL", "http://localhost:8000")
+        base = os.environ.get('SITE_BASE_URL', 'https://poshplexbd.com' if not __import__('django.conf').conf.settings.DEBUG else 'http://localhost:8000')
         url = f"{base.rstrip('/')}{url}"
     return url
 

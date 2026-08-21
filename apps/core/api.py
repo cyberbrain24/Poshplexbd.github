@@ -639,7 +639,7 @@ def list_media(request):
     enforce_permission(request, "media", "view")
     
     from apps.catalog.models import ProductImage, Category, Product
-    base_url = os.environ.get('SITE_BASE_URL', 'http://localhost:8000').rstrip('/')
+    base_url = os.environ.get('SITE_BASE_URL', 'https://poshplexbd.com' if not __import__('django.conf').conf.settings.DEBUG else 'http://localhost:8000').rstrip('/')
     
     res = []
     
@@ -752,7 +752,7 @@ def upload_media(request, file: UploadedFile = File(...)):
             
         url = existing_asset.file.url if existing_asset.file else ""
         if url and not (url.startswith("http://") or url.startswith("https://")):
-            base_url = os.environ.get('SITE_BASE_URL', 'http://localhost:8000')
+            base_url = os.environ.get('SITE_BASE_URL', 'https://poshplexbd.com' if not __import__('django.conf').conf.settings.DEBUG else 'http://localhost:8000')
             url = f"{base_url.rstrip('/')}{url}"
         return {
             "id": f"asset_{existing_asset.id}",
@@ -776,7 +776,7 @@ def upload_media(request, file: UploadedFile = File(...)):
     )
     url = asset.file.url if asset.file else ""
     if url and not (url.startswith("http://") or url.startswith("https://")):
-        base_url = os.environ.get('SITE_BASE_URL', 'http://localhost:8000')
+        base_url = os.environ.get('SITE_BASE_URL', 'https://poshplexbd.com' if not __import__('django.conf').conf.settings.DEBUG else 'http://localhost:8000')
         url = f"{base_url.rstrip('/')}{url}"
     return {
         "id": f"asset_{asset.id}",

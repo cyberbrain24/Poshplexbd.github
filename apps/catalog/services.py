@@ -20,7 +20,7 @@ def get_cached_category_tree(include_inactive: bool = False) -> list:
     else:
         all_categories = list(Category.objects.filter(is_active=True))
     import os
-    base_url = os.environ.get('SITE_BASE_URL', 'http://localhost:8000')
+    base_url = os.environ.get('SITE_BASE_URL', 'https://poshplexbd.com' if not __import__('django.conf').conf.settings.DEBUG else 'http://localhost:8000')
     
     def get_full_url(url):
         if url and not (url.startswith("http://") or url.startswith("https://")):

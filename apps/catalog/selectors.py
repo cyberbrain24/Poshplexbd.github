@@ -32,7 +32,7 @@ def get_product_details(slug: str = None, product: Product = None) -> dict:
     for img in product.images.all():
         url = img.image.url if img.image else ""
         if url and not (url.startswith("http://") or url.startswith("https://")):
-            base_url = os.environ.get('SITE_BASE_URL', 'http://localhost:8000')
+            base_url = os.environ.get('SITE_BASE_URL', 'https://poshplexbd.com' if not __import__('django.conf').conf.settings.DEBUG else 'http://localhost:8000')
             url = f"{base_url.rstrip('/')}{url}"
         images_data.append({
             "id": img.id,
