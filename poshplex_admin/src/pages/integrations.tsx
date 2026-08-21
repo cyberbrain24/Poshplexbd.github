@@ -48,8 +48,8 @@ export const Integrations: React.FC = () => {
         smtp_password: configSetting?.value?.smtp_credentials?.password || "",
 
         courier_provider: configSetting?.value?.courier_provider || "mock",
-        dhl_key: configSetting?.value?.dhl_credentials?.api_key || "",
-        dhl_account: configSetting?.value?.dhl_credentials?.account_number || "",
+        steadfast_api_key: configSetting?.value?.steadfast_credentials?.api_key || "",
+        steadfast_secret_key: configSetting?.value?.steadfast_credentials?.secret_key || "",
 
         fb_pixel: pixelsSetting?.value?.fb_pixel || "",
         fb_capi_token: pixelsSetting?.value?.fb_capi_token || "",
@@ -95,12 +95,12 @@ export const Integrations: React.FC = () => {
           password: values.smtp_password,
         },
         courier_provider: values.courier_provider,
-        dhl_credentials: {
-          api_key: values.dhl_key,
-          account_number: values.dhl_account,
+        steadfast_credentials: {
+          api_key: values.steadfast_api_key,
+          secret_key: values.steadfast_secret_key,
         },
       },
-      description: "Gateway credentials for BulkSMSBD, Custom SMTP, and DHL",
+      description: "Gateway credentials for BulkSMSBD, Custom SMTP, and Steadfast Courier",
     };
 
     // 2. Compile tracking pixels & social auth payload
@@ -303,14 +303,14 @@ export const Integrations: React.FC = () => {
                   <Form.Item name="courier_provider" label="Active Logistics Gateway">
                     <Select>
                       <Select.Option value="mock">Local Delivery Mock</Select.Option>
-                      <Select.Option value="dhl">DHL Express API</Select.Option>
+                      <Select.Option value="steadfast">Steadfast Courier API</Select.Option>
                     </Select>
                   </Form.Item>
-                  <Form.Item name="dhl_key" label="DHL API Key">
-                    <Input.Password placeholder="DHL auth token" />
+                  <Form.Item name="steadfast_api_key" label="Steadfast API Key">
+                    <Input.Password placeholder="Enter Steadfast API Key" />
                   </Form.Item>
-                  <Form.Item name="dhl_account" label="DHL Shipper Account No.">
-                    <Input placeholder="DHL acct string" />
+                  <Form.Item name="steadfast_secret_key" label="Steadfast Secret Key">
+                    <Input.Password placeholder="Enter Steadfast Secret Key" />
                   </Form.Item>
                 </Col>
               </Row>
