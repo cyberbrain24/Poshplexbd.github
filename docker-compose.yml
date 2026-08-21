@@ -59,6 +59,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      SITE_BASE_URL: "https://poshplexbd.com"
     command: >
       sh -c "
         python manage.py collectstatic --noinput &&
@@ -88,6 +90,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      SITE_BASE_URL: "https://poshplexbd.com"
     command: >
       sh -c "
         celery -A poshplex worker -l info --concurrency=2 --max-tasks-per-child=100
