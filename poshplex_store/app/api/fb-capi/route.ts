@@ -31,7 +31,8 @@ export async function POST(req: Request) {
     }
 
     if (!PIXEL_ID || !ACCESS_TOKEN) {
-      return NextResponse.json({ error: "Missing Facebook credentials" }, { status: 500 });
+      // Return 200 OK so we don't pollute the browser console with 500 errors when CAPI is just disabled/not configured
+      return NextResponse.json({ message: "CAPI disabled (no credentials)" }, { status: 200 });
     }
 
     const body = await req.json();
