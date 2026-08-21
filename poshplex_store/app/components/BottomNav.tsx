@@ -61,7 +61,7 @@ export default function BottomNav() {
           href="/catalog" 
           className="category-toggle-btn"
           onClick={(e) => {
-            if (typeof window !== "undefined" && window.innerWidth <= 768) {
+            if (typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches) {
               e.preventDefault();
               document.dispatchEvent(new CustomEvent("toggle-mobile-menu"));
               closeCart();

@@ -55,7 +55,7 @@ export const FloatingPlayer: React.FC = () => {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const handleResize = () => setIsMobile(window.innerWidth <= 768);
+      const handleResize = () => setIsMobile(window.matchMedia("(max-width: 768px)").matches);
       handleResize();
       window.addEventListener("resize", handleResize);
       return () => window.removeEventListener("resize", handleResize);

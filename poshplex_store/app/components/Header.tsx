@@ -85,7 +85,7 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
   // Close category mobile menu when clicking outside
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
-      if (typeof window !== "undefined" && window.innerWidth <= 768) {
+      if (typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches) {
         if (isOpen) {
           const target = e.target as HTMLElement;
           const isCategoryToggle = target.closest(".category-toggle-btn") || target.closest(".mobile-menu-btn");
