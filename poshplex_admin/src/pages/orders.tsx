@@ -671,11 +671,11 @@ export const Orders: React.FC = () => {
                 {/* Images Top Section */}
                 <div style={{ margin: '-12px -12px 12px -12px', height: 160, display: 'flex', backgroundColor: '#f0f0f0' }}>
                   {items.length === 1 ? (
-                    <img src={items[0].image ? `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}${items[0].image}` : ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="product" />
+                    <img src={items[0].image ? (items[0].image.startsWith('http') ? items[0].image : `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}${items[0].image}`) : ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="product" />
                   ) : items.length > 1 ? (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', width: '100%', height: '100%' }}>
-                      <img src={items[0].image ? `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}${items[0].image}` : ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="product 1" />
-                      <img src={items[1].image ? `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}${items[1].image}` : ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="product 2" />
+                      <img src={items[0].image ? (items[0].image.startsWith('http') ? items[0].image : `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}${items[0].image}`) : ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="product 1" />
+                      <img src={items[1].image ? (items[1].image.startsWith('http') ? items[1].image : `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}${items[1].image}`) : ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="product 2" />
                     </div>
                   ) : (
                     <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa' }}>No Items</div>
