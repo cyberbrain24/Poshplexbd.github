@@ -10,12 +10,7 @@ from ninja import Router, Schema
 from ninja.errors import HttpError
 
 from apps.orders.models import Order, OrderItem, OrderStatusHistory
-from apps.inventory.services import (
-    validate_stock_availability, 
-    reserve_inventory, 
-    release_inventory, 
-    commit_inventory
-)
+
 from apps.marketing.models import PromoCode, PromoUsageHistory
 from apps.orders.services import (
     create_order, record_order_payment, process_return,
