@@ -133,7 +133,7 @@ export const MediaLibrary: React.FC = () => {
           />
         }
       >
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: "16px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "16px" }}>
           {visibleAssets.map((record: any) => {
             const url = record.url || `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}/media/${record.file || ""}`;
             return (
