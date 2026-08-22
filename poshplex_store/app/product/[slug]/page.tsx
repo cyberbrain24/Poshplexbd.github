@@ -64,6 +64,9 @@ async function getRelatedProducts(product: any) {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const product = await getProduct(params.slug);
   if (!product) return { title: "Product Not Found | Poshplex Streetwear" };
+  
+  const imageUrl = product.images?.[0]?.url || `https://placehold.co/600x400?text=${product.name.replace(/ /g, "+")}`;
+  
   return {
     title: `${product.name} | Poshplex Streetwear`,
     description: product.description,
@@ -72,9 +75,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: product.description,
       images: [
         {
-          url: `https://placehold.co/600x400?text=${product.name.replace(/ /g, "+")}`,
-          width: 600,
-          height: 400,
+          url: imageUrl,
+          width: 800,
+          height: 800,
           alt: product.name,
         },
       ],
