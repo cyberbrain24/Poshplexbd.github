@@ -59,11 +59,7 @@ class Track(models.Model):
         Priority: internal FileField → external URL fallback
         """
         if self.audio_file:
-            # Build an absolute URL using MEDIA_URL from settings
-            media_url = getattr(settings, 'MEDIA_URL', '/media/')
-            # Strip trailing slash from domain, add full path
-            base = media_url.rstrip('/')
-            return f"{base}/{self.audio_file.name}"
+            return self.audio_file.url
         return self.audio_url or None
 
     @property
