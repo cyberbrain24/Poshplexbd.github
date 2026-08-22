@@ -645,10 +645,7 @@ export default function CategoryClient({
             display: none !important;
           }
           .category-header-container {
-            position: sticky !important;
-            top: 79px !important;
-            z-index: 50 !important;
-            padding: 8px 12px 8px !important;
+            display: none !important;
           }
           .subcategory-nav-grid {
             display: flex !important;
