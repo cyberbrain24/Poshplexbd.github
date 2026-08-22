@@ -102,7 +102,19 @@ export default function TermsConditionsPage() {
           </ul>
         </div>
 
-        {/* Section 5 */}
+        {/* Section 5 - User Accounts & Authentication */}
+        <div style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-glass)", borderRadius: 20, padding: 32 }}>
+          <h3 style={{ fontSize: 18, fontWeight: 800, color: "var(--text-main)", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
+            <Lock size={20} color="#3b82f6" /> User Accounts & Authentication
+          </h3>
+          <ul style={{ paddingLeft: 20, fontSize: 14, color: "var(--text-muted)", lineHeight: 1.8, display: "flex", flexDirection: "column", gap: 8 }}>
+            <li>You may create an account using your email address or securely through third-party services like Google Login.</li>
+            <li>By logging in with Google, you authorize us to securely access your basic profile information (such as name and email) to create and manage your Poshplex account.</li>
+            <li>You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account.</li>
+          </ul>
+        </div>
+
+        {/* Section 6 */}
         <div style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-glass)", borderRadius: 20, padding: 32 }}>
           <h3 style={{ fontSize: 18, fontWeight: 800, color: "var(--text-main)", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
             <Lock size={20} color="#ef4444" /> Use of Our Content

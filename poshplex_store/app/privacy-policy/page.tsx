@@ -64,6 +64,24 @@ export default function PrivacyPolicyPage() {
           </p>
         </div>
 
+        {/* Section 1.5 - Google Login */}
+        <div style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-glass)", borderRadius: 20, padding: 32 }}>
+          <h3 style={{ fontSize: 18, fontWeight: 800, color: "var(--text-main)", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
+            <Lock size={20} color="#3b82f6" /> Account Creation & Google Login
+          </h3>
+          <p style={{ fontSize: 14, color: "var(--text-muted)", lineHeight: 1.6, marginBottom: 16 }}>
+            When you create an account or sign in using a third-party authentication provider like Google, we collect and securely store:
+          </p>
+          <ul style={{ paddingLeft: 20, fontSize: 14, color: "var(--text-main)", lineHeight: 1.8, display: "flex", flexDirection: "column", gap: 8 }}>
+            <li>Your primary email address (to uniquely identify your account).</li>
+            <li>Your basic profile information, such as your full name.</li>
+            <li>Your profile picture or avatar (if available).</li>
+          </ul>
+          <p style={{ fontSize: 14, color: "var(--text-muted)", lineHeight: 1.6, marginTop: 16 }}>
+            This data is used strictly to authenticate you securely, manage your active sessions, track your order history, and personalize your experience on our platform. We do not have access to your Google password, and we do not share your authentication data with third parties.
+          </p>
+        </div>
+
         {/* Section 2 */}
         <div style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-glass)", borderRadius: 20, padding: 32 }}>
           <h3 style={{ fontSize: 18, fontWeight: 800, color: "var(--text-main)", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
