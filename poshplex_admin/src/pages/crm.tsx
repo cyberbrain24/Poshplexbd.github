@@ -449,12 +449,12 @@ const Reviews: React.FC = () => {
               showSearch
               placeholder="Select a customer"
               optionFilterProp="children"
-              filterOption={(input, option: any) =>
-                option.children
-                  .join("")
-                  .toLowerCase()
-                  .includes(input.toLowerCase())
-              }
+              filterOption={(input, option: any) => {
+                const text = Array.isArray(option.children) 
+                  ? option.children.join("") 
+                  : (option.children || "");
+                return String(text).toLowerCase().includes(input.toLowerCase());
+              }}
             >
               {customers.map((c) => (
                 <Select.Option key={c.phone} value={c.phone}>
@@ -472,9 +472,12 @@ const Reviews: React.FC = () => {
               showSearch
               placeholder="Select a product"
               optionFilterProp="children"
-              filterOption={(input, option: any) =>
-                option.children.toLowerCase().includes(input.toLowerCase())
-              }
+              filterOption={(input, option: any) => {
+                const text = Array.isArray(option.children) 
+                  ? option.children.join("") 
+                  : (option.children || "");
+                return String(text).toLowerCase().includes(input.toLowerCase());
+              }}
               onChange={(val) => setSelectedCreateProductId(val)}
             >
               {products.map((p) => (
