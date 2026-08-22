@@ -702,7 +702,10 @@ def list_media(request):
             url = f"{base_url}{url}"
             
         file_name = os.path.basename(cat.image.name) if cat.image else f"category_{cat.id}_image"
-        size = cat.image.size if cat.image else 0
+        try:
+            size = cat.image.size if cat.image else 0
+        except FileNotFoundError:
+            size = 0
         
         res.append({
             "id": f"category_{cat.id}",
