@@ -304,10 +304,20 @@ def list_orders(
     sku_to_details = {}
     if all_skus:
         from apps.catalog.models import ProductVariant
-        variants = ProductVariant.objects.filter(sku__in=all_skus).select_related('image')
+        variants = ProductVariant.objects.filter(sku__in=all_skus).select_related('image', 'product').prefetch_related('product__images')
         for v in variants:
+            image_url = None
+            if v.image and v.image.image:
+                image_url = v.image.image.url
+            else:
+                prod_images = list(v.product.images.all())
+                if prod_images:
+                    main_img = next((img for img in prod_images if img.is_main), prod_images[0])
+                    if main_img.image:
+                        image_url = main_img.image.url
+                        
             sku_to_details[v.sku] = {
-                "image": v.image.image.url if (v.image and v.image.image) else None,
+                "image": image_url,
                 "attributes": v.attributes
             }
 
@@ -940,10 +950,20 @@ def list_fulfillment_queue(
     sku_to_details = {}
     if all_skus:
         from apps.catalog.models import ProductVariant
-        variants = ProductVariant.objects.filter(sku__in=all_skus).select_related('image')
+        variants = ProductVariant.objects.filter(sku__in=all_skus).select_related('image', 'product').prefetch_related('product__images')
         for v in variants:
+            image_url = None
+            if v.image and v.image.image:
+                image_url = v.image.image.url
+            else:
+                prod_images = list(v.product.images.all())
+                if prod_images:
+                    main_img = next((img for img in prod_images if img.is_main), prod_images[0])
+                    if main_img.image:
+                        image_url = main_img.image.url
+                        
             sku_to_details[v.sku] = {
-                "image": v.image.image.url if (v.image and v.image.image) else None,
+                "image": image_url,
                 "attributes": v.attributes
             }
 
