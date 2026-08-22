@@ -5,7 +5,7 @@ import environ
 env = environ.Env(
     DEBUG=(bool, True),
     ALLOWED_HOSTS=(list, ['localhost', '127.0.0.1']),
-    DATABASE_URL=(str, 'sqlite:///db.sqlite3'),
+    DATABASE_URL=(str),
     REDIS_URL=(str, ''),
     CORS_ALLOWED_ORIGINS=(list, ['http://localhost:3000', 'http://localhost:3001']),
     RATE_LIMIT_PER_MINUTE=(int, 100),
