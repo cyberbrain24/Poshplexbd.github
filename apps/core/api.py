@@ -650,11 +650,16 @@ def list_media(request):
         if url and not (url.startswith("http://") or url.startswith("https://")):
             url = f"{base_url}{url}"
             
+        try:
+            file_size = asset.file.size if asset.file else 0
+        except FileNotFoundError:
+            file_size = 0
+            
         res.append({
             "id": f"asset_{asset.id}",
             "file_name": asset.file_name,
             "mime_type": asset.mime_type,
-            "file_size": asset.file_size,
+            "file_size": file_size,
             "url": url,
             "created_at": asset.created_at.isoformat(),
             "usage": "Central Library",
@@ -671,8 +676,11 @@ def list_media(request):
             url = f"{base_url}{url}"
             
         file_name = os.path.basename(img.image.name) if img.image else f"product_{img.product.id}_image"
-        size = img.image.size if img.image else 0
-        
+        try:
+            size = img.image.size if img.image else 0
+        except FileNotFoundError:
+            size = 0
+            
         res.append({
             "id": f"productimage_{img.id}",
             "file_name": file_name,

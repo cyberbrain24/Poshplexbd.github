@@ -285,9 +285,11 @@ class ProductImage(models.Model):
                     self.image.save(name, ContentFile(buffer.getvalue()), save=False)
                 
                 img.close()
-                self.image.seek(0) # Reset file pointer just in case
             except Exception:
                 pass
+            finally:
+                if hasattr(self.image, 'seek'):
+                    self.image.seek(0) # Always reset file pointer
 
         super().save(*args, **kwargs)
 

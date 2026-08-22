@@ -243,7 +243,8 @@ def resolve_image_content(url_or_filename: str):
     import requests
     from apps.core.models import MediaAsset
     
-    filename = os.path.basename(url_or_filename.split("?")[0])
+    import urllib.parse
+    filename = urllib.parse.unquote(os.path.basename(url_or_filename.split("?")[0]))
     
     # Try by exact file_name matching
     asset = MediaAsset.objects.filter(file_name=filename).first()
@@ -490,8 +491,8 @@ def update_product_endpoint(request, slug: str, data: ProductCreateInputSchema):
                     try:
                         from django.core.files.base import ContentFile
                         from apps.catalog.models import ProductImage
-                        
-                        filename = os.path.basename(var.variant_image_url.split("?")[0])
+                        import urllib.parse
+                        filename = urllib.parse.unquote(os.path.basename(var.variant_image_url.split("?")[0]))
                         filename_no_ext = os.path.splitext(filename)[0]
                         
                         existing_img = None
@@ -543,7 +544,8 @@ def update_product_endpoint(request, slug: str, data: ProductCreateInputSchema):
                     if not img_url:
                         continue
                     
-                    filename = os.path.basename(img_url.split("?")[0])
+                    import urllib.parse
+                    filename = urllib.parse.unquote(os.path.basename(img_url.split("?")[0]))
                     filename_no_ext = os.path.splitext(filename)[0]
                     
                     existing_img = None
