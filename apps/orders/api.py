@@ -230,8 +230,7 @@ def compile_order_response(order: Order, sku_to_details: dict = None) -> dict:
         "items": items,
         "payments": payments,
         "returns": returns,
-        "status_history": history,
-        "created_at": order.created_at
+        "status_history": history
     }
 
 # --- REST Endpoints ---
@@ -595,7 +594,7 @@ def customer_checkout_endpoint(request, data: OrderCreateInputSchema):
                     "order_id": order.order_number,
                     "total_amount": str(order.total_amount),
                     "phone": order.shipping_phone,
-                    "email": user.email if user else (existing_user.email if 'existing_user' in locals() and existing_user else "")
+                    "email": user.email if user else getattr(locals().get('resolved_user'), 'email', "")
                 }
             )
                 
