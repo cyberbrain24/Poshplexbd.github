@@ -1196,7 +1196,10 @@ export const Catalog: React.FC = () => {
             <Button 
               type="text" 
               icon={<EyeOutlined />} 
-              onClick={() => window.open(`http://localhost:3000/product/${record.slug}`, "_blank")} 
+              onClick={() => {
+                const storeUrl = window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:3000';
+                window.open(`${storeUrl}/product/${record.slug}`, "_blank");
+              }} 
             />
           </Tooltip>
           <Button type="text" icon={<EditOutlined />} onClick={() => openEditModal(record)} />
