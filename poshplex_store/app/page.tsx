@@ -101,7 +101,7 @@ export default async function Home() {
             fill
             priority
             sizes="100vw"
-            className="hero-image-desktop"
+            className={mobileBannerUrl && mobileBannerUrl !== desktopBannerUrl ? "hide-on-mobile" : ""}
             style={{ objectFit: "cover" }}
             unoptimized
           />
@@ -112,7 +112,7 @@ export default async function Home() {
               fill
               priority
               sizes="100vw"
-              className="hero-image-mobile"
+              className="hide-on-desktop"
               style={{ objectFit: "cover" }}
               unoptimized
             />
