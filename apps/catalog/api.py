@@ -593,8 +593,9 @@ def update_product_endpoint(request, slug: str, data: ProductCreateInputSchema):
                     except Exception:
                         pass
                 
-                # Sync: Delete product images that are no longer in the list
-                product.images.exclude(id__in=keep_image_ids).delete()
+                # Sync: Delete product images that are no longer in the list explicitly to trigger file cleanup
+                for old_img in product.images.exclude(id__in=keep_image_ids):
+                    old_img.delete()
 
             # Save product at the end to trigger model clean check on active variants
             product.save()
