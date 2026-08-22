@@ -88,6 +88,7 @@ export const Catalog: React.FC = () => {
   // Modals state
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [isSavingProduct, setIsSavingProduct] = useState(false);
   const [isAttributeModalOpen, setIsAttributeModalOpen] = useState(false);
   
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -463,6 +464,7 @@ export const Catalog: React.FC = () => {
   };
 
   const handleProductSubmit = async (values: any) => {
+    setIsSavingProduct(true);
     try {
       const token = localStorage.getItem("poshplex_token") || "admin_imran";
       
@@ -561,7 +563,8 @@ export const Catalog: React.FC = () => {
 
         message.success(isNew ? "Product created successfully." : "Product updated successfully.");
         setIsProductModalOpen(false);
-        fetchProducts();
+        // User requested a hard reload to ensure all data is properly synced
+        window.location.reload();
       } catch (innerErr) {
         if (isNew && productId) {
           try {
@@ -587,6 +590,8 @@ export const Catalog: React.FC = () => {
         }
       }
       message.error(errMsg);
+    } finally {
+      setIsSavingProduct(false);
     }
   };
 
@@ -1835,6 +1840,7 @@ export const Catalog: React.FC = () => {
         onCancel={() => setIsProductModalOpen(false)}
         width="min(900px, 96vw)"
         onOk={() => productForm.submit()}
+        confirmLoading={isSavingProduct}
         styles={{ body: { paddingTop: 16 } }}
       >
         <Form form={productForm} onFinish={handleProductSubmit} layout="vertical">
