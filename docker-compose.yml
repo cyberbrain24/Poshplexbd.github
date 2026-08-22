@@ -13,7 +13,7 @@ services:
     image: pgvector/pgvector:pg16
     container_name: poshplex_postgres
     restart: unless-stopped
-    command: postgres -c shared_buffers=1GB -c effective_cache_size=2GB -c shared_preload_libraries='pg_prewarm' -c pg_prewarm.autoprewarm=true
+    command: postgres -c shared_buffers=4GB -c effective_cache_size=4GB -c shared_preload_libraries='pg_prewarm' -c pg_prewarm.autoprewarm=true
     env_file:
       - .env
     environment:
@@ -37,7 +37,7 @@ services:
     container_name: poshplex_redis
     restart: unless-stopped
     environment:
-      REDIS_ARGS: "--maxmemory 2000mb --maxmemory-policy volatile-lru --appendonly yes"
+      REDIS_ARGS: "--maxmemory 2000mb --maxmemory-policy allkeys-lru --appendonly yes"
     volumes:
       - redis_data:/data
     ports:
