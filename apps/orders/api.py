@@ -356,6 +356,77 @@ def get_order_endpoint(request, order_id: int):
         
     return compile_order_response(order)
 
+def resolve_or_create_customer(user, data: OrderCreateInputSchema, user_id_override: Optional[int] = None):
+    from django.apps import apps
+    import uuid
+    CustomerProfile = apps.get_model('crm', 'CustomerProfile')
+    
+    final_phone = data.shipping_phone or data.customer_phone
+    if user and hasattr(user, 'crm_profile') and user.crm_profile.phone and not user.crm_profile.phone.startswith('email_'):
+        final_phone = final_phone or user.crm_profile.phone
+        
+    if not final_phone and not user_id_override:
+        raise ValidationError("A valid phone number is mandatory to place an order.")
+
+    u_id = user_id_override or (user.id if user else None)
+    resolved_user = user
+    
+    # If admin provided a specific user_id, just fetch it
+    if u_id:
+        resolved_user = User.objects.filter(id=u_id).first()
+        if not resolved_user:
+            raise ValidationError("Provided customer does not exist.")
+            
+    if not u_id:
+        # 1. Match by phone
+        existing_profile = CustomerProfile.objects.filter(phone=final_phone).first()
+        if existing_profile:
+            resolved_user = existing_profile.user
+            u_id = resolved_user.id
+        else:
+            # 2. Match by email
+            if data.customer_email:
+                resolved_user = User.objects.filter(email=data.customer_email).first()
+                if resolved_user:
+                    u_id = resolved_user.id
+            
+            # 3. Create new user
+            if not u_id and data.customer_name:
+                email_val = data.customer_email or f"{uuid.uuid4().hex[:8]}@poshplex-guest.com"
+                base_username = data.customer_name.replace(" ", "").lower() or "guest"
+                username_val = base_username
+                if User.objects.filter(username=username_val).exists():
+                    username_val = f"{base_username}_{uuid.uuid4().hex[:4]}"
+                    
+                resolved_user = User.objects.create_user(
+                    username=username_val,
+                    email=email_val,
+                    password=uuid.uuid4().hex,
+                    role='customer'
+                )
+                u_id = resolved_user.id
+
+    if not u_id:
+        raise ValidationError("Please provide customer lookup or create a new customer.")
+        
+    # Sync Profile
+    profile, _ = CustomerProfile.objects.get_or_create(user=resolved_user)
+    
+    if final_phone and (not profile.phone or profile.phone.startswith('email_')):
+        profile.phone = final_phone
+    elif data.customer_phone and not profile.phone.startswith('email_'):
+        profile.phone = data.customer_phone
+            
+    if data.shipping_address:
+        profile.address = data.shipping_address
+    if data.customer_gender and data.customer_gender != "unspecified":
+        profile.gender = data.customer_gender
+    if data.customer_birthdate:
+        profile.birthdate = data.customer_birthdate
+    profile.save()
+    
+    return u_id, final_phone
+
 @router.post("", response=OrderResponseSchema, auth=BearerAuth())
 def post_order_endpoint(request, data: OrderCreateInputSchema):
     """Place a new sales order manually on behalf of a customer (Admin/CS only)."""
@@ -363,38 +434,7 @@ def post_order_endpoint(request, data: OrderCreateInputSchema):
     
     try:
         with transaction.atomic():
-            # Create user on the fly if user_id is missing and customer info is provided
-            u_id = data.user_id
-            if not u_id and data.customer_name:
-                import uuid
-                # Check duplicate
-                user = User.objects.filter(Q(username=data.customer_name) | Q(email=data.customer_email)).first()
-                if not user:
-                    email_val = data.customer_email or f"{uuid.uuid4().hex[:6]}@poshplex-guest.com"
-                    user = User.objects.create_user(
-                        username=data.customer_name,
-                        email=email_val,
-                        password=uuid.uuid4().hex,
-                        role='customer'
-                    )
-                u_id = user.id
-                
-                # Update CRM Profile
-                from django.apps import apps
-                CustomerProfile = apps.get_model('crm', 'CustomerProfile')
-                profile, _ = CustomerProfile.objects.get_or_create(user=user)
-                if data.customer_phone:
-                    profile.phone = data.customer_phone
-                if data.shipping_address:
-                    profile.address = data.shipping_address
-                if data.customer_gender and data.customer_gender != "unspecified":
-                    profile.gender = data.customer_gender
-                if data.customer_birthdate:
-                    profile.birthdate = data.customer_birthdate
-                profile.save()
-
-            if not u_id:
-                raise ValidationError("Please provide customer lookup or create a new customer.")
+            u_id, final_phone = resolve_or_create_customer(None, data, user_id_override=data.user_id)
 
             items_list = [item.dict() for item in data.items]
 
@@ -459,50 +499,7 @@ def customer_checkout_endpoint(request, data: OrderCreateInputSchema):
     
     try:
         with transaction.atomic():
-            # Create user on the fly if user is missing and customer info is provided
-            u_id = user.id if user else None
-            if not u_id and data.customer_name:
-                import uuid
-                # Check duplicate
-                existing_user = User.objects.filter(Q(username=data.customer_name) | Q(email=data.customer_email)).first()
-                if not existing_user:
-                    email_val = data.customer_email or f"{uuid.uuid4().hex[:6]}@poshplex-guest.com"
-                    existing_user = User.objects.create_user(
-                        username=data.customer_name,
-                        email=email_val,
-                        password=uuid.uuid4().hex,
-                        role='customer'
-                    )
-                u_id = existing_user.id
-                
-            # ENFORCE PHONE NUMBER
-            final_phone = data.shipping_phone or data.customer_phone
-            if user and hasattr(user, 'crm_profile') and user.crm_profile.phone and not user.crm_profile.phone.startswith('email_'):
-                final_phone = final_phone or user.crm_profile.phone
-                
-            if not final_phone:
-                raise ValidationError("A valid phone number is mandatory to place an order.")
-                
-            # Update CRM Profile
-            from django.apps import apps
-            CustomerProfile = apps.get_model('crm', 'CustomerProfile')
-            profile, _ = CustomerProfile.objects.get_or_create(user=existing_user if 'existing_user' in locals() and existing_user else user)
-            
-            if final_phone and (not profile.phone or profile.phone.startswith('email_')):
-                profile.phone = final_phone
-            elif data.customer_phone and not profile.phone.startswith('email_'):
-                profile.phone = data.customer_phone
-                    
-            if data.shipping_address:
-                profile.address = data.shipping_address
-            if data.customer_gender and data.customer_gender != "unspecified":
-                profile.gender = data.customer_gender
-            if data.customer_birthdate:
-                profile.birthdate = data.customer_birthdate
-            profile.save()
-
-            if not u_id:
-                raise ValidationError("Please provide customer lookup or create a new customer.")
+            u_id, final_phone = resolve_or_create_customer(user, data)
 
             items_list = [item.dict() for item in data.items]
 
