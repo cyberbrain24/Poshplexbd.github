@@ -1272,6 +1272,24 @@ def admin_moderate_review(request, review_id: int, data: ReviewModerationSchema)
     if data.rating is not None:
         review.rating = data.rating
     if data.images is not None:
+        # Delete images that were removed during the edit
+        removed_images = [img for img in review.images if img not in data.images]
+        if removed_images:
+            from django.core.files.storage import default_storage
+            from urllib.parse import urlparse
+            from django.conf import settings
+            media_path = urlparse(settings.MEDIA_URL).path
+            for url in removed_images:
+                if url:
+                    parsed = urlparse(url)
+                    if parsed.path.startswith(media_path):
+                        rel_path = parsed.path[len(media_path):]
+                        try:
+                            if default_storage.exists(rel_path):
+                                default_storage.delete(rel_path)
+                        except Exception:
+                            pass
+        
         review.images = data.images
         
     review.save()

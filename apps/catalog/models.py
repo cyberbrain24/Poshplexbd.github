@@ -407,9 +407,10 @@ class Review(models.Model):
             for url in self.images:
                 if url:
                     parsed = urlparse(url)
-                    path = parsed.path
-                    if path.startswith(settings.MEDIA_URL):
-                        rel_path = path[len(settings.MEDIA_URL):]
+                    media_path = urlparse(settings.MEDIA_URL).path
+                    
+                    if parsed.path.startswith(media_path):
+                        rel_path = parsed.path[len(media_path):]
                         try:
                             if default_storage.exists(rel_path):
                                 default_storage.delete(rel_path)
