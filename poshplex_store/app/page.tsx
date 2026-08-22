@@ -6,7 +6,7 @@ import FeaturedReviewsCarousel from "./components/FeaturedReviewsCarousel";
 
 async function getFeaturedProducts() {
   try {
-    const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/products`, {
+    const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/products?is_featured=true`, {
       next: { revalidate: 60 },
     });
     if (res.ok) {

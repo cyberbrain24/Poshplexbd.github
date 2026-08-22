@@ -158,6 +158,7 @@ def list_products(
     category_slug: Optional[str] = None,
     brand_id: Optional[int] = None, 
     is_active: Optional[bool] = None,
+    is_featured: Optional[bool] = None,
     page: int = 1,
     limit: int = 10
 ):
@@ -165,7 +166,7 @@ def list_products(
     # Generate cache key based on query parameters
     from django.core.cache import cache
     
-    cache_key = f"products_list_{search}_{category_id}_{category_slug}_{brand_id}_{is_active}_{page}_{limit}"
+    cache_key = f"products_list_{search}_{category_id}_{category_slug}_{brand_id}_{is_active}_{is_featured}_{page}_{limit}"
     cached_data = cache.get(cache_key)
     
     if cached_data:
@@ -214,6 +215,8 @@ def list_products(
         qs = qs.filter(brand_id=brand_id)
     if is_active is not None:
         qs = qs.filter(is_active=is_active)
+    if is_featured is not None:
+        qs = qs.filter(is_featured=is_featured)
         
     # Hide products that belong to inactive categories
     qs = qs.exclude(categories__is_active=False).distinct()
