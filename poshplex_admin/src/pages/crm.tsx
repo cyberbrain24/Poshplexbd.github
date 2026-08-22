@@ -172,10 +172,10 @@ const Reviews: React.FC = () => {
     const token = localStorage.getItem("poshplex_access_token");
     try {
       const [custRes, prodRes] = await Promise.all([
-        axios.get(`${CRM_URL}/profiles`, {
+        axios.get(`${CRM_URL}/customers`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        axios.get(`${CATALOG_URL}/admin/products?limit=100`, {
+        axios.get(`${CATALOG_URL}/products?limit=100`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
@@ -458,7 +458,7 @@ const Reviews: React.FC = () => {
             >
               {customers.map((c) => (
                 <Select.Option key={c.phone} value={c.phone}>
-                  {c.phone} - {c.user?.username || ""}
+                  {c.phone} - {c.username || c.user_username || ""}
                 </Select.Option>
               ))}
             </Select>
