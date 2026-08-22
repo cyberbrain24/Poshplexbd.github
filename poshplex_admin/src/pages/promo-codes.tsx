@@ -69,10 +69,19 @@ export const PromoCodes: React.FC = () => {
         message.success("Promo code details updated.");
       } else {
         const codes = payload.code.split(',').map((c: string) => c.trim()).filter(Boolean);
-        await Promise.all(codes.map((code: string) => 
+        const results = await Promise.allSettled(codes.map((code: string) => 
           axios.post(API_URL, { ...payload, code }, { headers: { Authorization: `Bearer ${token}` } })
         ));
-        message.success(codes.length > 1 ? `${codes.length} promo codes registered.` : "New promo code registered.");
+        
+        const successes = results.filter(r => r.status === 'fulfilled');
+        const failures = results.filter(r => r.status === 'rejected');
+        
+        if (successes.length > 0) {
+          message.success(`${successes.length} promo code(s) registered successfully.`);
+        }
+        if (failures.length > 0) {
+          message.error(`${failures.length} promo code(s) failed (likely duplicates).`);
+        }
       }
 
       setIsModalOpen(false);

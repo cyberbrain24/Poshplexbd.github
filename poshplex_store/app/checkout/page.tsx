@@ -302,6 +302,7 @@ export default function CheckoutPage() {
         shipping_thana: formData.thana,
         shipping_cost: shippingCost,
         discount_amount: discountAmount,
+        promo_code: appliedPromo,
         customer_notes: formData.notes,
         payment_method: "Cash on Delivery",
         items: cart.map(item => ({

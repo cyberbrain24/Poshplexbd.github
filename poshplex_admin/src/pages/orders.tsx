@@ -988,6 +988,11 @@ export const Orders: React.FC = () => {
           
           <Row gutter={16}>
             <Col span={8}>
+              <Form.Item name="promo_code" label="Promo Code (Optional)">
+                <Input placeholder="E.g. SUMMER20" style={{ borderRadius: 0 }} />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
               <Form.Item name="discount_amount" label="Discount Value (৳)" initialValue={0}>
                 <InputNumber min={0} precision={2} style={{ width: "100%", borderRadius: 0 }} />
               </Form.Item>

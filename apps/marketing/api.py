@@ -77,7 +77,7 @@ def validate_coupon_endpoint(request, code: str, subtotal: Decimal, phone: str =
         return {"valid": False, "error_message": "Coupon code has expired."}
         
     if subtotal < promo.min_order_amount:
-        return {"valid": False, "error_message": f"Minimum subtotal of ৳{round(promo.min_order_amount * 12)} required."}
+        return {"valid": False, "error_message": f"Minimum subtotal of ৳{round(promo.min_order_amount)} required."}
         
     if promo.total_usage_limit is not None and promo.usage_count >= promo.total_usage_limit:
         return {"valid": False, "error_message": "Coupon total limit has been fully redeemed."}
@@ -177,6 +177,7 @@ def delete_promo(request, promo_id: int):
 class PromoValidateRequestSchema(Schema):
     code: str
     order_amount: Decimal
+    customer_phone: Optional[str] = ""
 
 class PromoValidateResponseSchema(Schema):
     valid: bool
@@ -203,6 +204,11 @@ def validate_promo_endpoint(request, data: PromoValidateRequestSchema):
 
     if promo.total_usage_limit and promo.usage_count >= promo.total_usage_limit:
         return {"valid": False, "discount_amount": Decimal('0.00'), "message": "Promo code usage limit reached."}
+        
+    if data.customer_phone:
+        usage_count = PromoUsageHistory.objects.filter(promo_code=promo, customer_phone=data.customer_phone.strip()).count()
+        if usage_count >= promo.per_customer_limit:
+            return {"valid": False, "discount_amount": Decimal('0.00'), "message": "Customer has reached the redemption limit for this coupon."}
 
     discount = Decimal('0.00')
     if promo.reward_type == 'fixed':

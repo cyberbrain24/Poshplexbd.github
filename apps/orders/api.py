@@ -5,11 +5,18 @@ from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Sum, F, Q
 from ninja import Router, Schema
 from ninja.errors import HttpError
 
 from apps.orders.models import Order, OrderItem, OrderStatusHistory
+from apps.inventory.services import (
+    validate_stock_availability, 
+    reserve_inventory, 
+    release_inventory, 
+    commit_inventory
+)
+from apps.marketing.models import PromoCode, PromoUsageHistory
 from apps.orders.services import (
     create_order, record_order_payment, process_return,
 )
@@ -43,6 +50,7 @@ class OrderCreateInputSchema(Schema):
     shipping_thana: str
     shipping_postal_code: Optional[str] = ""
     
+    promo_code: Optional[str] = ""
     discount_amount: Optional[Decimal] = Decimal('0.00')
     shipping_cost: Optional[Decimal] = Decimal('0.00')
     customer_notes: Optional[str] = ""
@@ -405,6 +413,20 @@ def post_order_endpoint(request, data: OrderCreateInputSchema):
                 internal_notes=data.internal_notes
             )
             
+            # If a promo code was provided manually by the admin, track its usage.
+            if data.promo_code:
+                try:
+                    promo = PromoCode.objects.get(code=data.promo_code.upper().strip(), is_active=True)
+                    PromoUsageHistory.objects.create(
+                        promo_code=promo,
+                        order_id=order.id,
+                        customer_phone=data.customer_phone or "",
+                        discount_applied=data.discount_amount
+                    )
+                    PromoCode.objects.filter(id=promo.id).update(usage_count=F('usage_count') + 1)
+                except PromoCode.DoesNotExist:
+                    pass # Silently ignore invalid promo codes in admin manual entry
+            
             # Handle initial payment (partial or full)
             if data.payment_amount is not None and data.payment_amount > 0:
                 record_order_payment(
@@ -484,6 +506,41 @@ def customer_checkout_endpoint(request, data: OrderCreateInputSchema):
 
             items_list = [item.dict() for item in data.items]
 
+            # Secure Backend Promo Calculation
+            subtotal = sum(Decimal(str(item.price)) * int(item.quantity) for item in data.items)
+            final_discount_amount = Decimal('0.00')
+            applied_promo = None
+            
+            if data.promo_code:
+                try:
+                    promo = PromoCode.objects.get(code=data.promo_code.upper().strip(), is_active=True)
+                    from django.utils import timezone
+                    now = timezone.now()
+                    is_valid = True
+                    
+                    if promo.starts_at and now < promo.starts_at: is_valid = False
+                    if promo.expires_at and now > promo.expires_at: is_valid = False
+                    if subtotal < promo.min_order_amount: is_valid = False
+                    if promo.total_usage_limit and promo.usage_count >= promo.total_usage_limit: is_valid = False
+                    
+                    # Check customer limit
+                    if final_phone:
+                        usage_count = PromoUsageHistory.objects.filter(promo_code=promo, customer_phone=final_phone).count()
+                        if usage_count >= promo.per_customer_limit: is_valid = False
+                        
+                    if is_valid:
+                        if promo.reward_type == 'percent':
+                            final_discount_amount = subtotal * (promo.discount_value / Decimal('100.00'))
+                            if promo.max_discount_amount and final_discount_amount > promo.max_discount_amount:
+                                final_discount_amount = promo.max_discount_amount
+                        elif promo.reward_type == 'fixed':
+                            final_discount_amount = promo.discount_value
+                        elif promo.reward_type == 'freeship':
+                            final_discount_amount = data.shipping_cost
+                        applied_promo = promo
+                except PromoCode.DoesNotExist:
+                    pass
+
             order = create_order(
                 user_id=u_id,
                 items_data=items_list,
@@ -493,11 +550,21 @@ def customer_checkout_endpoint(request, data: OrderCreateInputSchema):
                 shipping_district=data.shipping_district,
                 shipping_thana=data.shipping_thana,
                 shipping_postal_code=data.shipping_postal_code,
-                discount_amount=data.discount_amount,
+                discount_amount=final_discount_amount,
                 shipping_cost=data.shipping_cost,
                 customer_notes=data.customer_notes,
                 internal_notes=data.internal_notes
             )
+            
+            # Save promo usage history
+            if applied_promo:
+                PromoUsageHistory.objects.create(
+                    promo_code=applied_promo,
+                    order_id=order.id,
+                    customer_phone=final_phone or "",
+                    discount_applied=final_discount_amount
+                )
+                PromoCode.objects.filter(id=applied_promo.id).update(usage_count=F('usage_count') + 1)
             
             # Handle initial payment (partial or full)
             if data.payment_amount is not None and data.payment_amount > 0:
