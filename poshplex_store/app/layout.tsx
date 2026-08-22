@@ -39,12 +39,12 @@ export async function generateMetadata() {
       const gen = genData.value || {};
       
       return {
-        title: seo.meta_title || "Poshplex Storefront | Heavyweight Streetwear Brand",
-        description: seo.meta_description || "Heavyweight distressed boxy street-culture brand. Mapped deliveries across Banani, Dhaka, Bangladesh.",
+        title: seo.meta_title || "POSHPLEX | BE POSH WITH POSHPLEX",
+        description: seo.meta_description || "Premium streetwear brand based in Dhaka, Bangladesh.",
         keywords: seo.meta_keywords || "poshplex, streetwear, dhaka, heavyweight, t-shirts",
         openGraph: {
-          title: seo.meta_title || "Poshplex Storefront",
-          description: seo.meta_description || "Heavyweight distressed boxy street-culture brand.",
+          title: seo.meta_title || "POSHPLEX | BE POSH WITH POSHPLEX",
+          description: seo.meta_description || "Premium streetwear brand based in Dhaka, Bangladesh.",
           images: seo.og_image_url ? [seo.og_image_url] : [],
         },
         icons: {
@@ -59,8 +59,8 @@ export async function generateMetadata() {
 
   // Fallback to defaults
   return {
-    title: "Poshplex Storefront | Heavyweight Streetwear Brand",
-    description: "Heavyweight distressed boxy street-culture brand. Mapped deliveries across Banani, Dhaka, Bangladesh.",
+    title: "POSHPLEX | BE POSH WITH POSHPLEX",
+    description: "Premium streetwear brand based in Dhaka, Bangladesh.",
     manifest: "/manifest.json",
   };
 }
