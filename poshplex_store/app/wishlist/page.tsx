@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Trash2 } from "lucide-react";
+import { Trash2, Heart } from "lucide-react";
 import ProductCard from "../components/ProductCard";
 
 const formatBDT = (n: string | number) => `৳${Math.round(Number(n))}`;
