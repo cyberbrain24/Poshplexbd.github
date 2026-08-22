@@ -736,6 +736,44 @@ def list_media(request):
             "model_type": "ProductVideo"
         })
 
+    # 5. Cloudflare R2 Unlinked Files
+    try:
+        from django.core.files.storage import default_storage
+        db_keys = set()
+        for a in assets:
+            if a.file: db_keys.add(a.file.name)
+        for i in p_images:
+            if i.image: db_keys.add(i.image.name)
+        for c in cats:
+            if c.image: db_keys.add(c.image.name)
+            
+        if hasattr(default_storage, 'storage') and hasattr(default_storage.storage, 'bucket'):
+            import mimetypes
+            # S3 collection doesn't have .limit(500), we just limit in loop
+            count = 0
+            for obj in default_storage.storage.bucket.objects.all():
+                if obj.key not in db_keys:
+                    mime, _ = mimetypes.guess_type(obj.key)
+                    url = default_storage.storage.url(obj.key)
+                    res.append({
+                        "id": f"r2_{obj.key}",
+                        "file_name": os.path.basename(obj.key),
+                        "mime_type": mime or "application/octet-stream",
+                        "file_size": obj.size,
+                        "url": url,
+                        "created_at": obj.last_modified.isoformat() if obj.last_modified else "",
+                        "usage": "Cloudflare R2 (Unlinked)",
+                        "link_type": "external",
+                        "alt_text": obj.key,
+                        "model_type": "CloudflareR2"
+                    })
+                    count += 1
+                    if count >= 500:
+                        break
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Could not load R2 files directly: {e}")
+
     return res
 
 @router.post("/media", response=UnifiedMediaSchema, auth=BearerAuth())

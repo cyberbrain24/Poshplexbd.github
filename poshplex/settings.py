@@ -8,7 +8,7 @@ env = environ.Env(
     DATABASE_URL=(str),
     REDIS_URL=(str, ''),
     CORS_ALLOWED_ORIGINS=(list, ['http://localhost:3000', 'http://localhost:3001']),
-    RATE_LIMIT_PER_MINUTE=(int, 100),
+    RATE_LIMIT_PER_MINUTE=(int, 1000),
     JWT_EXPIRATION_MINUTES=(int, 4320),
     JWT_REFRESH_EXPIRATION_DAYS=(int, 7),
 )
