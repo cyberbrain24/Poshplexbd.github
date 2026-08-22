@@ -11,6 +11,36 @@ export default function SocialLogin() {
   
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [error, setError] = useState("");
+  
+  const [authConfig, setAuthConfig] = useState({ 
+    google: true, 
+    facebook: true, 
+    loaded: false 
+  });
+
+  React.useEffect(() => {
+    let mounted = true;
+    const fetchConfig = async () => {
+      try {
+        const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const res = await fetch(`${apiUrl}/api/v1/core/settings/social_auth`);
+        if (res.ok) {
+          const data = await res.json();
+          if (mounted) {
+            setAuthConfig({
+              google: data?.value?.enable_google_login !== false,
+              facebook: data?.value?.enable_facebook_login !== false,
+              loaded: true
+            });
+          }
+        }
+      } catch (err) {
+        if (mounted) setAuthConfig(prev => ({ ...prev, loaded: true }));
+      }
+    };
+    fetchConfig();
+    return () => { mounted = false; };
+  }, []);
 
   const handleSocialCallback = async (provider: string, token: string) => {
     try {
@@ -102,6 +132,15 @@ export default function SocialLogin() {
     }
   }, []);
 
+  // If config is loaded and both are disabled, don't render anything
+  if (authConfig.loaded && !authConfig.google && !authConfig.facebook) {
+    return null;
+  }
+
+  // Determine grid layout based on active buttons
+  const activeCount = (authConfig.google ? 1 : 0) + (authConfig.facebook ? 1 : 0);
+  const gridTemplateColumns = activeCount === 1 ? "1fr" : "1fr 1fr";
+
   return (
     <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
       
@@ -127,8 +166,9 @@ export default function SocialLogin() {
         <div style={{ flex: 1, height: 1, background: "var(--border-glass)" }} />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <button 
+      <div style={{ display: "grid", gridTemplateColumns, gap: 12 }}>
+        {authConfig.google && (
+          <button 
           type="button" 
           onClick={loginWithGoogle}
           disabled={isLoading !== null}
@@ -156,7 +196,9 @@ export default function SocialLogin() {
           </svg>
           {isLoading === "google" ? "..." : "Google"}
         </button>
+        )}
 
+        {authConfig.facebook && (
         <button 
           type="button" 
           onClick={loginWithFacebook}
@@ -182,6 +224,7 @@ export default function SocialLogin() {
           </svg>
           {isLoading === "facebook" ? "..." : "Facebook"}
         </button>
+        )}
       </div>
     </div>
   );

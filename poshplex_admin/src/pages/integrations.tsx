@@ -58,7 +58,9 @@ export const Integrations: React.FC = () => {
 
         google_client_id: socialSetting?.value?.google_client_id || "",
         google_client_secret: socialSetting?.value?.google_client_secret || "",
+        enable_google_login: socialSetting?.value?.enable_google_login ?? true,
         facebook_app_id: socialSetting?.value?.facebook_app_id || "",
+        enable_facebook_login: socialSetting?.value?.enable_facebook_login ?? true,
       });
 
       autoForm.setFieldsValue({
@@ -118,8 +120,10 @@ export const Integrations: React.FC = () => {
     const socialPayload = {
       key: "social_auth",
       value: {
+        enable_google_login: values.enable_google_login,
         google_client_id: values.google_client_id,
         google_client_secret: values.google_client_secret,
+        enable_facebook_login: values.enable_facebook_login,
         facebook_app_id: values.facebook_app_id,
       },
       description: "OAuth App Client IDs",
@@ -349,6 +353,11 @@ export const Integrations: React.FC = () => {
                 <Col xs={24}>
                   <Divider orientation="left"><ApiOutlined /> Social Login Integrations</Divider>
                 </Col>
+                <Col xs={24} md={24}>
+                  <Form.Item name="enable_google_login" valuePropName="checked">
+                    <Checkbox><strong>Enable Google Login on Storefront</strong></Checkbox>
+                  </Form.Item>
+                </Col>
                 <Col xs={24} md={12}>
                   <Form.Item name="google_client_id" label="Google OAuth Client ID">
                     <Input placeholder="xxxxxx-yyyyyy.apps.googleusercontent.com" />
@@ -357,6 +366,12 @@ export const Integrations: React.FC = () => {
                 <Col xs={24} md={12}>
                   <Form.Item name="google_client_secret" label="Google OAuth Client Secret">
                     <Input.Password placeholder="GOCSPX-..." />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={24}>
+                  <Divider dashed style={{ margin: "12px 0" }} />
+                  <Form.Item name="enable_facebook_login" valuePropName="checked">
+                    <Checkbox><strong>Enable Facebook Login on Storefront</strong></Checkbox>
                   </Form.Item>
                 </Col>
                 <Col xs={24} md={12}>
