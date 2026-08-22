@@ -102,7 +102,7 @@ ASGI_APPLICATION = 'poshplex.asgi.application'
 
 # Database
 DATABASES = {
-    'default': env.db('DATABASE_URL')
+    'default': env.db('DATABASE_URL', default=f'sqlite:///{BASE_DIR}/db.sqlite3')
 }
 
 # Database connection pooling — reuse connections for 10 minutes
