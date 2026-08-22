@@ -56,7 +56,7 @@ export const Login: React.FC = () => {
             name="password"
             rules={[{ required: true, message: "Please input your password!" }]}
           >
-            <Input.Password prefix={<LockOutlined style={{ color: "var(--text-muted)" }} />} placeholder="Password" />
+            <Input.Password prefix={<LockOutlined style={{ color: "var(--text-muted)" }} />} placeholder="Password" autoComplete="current-password" />
           </Form.Item>
 
           <Form.Item>
