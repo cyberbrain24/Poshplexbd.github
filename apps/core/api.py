@@ -650,10 +650,8 @@ def list_media(request):
         if url and not (url.startswith("http://") or url.startswith("https://")):
             url = f"{base_url}{url}"
             
-        try:
-            file_size = asset.file.size if asset.file else 0
-        except FileNotFoundError:
-            file_size = 0
+        # Use the cached file_size field rather than querying S3
+        file_size = getattr(asset, 'file_size', 0)
             
         res.append({
             "id": f"asset_{asset.id}",
@@ -676,10 +674,8 @@ def list_media(request):
             url = f"{base_url}{url}"
             
         file_name = os.path.basename(img.image.name) if img.image else f"product_{img.product.id}_image"
-        try:
-            size = img.image.size if img.image else 0
-        except FileNotFoundError:
-            size = 0
+        # Avoid explicit .size call to prevent synchronous R2 HTTP requests
+        size = 0
             
         res.append({
             "id": f"productimage_{img.id}",
@@ -702,10 +698,8 @@ def list_media(request):
             url = f"{base_url}{url}"
             
         file_name = os.path.basename(cat.image.name) if cat.image else f"category_{cat.id}_image"
-        try:
-            size = cat.image.size if cat.image else 0
-        except FileNotFoundError:
-            size = 0
+        # Avoid explicit .size call to prevent synchronous R2 HTTP requests
+        size = 0
         
         res.append({
             "id": f"category_{cat.id}",
@@ -871,25 +865,49 @@ def update_media_seo(request, unified_id: str, data: UpdateMediaSeoSchema):
 
 @router.delete("/media/{unified_id}", auth=BearerAuth())
 def delete_media(request, unified_id: str):
-    """Delete a media asset."""
+    """Delete a media asset with strict safety protections."""
     enforce_permission(request, "media", "delete")
     
+    from apps.catalog.models import ProductImage, Category, Product
+    
+    if unified_id.startswith("productimage_"):
+        img_id = int(unified_id.replace("productimage_", ""))
+        img = get_object_or_404(ProductImage, id=img_id)
+        raise HttpError(400, f"This image is currently linked to Product: {img.product.name}. You must remove the image from the product in the Catalog Manager before it can be deleted.")
+        
+    if unified_id.startswith("category_"):
+        cat_id = int(unified_id.replace("category_", ""))
+        cat = get_object_or_404(Category, id=cat_id)
+        raise HttpError(400, f"This image is currently linked to Category: {cat.name}. You must remove the image from the category settings first.")
+        
+    if unified_id.startswith("r2_"):
+        # This is an unlinked/orphaned file directly in the R2 bucket
+        key = unified_id.replace("r2_", "")
+        from django.core.files.storage import default_storage
+        try:
+            if default_storage.exists(key):
+                default_storage.delete(key)
+                return {"success": True, "message": "Orphaned R2 file completely deleted."}
+            else:
+                raise HttpError(404, "File not found in R2 bucket.")
+        except Exception as e:
+            raise HttpError(500, f"Failed to delete from R2: {str(e)}")
+            
     if not unified_id.startswith("asset_"):
-        raise HttpError(400, "This media belongs to a specific catalog item. Please delete it from the Catalog module.")
+        raise HttpError(400, "Unknown media type or cannot be deleted.")
         
     asset_id = int(unified_id.replace("asset_", ""))
     asset = get_object_or_404(MediaAsset, id=asset_id)
     
-    # Check for active references before deleting
+    # Check for active references before deleting (e.g., embedded in HTML descriptions)
     url = asset.file.url if asset.file else ""
     usages = []
     if url:
-        from apps.catalog.models import Product, Category
         for p in Product.objects.filter(Q(description__icontains=url) | Q(short_description__icontains=url)):
             usages.append(f"Product: {p.name}")
             
     if usages:
-        raise HttpError(409, {"detail": "Asset currently in use", "usages": usages})
+        raise HttpError(409, {"detail": "Asset is currently embedded in HTML descriptions", "usages": usages})
         
     if asset.file:
         try:
