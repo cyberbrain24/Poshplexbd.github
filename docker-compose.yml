@@ -13,6 +13,7 @@ services:
     image: pgvector/pgvector:pg16
     container_name: poshplex_postgres
     restart: unless-stopped
+    shm_size: 4gb
     command: postgres -c shared_buffers=4GB -c effective_cache_size=4GB -c shared_preload_libraries='pg_prewarm' -c pg_prewarm.autoprewarm=true
     env_file:
       - .env
