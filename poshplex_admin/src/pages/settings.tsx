@@ -247,7 +247,7 @@ export const SettingsPage: React.FC = () => {
                       <Input placeholder="e.g. 324d208a4618b4db91c..." style={{ borderRadius: 0 }} />
                     </Form.Item>
                     <Form.Item name="secret_access_key" label="Secret Access Key">
-                      <Input.Password placeholder="e.g. f6c473a7e80e47078f4a..." style={{ borderRadius: 0 }} />
+                      <Input.Password autoComplete="new-password" placeholder="e.g. f6c473a7e80e47078f4a..." style={{ borderRadius: 0 }} />
                     </Form.Item>
                     <Form.Item style={{ marginBottom: 0 }}>
                       <Button type="primary" htmlType="submit" icon={<SaveOutlined />} loading={loading}>Save Storage Settings</Button>

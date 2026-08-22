@@ -249,7 +249,7 @@ export const Integrations: React.FC = () => {
           label: <span><ApiOutlined /> Active Provider Mappings</span>,
           children: (
           <Card title="Poshplex Courier & Communication Channels">
-            <Form form={form} onFinish={handleSaveConfig} layout="vertical">
+            <Form form={form} name="integrationsForm" onFinish={handleSaveConfig} layout="vertical">
               <Row gutter={24}>
                 {/* SMS Channel */}
                 <Col xs={24} md={8}>
@@ -381,7 +381,7 @@ export const Integrations: React.FC = () => {
           <Row gutter={24}>
             <Col xs={24} md={16}>
               <Card title="Automated System Notifications (Triggers & Templates)">
-                <Form form={autoForm} onFinish={handleSaveAutoConfig} layout="vertical">
+                <Form form={autoForm} name="automationForm" onFinish={handleSaveAutoConfig} layout="vertical">
                   
                   <Divider orientation="left"><MessageOutlined /> Account Registration Event</Divider>
                   <p style={{ fontSize: 13, color: "var(--text-muted)" }}>Variables allowed: <code>{`{username}`}</code>, <code>{`{email}`}</code>, <code>{`{otp}`}</code></p>
@@ -465,7 +465,7 @@ export const Integrations: React.FC = () => {
           <p style={{ marginBottom: 16, color: "var(--text-muted)" }}>
             Enter a destination {testModalType === "sms" ? "phone number" : "email address"} to dispatch a test payload using the active integration.
           </p>
-          <Form layout="vertical" onFinish={handleSendTest}>
+          <Form name="testMessageForm" layout="vertical" onFinish={handleSendTest}>
             <Form.Item label={`Destination ${testModalType === "sms" ? "Phone Number" : "Email"}`} required>
               <Input 
                 value={testTarget} 
