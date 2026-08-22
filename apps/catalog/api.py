@@ -1314,21 +1314,25 @@ def admin_create_review(request, data: AdminReviewCreateSchema):
     """Create a new review on behalf of a user (Admin only)."""
     enforce_permission(request, "catalog", "edit_catalog")
     
+    from django.db import IntegrityError
     from apps.crm.models import CustomerProfile
     
     profile = get_object_or_404(CustomerProfile, phone=data.customer_phone)
     user = profile.user
     product = get_object_or_404(Product, id=data.product_id)
     
-    review = Review.objects.create(
-        product=product,
-        user=user,
-        rating=data.rating,
-        comment=data.comment,
-        images=data.images,
-        is_approved=True,  # Auto-approve admin created reviews
-        listing_order=data.listing_order
-    )
+    try:
+        review = Review.objects.create(
+            product=product,
+            user=user,
+            rating=data.rating,
+            comment=data.comment,
+            images=data.images,
+            is_approved=True,  # Auto-approve admin created reviews
+            listing_order=data.listing_order
+        )
+    except IntegrityError:
+        raise HttpError(400, "This customer has already reviewed this product. Please edit the existing review or select a different customer.")
     
     return {
         "id": review.id,
