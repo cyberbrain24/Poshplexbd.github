@@ -707,16 +707,18 @@ export default function CheckoutPage() {
           }
 
           .checkout-section-title {
-            font-size: 13px !important;
+            font-size: 16px !important;
             margin-top: 10px !important;
             margin-bottom: 16px !important;
             text-align: center !important;
+            font-weight: 800 !important;
           }
           .summary-card h3 {
-            font-size: 12px !important;
+            font-size: 16px !important;
             margin-bottom: 8px !important;
             padding-bottom: 6px !important;
             text-align: center !important;
+            font-weight: 800 !important;
           }
 
           /* Summary Box Ultra-compact Text overrides */
