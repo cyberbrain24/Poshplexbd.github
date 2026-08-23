@@ -225,7 +225,7 @@ export default function CartDrawer() {
           opacity: toastItem ? 1 : 0,
           pointerEvents: "none",
           transition: "all 0.3s ease",
-          zIndex: 1002,
+          zIndex: 999999,
           background: "#fff",
           borderRadius: 8,
           padding: "14px 20px",
