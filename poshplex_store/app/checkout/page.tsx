@@ -493,7 +493,12 @@ export default function CheckoutPage() {
                         {item.image && <Image unoptimized={true} src={item.image} alt={item.name} fill sizes="64px" priority={i < 4} style={{ objectFit: "cover" }} />}
                       </div>
                       <div>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: "#111111", marginBottom: 4 }}>{item.name}</div>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: "#111111", marginBottom: 2 }}>{item.name}</div>
+                        {item.attributes && Object.keys(item.attributes).length > 0 && (
+                          <div style={{ fontSize: 11, color: "#777777", fontWeight: 600, marginBottom: 2, textTransform: "capitalize" }}>
+                            {Object.entries(item.attributes).map(([k, v]) => `${k}: ${v}`).join(" | ")}
+                          </div>
+                        )}
                         <div style={{ fontSize: 13, color: "#555555", fontWeight: 500 }}>Qty: {item.quantity}</div>
                       </div>
                     </div>
