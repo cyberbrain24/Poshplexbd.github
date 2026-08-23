@@ -1108,6 +1108,40 @@ def view_product_detail_endpoint(request, slug: str):
     except Exception as e:
         raise HttpError(404, str(e))
 
+@router.get("/products/{slug}/related", response=List[ProductDetailResponseSchema])
+def get_related_products(request, slug: str):
+    """Get up to 4 related active products for a given product slug."""
+    try:
+        product = Product.objects.get(slug=slug)
+    except Product.DoesNotExist:
+        raise HttpError(404, "Product not found")
+
+    cat = product.category
+    if not cat and product.categories.exists():
+        cat = product.categories.first()
+        
+    qs = Product.objects.filter(is_active=True).exclude(id=product.id)
+    
+    related = []
+    if cat:
+        related = list(qs.filter(
+            Q(category=cat) | Q(categories=cat)
+        ).distinct()[:4])
+        
+    if len(related) < 4:
+        needed = 4 - len(related)
+        exclude_ids = [product.id] + [p.id for p in related]
+        more_products = list(qs.exclude(id__in=exclude_ids).order_by('?')[:needed])
+        related.extend(more_products)
+        
+    res = []
+    for p in related:
+        try:
+            res.append(get_product_details(p.slug))
+        except Exception:
+            pass
+    return res
+
 @router.get("/my-reviews", response=List[ReviewResponseSchema], auth=BearerAuth())
 def get_my_reviews(request):
     """Get authenticated user's reviews."""

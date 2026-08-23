@@ -37,23 +37,10 @@ async function getReviews(slug: string) {
 async function getRelatedProducts(product: any) {
   try {
     const API_URL = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-    const res = await fetch(`${API_URL}/api/v1/catalog/products?limit=100`, { next: { revalidate: 60 } });
+    const res = await fetch(`${API_URL}/api/v1/catalog/products/${product.slug}/related`, { next: { revalidate: 60 } });
     if (res.ok) {
       const data = await res.json();
-      const list = data.results || data || [];
-      const filtered = list.filter((p: any) => p.id !== product.id);
-      const currentCatSlug = product.category?.slug || product.categories?.[0]?.slug;
-      
-      const sameCategory = filtered.filter((p: any) => {
-        const slugs = [p.category?.slug, ...(p.categories || []).map((c: any) => c.slug)].filter(Boolean);
-        return currentCatSlug && slugs.includes(currentCatSlug);
-      });
-      
-      if (sameCategory.length >= 4) {
-        return sameCategory;
-      } else {
-        return [...sameCategory, ...filtered.filter((p: any) => !sameCategory.includes(p))];
-      }
+      return Array.isArray(data) ? data : [];
     }
   } catch (err) {
     console.error("Failed to fetch related products:", err);

@@ -40,7 +40,6 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    unoptimized: true,
     dangerouslyAllowSVG: true,
     remotePatterns: [
       {
