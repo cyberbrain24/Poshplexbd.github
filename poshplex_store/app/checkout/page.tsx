@@ -683,7 +683,7 @@ export default function CheckoutPage() {
             margin-bottom: 16px !important;
           }
           .checkout-header h1 {
-            font-size: 22px !important;
+            font-size: 18px !important;
           }
           
           /* Solid White Boxes for Mobile */
@@ -703,27 +703,29 @@ export default function CheckoutPage() {
             gap: 12px !important;
           }
           
-          /* Standard text sizes */
+          /* Standard text sizes matching profile page */
           .checkout-section label {
-            font-size: 13px !important;
-            margin-bottom: 6px !important;
-            font-weight: 600 !important;
+            font-size: 9px !important;
+            margin-bottom: 4px !important;
+            font-weight: 700 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.5px !important;
           }
           .checkout-section input, .checkout-section textarea {
-            font-size: 15px !important;
-            padding: 12px 14px !important;
+            font-size: 11px !important;
+            padding: 10px 12px !important;
             border-radius: 8px !important;
           }
 
           .checkout-section-title {
-            font-size: 18px !important;
+            font-size: 15px !important;
             margin-top: 0px !important;
             margin-bottom: 20px !important;
             text-align: left !important;
             font-weight: 800 !important;
           }
           .summary-card h3 {
-            font-size: 18px !important;
+            font-size: 15px !important;
             margin-bottom: 16px !important;
             padding-bottom: 12px !important;
             text-align: left !important;
@@ -731,14 +733,14 @@ export default function CheckoutPage() {
           }
 
           /* Summary Box Standard Text overrides */
-          .summary-item-name { font-size: 14px !important; margin-bottom: 4px !important; }
-          .summary-item-attr { font-size: 12px !important; margin-bottom: 0 !important; }
-          .summary-item-qty { font-size: 13px !important; }
-          .summary-item-price { font-size: 14px !important; font-weight: 600 !important; }
-          .summary-subtotal-row, .summary-shipping-row, .summary-discount-row { font-size: 14px !important; margin-bottom: 8px !important; }
-          .summary-total-row { font-size: 18px !important; margin-top: 12px !important; padding-top: 16px !important; }
-          .delivery-terms-box { padding: 12px !important; font-size: 12px !important; margin-top: 20px !important; }
-          .delivery-terms-title { font-size: 13px !important; margin-bottom: 6px !important; }
+          .summary-item-name { font-size: 11px !important; margin-bottom: 4px !important; }
+          .summary-item-attr { font-size: 9px !important; margin-bottom: 0 !important; }
+          .summary-item-qty { font-size: 10px !important; }
+          .summary-item-price { font-size: 11px !important; font-weight: 600 !important; }
+          .summary-subtotal-row, .summary-shipping-row, .summary-discount-row { font-size: 12px !important; margin-bottom: 8px !important; }
+          .summary-total-row { font-size: 15px !important; margin-top: 12px !important; padding-top: 16px !important; }
+          .delivery-terms-box { padding: 12px !important; font-size: 10px !important; margin-top: 20px !important; }
+          .delivery-terms-title { font-size: 11px !important; margin-bottom: 6px !important; }
 
           /* Sticky White Button */
           .place-order-wrapper {
@@ -757,9 +759,9 @@ export default function CheckoutPage() {
             background-color: #ffffff !important;
             color: #111111 !important;
             border: 2px solid #111111 !important;
-            font-size: 15px !important;
+            font-size: 12px !important;
             font-weight: 900 !important;
-            padding: 16px 20px !important;
+            padding: 14px 20px !important;
             margin: 0 auto !important;
             width: 100% !important;
             max-width: 100% !important;
