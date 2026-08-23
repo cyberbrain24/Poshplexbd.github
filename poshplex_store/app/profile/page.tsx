@@ -762,6 +762,46 @@ export default function ProfilePage() {
           letter-spacing: 0.8px;
           transition: color 0.25s;
         }
+        .profile-header-layout {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          margin-bottom: 0px;
+        }
+        .profile-avatar-clickable {
+          cursor: pointer;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          margin-bottom: 20px;
+        }
+        .profile-upload-text {
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--text-main);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          opacity: 0.8;
+          margin-top: 12px;
+        }
+        .profile-info-block {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+        }
+        .profile-user-name {
+          font-size: 22px;
+          font-weight: 900;
+          color: var(--text-main);
+          text-transform: uppercase;
+          margin: 0 0 4px 0;
+          letter-spacing: 0.5px;
+        }
+        .profile-member-since {
+          font-size: 12px;
+          color: var(--text-muted);
+        }
         .content-panel-box {
           background: var(--bg-secondary);
           border: 1px solid var(--border-glass);
@@ -775,6 +815,33 @@ export default function ProfilePage() {
         }
         
         @media (max-width: 768px) {
+          .profile-header-layout {
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 16px;
+            margin-bottom: 20px;
+          }
+          .profile-avatar-clickable {
+            margin-bottom: 0;
+            width: 72px;
+          }
+          .profile-avatar-circle {
+            width: 72px;
+            height: 72px;
+            margin-bottom: 0 !important;
+          }
+          .profile-upload-text {
+            display: none;
+          }
+          .profile-info-block {
+            align-items: flex-start;
+            text-align: left;
+            flex: 1;
+          }
+          .profile-user-name {
+            font-size: 18px;
+          }
           .profile-container-mobile {
             padding-top: 16px !important;
             padding-left: 12px !important;
@@ -889,45 +956,49 @@ export default function ProfilePage() {
         {/* Left Side: Profile Card & Membership */}
         <div>
           <div className="profile-card-glow">
-            <div 
-              style={{ cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center" }}
-              onClick={() => document.getElementById("profileUploadInput")?.click()}
-            >
+            <div className="profile-header-layout">
               <div 
-                className="profile-avatar-circle"
-                style={{ marginBottom: 12, position: "relative", overflow: "hidden" }}
-                title={userProfile.profile_image ? "Change profile photo" : "Upload profile photo"}
+                className="profile-avatar-clickable"
+                onClick={() => document.getElementById("profileUploadInput")?.click()}
               >
-                {isUploadingImage ? (
-                  <span style={{ fontSize: 11, fontWeight: "bold" }}>UPDATING...</span>
-                ) : userProfile.profile_image ? (
-                  <Image 
-                    src={userProfile.profile_image} 
-                    alt="Profile" 
-                    fill
-                    sizes="100px"
-                    style={{ objectFit: "cover" }} 
+                <div 
+                  className="profile-avatar-circle"
+                  style={{ position: "relative", overflow: "hidden" }}
+                  title={userProfile.profile_image ? "Change profile photo" : "Upload profile photo"}
+                >
+                  {isUploadingImage ? (
+                    <span style={{ fontSize: 11, fontWeight: "bold" }}>UPDATING...</span>
+                  ) : userProfile.profile_image ? (
+                    <Image 
+                      src={userProfile.profile_image} 
+                      alt="Profile" 
+                      fill
+                      sizes="100px"
+                      style={{ objectFit: "cover" }} 
+                    />
+                  ) : (
+                    <User size={44} className="profile-avatar-icon" />
+                  )}
+                  <input 
+                    id="profileUploadInput" 
+                    type="file" 
+                    accept="image/*" 
+                    style={{ display: "none" }} 
+                    onChange={handleImageUpload}
                   />
-                ) : (
-                  <User size={44} className="profile-avatar-icon" />
-                )}
-                <input 
-                  id="profileUploadInput" 
-                  type="file" 
-                  accept="image/*" 
-                  style={{ display: "none" }} 
-                  onChange={handleImageUpload}
-                />
+                </div>
+                <span className="profile-upload-text">
+                  {userProfile.profile_image ? "Change the image" : "Upload the profile image"}
+                </span>
               </div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-main)", textTransform: "uppercase", letterSpacing: "0.5px", opacity: 0.8, marginBottom: 20 }}>
-                {userProfile.profile_image ? "Change the image" : "Upload the profile image"}
-              </span>
+              
+              <div className="profile-info-block">
+                <h2 className="profile-user-name">
+                  {userProfile.username || "Customer"}
+                </h2>
+                <span className="profile-member-since">Loyal member since {new Date(userProfile.created_at || Date.now()).toLocaleDateString()}</span>
+              </div>
             </div>
-            
-            <h2 style={{ fontSize: 22, fontWeight: 900, color: "var(--text-main)", textTransform: "uppercase", margin: "0 0 4px 0", letterSpacing: "0.5px" }}>
-              {userProfile.username || "Customer"}
-            </h2>
-            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Loyal member since {new Date(userProfile.created_at || Date.now()).toLocaleDateString()}</span>
             
             <div style={{ marginTop: 16, width: "100%" }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
