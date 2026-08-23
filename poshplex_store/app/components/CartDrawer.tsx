@@ -101,12 +101,13 @@ export default function CartDrawer() {
             <div style={{ textAlign: "center", paddingTop: 80, color: "#aaa" }}>
               <ShoppingBag size={48} strokeWidth={1} style={{ marginBottom: 16, opacity: 0.4 }} />
               <p style={{ fontSize: 14 }}>Your bag is empty</p>
-              <button
+              <Link
+                href="/"
                 onClick={closeCart}
-                style={{ marginTop: 20, padding: "10px 28px", border: "1px solid #ddd", background: "#fff", fontSize: 13, cursor: "pointer", borderRadius: 2, color: "#111" }}
+                style={{ marginTop: 20, padding: "10px 28px", border: "1px solid #ddd", background: "#fff", fontSize: 13, cursor: "pointer", borderRadius: 2, color: "#111", display: "inline-block", textDecoration: "none" }}
               >
                 Continue Shopping
-              </button>
+              </Link>
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column" }}>
@@ -213,20 +214,21 @@ export default function CartDrawer() {
             </Link>
 
             {/* Continue shopping */}
-            <button
+            <Link
+              href="/"
               onClick={closeCart}
               style={{
                 display: "block", width: "100%", padding: "13px 0",
                 background: "#fff", color: "#111",
                 border: "1px solid #ddd", fontSize: 13, fontWeight: 400,
                 cursor: "pointer", borderRadius: 2, letterSpacing: "0.3px",
-                transition: "border-color 0.2s",
+                transition: "border-color 0.2s", textAlign: "center", textDecoration: "none"
               }}
               onMouseEnter={e => (e.currentTarget.style.borderColor = "#999")}
               onMouseLeave={e => (e.currentTarget.style.borderColor = "#ddd")}
             >
               Continue Shopping
-            </button>
+            </Link>
           </div>
         )}
       </div>
