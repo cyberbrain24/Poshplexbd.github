@@ -681,13 +681,11 @@ export default function CheckoutPage() {
             font-size: 18px !important;
           }
           
-          /* Glassmorphism & identical sizing for both boxes */
+          /* Solid White Boxes for Mobile */
           .checkout-section, .summary-card {
-            background: rgba(255, 255, 255, 0.45) !important;
-            backdrop-filter: blur(20px) !important;
-            -webkit-backdrop-filter: blur(20px) !important;
-            border: 1px solid rgba(255, 255, 255, 0.7) !important;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05) !important;
+            background: #ffffff !important;
+            border: 1px solid rgba(0, 0, 0, 0.1) !important;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
             border-radius: 12px !important;
             padding: 10px !important;
           }
@@ -732,10 +730,10 @@ export default function CheckoutPage() {
           .delivery-terms-box { padding: 8px !important; font-size: 10px !important; margin-top: 10px !important; }
           .delivery-terms-title { font-size: 11px !important; }
 
-          /* Centered Grey Button */
+          /* Centered Black Button */
           .place-order-btn {
-            background-color: #888888 !important;
-            color: #ffffff !important;
+            background-color: var(--text-main, #111111) !important;
+            color: var(--bg-main, #ffffff) !important;
             font-size: 11px !important;
             padding: 10px 16px !important;
             margin: 6px auto 0 auto !important;
