@@ -22,7 +22,15 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
   const [isSearching, setIsSearching] = useState(false);
   const [wishlistCount, setWishlistCount] = useState(0);
 
-  const toggleMenu = () => setIsOpen(!isOpen);
+  const toggleMenu = () => {
+    setIsOpen(prev => {
+      const nextState = !prev;
+      if (nextState && typeof window !== 'undefined' && window.innerWidth <= 768) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+      return nextState;
+    });
+  };
   const closeMenu = () => setIsOpen(false);
 
   const isCategoryActive = (cat: any) => {
@@ -49,7 +57,13 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
 
   useEffect(() => {
     const handleToggle = () => {
-      setIsOpen(prev => !prev);
+      setIsOpen(prev => {
+        const nextState = !prev;
+        if (nextState && typeof window !== 'undefined' && window.innerWidth <= 768) {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+        return nextState;
+      });
     };
     document.addEventListener("toggle-mobile-menu", handleToggle);
     return () => {
