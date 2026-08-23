@@ -712,16 +712,17 @@ export default function ProductDetailClient({
             { key: "reviews" as AccordionSection, label: `Customer Reviews`, badge: reviewCount, show: true },
           ] as { key: AccordionSection; label: string; badge?: number; show: boolean }[]).map(({ key, label, badge, show }) => {
             if (!show) return null;
-            const isOpen = key === "reviews" ? true : openSection === key;
+            const isAlwaysOpen = key === "reviews" || key === "sizeGuide";
+            const isOpen = isAlwaysOpen ? true : openSection === key;
             return (
               <div key={key} style={{ borderBottom: "1px solid #eee" }}>
                 <button
-                  onClick={() => key !== "reviews" && toggleSection(key)}
+                  onClick={() => !isAlwaysOpen && toggleSection(key)}
                   className="accordion-toggle-btn"
                   style={{
                     width: "100%", display: "flex", justifyContent: "space-between",
                     alignItems: "center", padding: "16px 0", background: "none",
-                    border: "none", cursor: key === "reviews" ? "default" : "pointer", textAlign: "left",
+                    border: "none", cursor: isAlwaysOpen ? "default" : "pointer", textAlign: "left",
                   }}
                 >
                   <span style={{ fontSize: 14, fontWeight: isOpen ? 600 : 400, color: "#111", display: "flex", alignItems: "center", gap: 8 }}>
@@ -732,7 +733,7 @@ export default function ProductDetailClient({
                       </span>
                     )}
                   </span>
-                  {key !== "reviews" && (isOpen ? <ChevronUp size={16} color="#555" /> : <ChevronDown size={16} color="#555" />)}
+                  {!isAlwaysOpen && (isOpen ? <ChevronUp size={16} color="#555" /> : <ChevronDown size={16} color="#555" />)}
                 </button>
 
                 {isOpen && (
