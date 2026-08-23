@@ -700,14 +700,6 @@ export default function CheckoutPage() {
             padding: 10px 12px !important;
           }
 
-          /* Disable sticky headers/footers so keyboard doesn't overlap form */
-          .street-header {
-            position: relative !important;
-          }
-          .mobile-bottom-nav {
-            position: relative !important;
-            bottom: auto !important;
-          }
         }
       `}} />
     </div>
