@@ -37,6 +37,21 @@ export default function CartDrawer() {
 
   return (
     <>
+      <style dangerouslySetInnerHTML={{__html: `
+        .cart-drawer-panel {
+          max-width: 85vw;
+        }
+        @media (max-width: 767px) {
+          .cart-drawer-panel {
+            bottom: 52px !important;
+          }
+          .cart-toast {
+            top: 50% !important;
+            bottom: auto !important;
+            transform: translate(-50%, -50%) !important;
+          }
+        }
+      `}} />
       {/* ── Dark overlay ── */}
       <div
         onClick={closeCart}
@@ -51,6 +66,7 @@ export default function CartDrawer() {
 
       {/* ── Drawer panel ── */}
       <div
+        className="cart-drawer-panel"
         style={{
           position: "fixed", top: 0, right: 0, bottom: 0,
           width: 400,
@@ -217,6 +233,7 @@ export default function CartDrawer() {
 
       {/* ── Toast notification ── */}
       <div
+        className="cart-toast"
         style={{
           position: "fixed",
           bottom: 80,
