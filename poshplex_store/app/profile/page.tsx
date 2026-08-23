@@ -731,22 +731,25 @@ export default function ProfilePage() {
           box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.03);
         }
         .nav-grid-item:hover {
-          border-color: var(--text-main);
-          background: rgba(255,255,255,0.03);
+          border-color: #f87171;
+          background: #ffffff;
           transform: translateY(-2px);
-          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08);
+          box-shadow: 0 12px 30px rgba(248, 113, 113, 0.15), 0 0 0 1px rgba(248, 113, 113, 0.2);
+        }
+        .nav-grid-item:hover .nav-icon, .nav-grid-item:hover .nav-label {
+          color: #f87171 !important;
         }
         .nav-grid-item.active {
-          border-color: var(--text-main);
-          background: var(--text-main);
-          color: var(--bg-primary) !important;
-          box-shadow: 0 12px 30px rgba(255, 255, 255, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.1);
+          border-color: #f87171;
+          background: #f87171;
+          color: #ffffff !important;
+          box-shadow: 0 12px 30px rgba(248, 113, 113, 0.3), 0 0 0 1px rgba(248, 113, 113, 0.5);
         }
         .nav-grid-item.active .nav-icon {
-          color: var(--bg-primary) !important;
+          color: #ffffff !important;
         }
         .nav-grid-item.active .nav-label {
-          color: var(--bg-primary) !important;
+          color: #ffffff !important;
         }
         .nav-icon {
           color: var(--text-muted);
