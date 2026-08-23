@@ -1215,7 +1215,7 @@ export const Catalog: React.FC = () => {
     list.forEach(c => {
       flat.push({ id: c.id, name: prefix + c.name });
       if (c.children && c.children.length) {
-        flat = flat.concat(getFlatCategories(c.children, prefix + "â€” "));
+        flat = flat.concat(getFlatCategories(c.children, prefix + "— "));
       }
     });
     return flat;
