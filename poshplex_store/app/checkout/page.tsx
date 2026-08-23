@@ -628,6 +628,12 @@ export default function CheckoutPage() {
           background-color: rgba(0,0,0,0.05);
         }
 
+        @keyframes pulse-btn {
+          0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(17, 17, 17, 0.4); }
+          70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(17, 17, 17, 0); }
+          100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(17, 17, 17, 0); }
+        }
+
         .place-order-btn {
           background-color: rgba(255, 255, 255, 0.85);
           backdrop-filter: blur(10px);
@@ -636,6 +642,7 @@ export default function CheckoutPage() {
           border: 1px solid rgba(0,0,0,0.1);
           box-shadow: 0 4px 15px rgba(0,0,0,0.03);
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          animation: pulse-btn 2s infinite;
         }
         
         .place-order-btn:hover {
@@ -758,6 +765,7 @@ export default function CheckoutPage() {
             justify-content: center !important;
             align-items: center !important;
             border-radius: 6px !important;
+            animation: pulse-btn 2s infinite !important;
           }
           
           /* Add padding to the bottom of the container to ensure user can scroll past the sticky button */
