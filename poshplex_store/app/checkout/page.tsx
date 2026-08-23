@@ -450,7 +450,7 @@ export default function CheckoutPage() {
               </div>
 
 
-              <div style={{ marginTop: 24 }}>
+              <div style={{ marginTop: 24, display: "flex", justifyContent: "center", width: "100%" }}>
                 <button 
                   type="submit" 
                   disabled={loading}
@@ -663,6 +663,7 @@ export default function CheckoutPage() {
             display: flex !important;
             flex-direction: column-reverse !important;
             gap: 12px !important;
+            align-items: stretch !important;
           }
           .checkout-container {
             padding-top: 12px !important;
