@@ -407,7 +407,7 @@ export default function CheckoutPage() {
               {/* Shipping & Contact Info */}
               <div className="checkout-section">
                 <h3 className="checkout-section-title">1. Shipping & Contact Information</h3>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+                <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
                   <div>
                     <label style={labelStyle}>Full Name *</label>
                     <input required type="text" name="name" value={formData.name} onChange={handleChange} style={inputStyle} placeholder="John Doe" />
@@ -663,10 +663,35 @@ export default function CheckoutPage() {
 
         @media (max-width: 900px) {
           .checkout-grid {
-            grid-template-columns: 1fr !important;
+            display: flex !important;
+            flex-direction: column-reverse !important;
+            gap: 32px !important;
           }
           .checkout-section {
-            padding: 24px;
+            padding: 20px;
+          }
+          .form-grid {
+            grid-template-columns: 1fr !important;
+            gap: 16px !important;
+          }
+          .checkout-section-title {
+            font-size: 16px !important;
+            margin-bottom: 16px !important;
+          }
+          .summary-card h3 {
+            font-size: 16px !important;
+            margin-bottom: 16px !important;
+            padding-bottom: 12px !important;
+          }
+          .place-order-btn {
+            background-color: #888888 !important;
+            color: #ffffff !important;
+            font-size: 14px !important;
+            padding: 16px !important;
+          }
+          .promo-input {
+            font-size: 12px !important;
+            padding: 10px 12px !important;
           }
         }
       `}} />
