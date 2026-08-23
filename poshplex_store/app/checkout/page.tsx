@@ -493,16 +493,16 @@ export default function CheckoutPage() {
                         {item.image && <Image unoptimized={true} src={item.image} alt={item.name} fill sizes="64px" priority={i < 4} style={{ objectFit: "cover" }} />}
                       </div>
                       <div>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: "#111111", marginBottom: 2 }}>{item.name}</div>
+                        <div className="summary-item-name" style={{ fontSize: 15, fontWeight: 700, color: "#111111", marginBottom: 2 }}>{item.name}</div>
                         {item.attributes && Object.keys(item.attributes).length > 0 && (
-                          <div style={{ fontSize: 11, color: "#777777", fontWeight: 600, marginBottom: 2, textTransform: "capitalize" }}>
+                          <div className="summary-item-attr" style={{ fontSize: 11, color: "#777777", fontWeight: 600, marginBottom: 2, textTransform: "capitalize" }}>
                             {Object.entries(item.attributes).map(([k, v]) => `${k}: ${v}`).join(" | ")}
                           </div>
                         )}
-                        <div style={{ fontSize: 13, color: "#555555", fontWeight: 500 }}>Qty: {item.quantity}</div>
+                        <div className="summary-item-qty" style={{ fontSize: 13, color: "#555555", fontWeight: 500 }}>Qty: {item.quantity}</div>
                       </div>
                     </div>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: "#111111" }}>৳{(item.price * item.quantity).toFixed(2)}</div>
+                    <div className="summary-item-price" style={{ fontSize: 15, fontWeight: 800, color: "#111111" }}>৳{(item.price * item.quantity).toFixed(2)}</div>
                   </div>
                 ))}
               </div>
@@ -534,28 +534,28 @@ export default function CheckoutPage() {
                   {appliedPromo && <div style={{ color: "#10b981", fontSize: 13, marginTop: 10, fontWeight: 700 }}>Promo {appliedPromo} applied successfully!</div>}
                 </div>
 
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 15, color: "#555555", fontWeight: 500 }}>
+                <div className="summary-subtotal-row" style={{ display: "flex", justifyContent: "space-between", fontSize: 15, color: "#555555", fontWeight: 500 }}>
                   <span>Subtotal</span>
                   <span>৳{cartTotal.toFixed(2)}</span>
                 </div>
                 {discountAmount > 0 && (
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 15, color: "#10b981", fontWeight: 700 }}>
+                  <div className="summary-discount-row" style={{ display: "flex", justifyContent: "space-between", fontSize: 15, color: "#10b981", fontWeight: 700 }}>
                     <span>Discount ({appliedPromo})</span>
                     <span>-৳{discountAmount.toFixed(2)}</span>
                   </div>
                 )}
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 15, color: "#555555", fontWeight: 500 }}>
+                <div className="summary-shipping-row" style={{ display: "flex", justifyContent: "space-between", fontSize: 15, color: "#555555", fontWeight: 500 }}>
                   <span>Shipping</span>
                   <span style={{ color: "#111111" }}>{shippingCost > 0 ? `৳${shippingCost.toFixed(2)}` : "Calculated later"}</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 24, fontWeight: 900, color: "#111111", marginTop: 12, paddingTop: 24, borderTop: "1px solid rgba(0,0,0,0.1)" }}>
+                <div className="summary-total-row" style={{ display: "flex", justifyContent: "space-between", fontSize: 24, fontWeight: 900, color: "#111111", marginTop: 12, paddingTop: 24, borderTop: "1px solid rgba(0,0,0,0.1)" }}>
                   <span>TOTAL</span>
                   <span>৳{Math.max(0, cartTotal + shippingCost - discountAmount).toFixed(2)}</span>
                 </div>
                 
                 {/* Delivery Note */}
-                <div style={{ marginTop: 16, padding: 12, backgroundColor: "rgba(0,0,0,0.03)", borderRadius: 6, fontSize: 13, color: "#444444", lineHeight: 1.6, borderLeft: "3px solid #10b981" }}>
-                  <div style={{ fontWeight: 700, color: "#111111", marginBottom: 4 }}>DELIVERY TERMS:</div>
+                <div className="delivery-terms-box" style={{ marginTop: 16, padding: 12, backgroundColor: "rgba(0,0,0,0.03)", borderRadius: 6, fontSize: 13, color: "#444444", lineHeight: 1.6, borderLeft: "3px solid #10b981" }}>
+                  <div className="delivery-terms-title" style={{ fontWeight: 700, color: "#111111", marginBottom: 4 }}>DELIVERY TERMS:</div>
                   <div>• Inside Dhaka: Cash on Delivery</div>
                   <div>• Outside Dhaka: Advance delivery charge need to be pay</div>
                 </div>
@@ -667,18 +667,18 @@ export default function CheckoutPage() {
           .checkout-grid {
             display: flex !important;
             flex-direction: column-reverse !important;
-            gap: 12px !important;
+            gap: 8px !important;
             align-items: stretch !important;
           }
           .checkout-container {
-            padding-top: 12px !important;
-            padding-bottom: 24px !important;
+            padding-top: 8px !important;
+            padding-bottom: 16px !important;
           }
           .checkout-header {
-            margin-bottom: 16px !important;
+            margin-bottom: 12px !important;
           }
           .checkout-header h1 {
-            font-size: 20px !important;
+            font-size: 18px !important;
           }
           
           /* Glassmorphism & identical sizing for both boxes */
@@ -689,48 +689,58 @@ export default function CheckoutPage() {
             border: 1px solid rgba(255, 255, 255, 0.7) !important;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05) !important;
             border-radius: 12px !important;
-            padding: 16px !important;
+            padding: 10px !important;
           }
 
           .checkout-form {
-            gap: 12px !important;
+            gap: 8px !important;
           }
           .form-grid {
             grid-template-columns: 1fr !important;
-            gap: 10px !important;
+            gap: 6px !important;
           }
           
           /* Smaller text size */
           .checkout-section label {
-            font-size: 10px !important;
-            margin-bottom: 6px !important;
+            font-size: 9px !important;
+            margin-bottom: 2px !important;
           }
           .checkout-section input, .checkout-section textarea {
-            font-size: 13px !important;
-            padding: 10px 12px !important;
+            font-size: 11px !important;
+            padding: 6px 8px !important;
           }
 
           .checkout-section-title {
-            font-size: 14px !important;
-            margin-bottom: 12px !important;
+            font-size: 12px !important;
+            margin-bottom: 8px !important;
             text-align: center !important;
           }
           .summary-card h3 {
-            font-size: 14px !important;
-            margin-bottom: 12px !important;
-            padding-bottom: 8px !important;
+            font-size: 12px !important;
+            margin-bottom: 8px !important;
+            padding-bottom: 6px !important;
             text-align: center !important;
           }
+
+          /* Summary Box Ultra-compact Text overrides */
+          .summary-item-name { font-size: 12px !important; margin-bottom: 0 !important; }
+          .summary-item-attr { font-size: 9px !important; margin-bottom: 0 !important; }
+          .summary-item-qty { font-size: 10px !important; }
+          .summary-item-price { font-size: 12px !important; }
+          .summary-subtotal-row, .summary-shipping-row, .summary-discount-row { font-size: 12px !important; }
+          .summary-total-row { font-size: 16px !important; margin-top: 8px !important; padding-top: 12px !important; }
+          .delivery-terms-box { padding: 8px !important; font-size: 10px !important; margin-top: 10px !important; }
+          .delivery-terms-title { font-size: 11px !important; }
 
           /* Centered Grey Button */
           .place-order-btn {
             background-color: #888888 !important;
             color: #ffffff !important;
-            font-size: 13px !important;
-            padding: 14px 24px !important;
-            margin: 10px auto 0 auto !important;
+            font-size: 11px !important;
+            padding: 10px 16px !important;
+            margin: 6px auto 0 auto !important;
             width: 100% !important;
-            max-width: 300px !important;
+            max-width: 250px !important;
             display: flex !important;
             justify-content: center !important;
             align-items: center !important;
@@ -738,8 +748,8 @@ export default function CheckoutPage() {
           }
           
           .promo-input {
-            font-size: 12px !important;
-            padding: 8px 10px !important;
+            font-size: 10px !important;
+            padding: 6px 8px !important;
           }
           
           /* Disable inline sticky behavior for Order Summary on mobile */
