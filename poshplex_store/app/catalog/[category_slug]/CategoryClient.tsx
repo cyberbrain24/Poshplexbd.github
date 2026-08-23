@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Heart, SlidersHorizontal, ChevronDown, X, Star } from "lucide-react";
+import { Heart, SlidersHorizontal, ChevronDown, X, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import ProductCard from "../../components/ProductCard";
 
 /* ─── helpers ─────────────────────────────────────────────────────── */
@@ -73,74 +73,101 @@ function SubcategoryNav({
 }) {
   if (!children.length) return null;
   return (
-    <div
-      className="subcategory-nav-grid"
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        gap: 12,
-        flexWrap: "wrap",
-        marginTop: 4,
-        marginBottom: 4,
-      }}
-    >
-      {children.map((sub, idx) => {
-        const isActive =
-          activeSlug?.toLowerCase() === sub.slug.toLowerCase();
-        return (
-          <Link
-            key={sub.id}
-            href={`/catalog/${encodeURIComponent(sub.slug)}`}
-            scroll={false}
-            style={{ 
-              textDecoration: "none", 
-              textAlign: "center",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              width: "auto",
-              minWidth: 80
-            }}
-          >
-            <div
-              className={`sub-circle ${isActive ? "active" : ""}`}
-              style={{
-                width: 72,
-                height: 72,
-                borderRadius: 16,
-                background: isActive ? "#333333" : "#1e1e1e",
+    <div style={{ position: "relative", width: "100%" }}>
+      <button 
+        className="mobile-slider-icon left-icon"
+        onClick={(e) => {
+          e.preventDefault();
+          const grid = document.getElementById("subnav-grid");
+          if (grid) grid.scrollBy({ left: -120, behavior: "smooth" });
+        }}
+        aria-label="Scroll left"
+      >
+        <ChevronLeft size={16} />
+      </button>
+
+      <div
+        id="subnav-grid"
+        className="subcategory-nav-grid"
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          gap: 12,
+          flexWrap: "wrap",
+          marginTop: 4,
+          marginBottom: 4,
+        }}
+      >
+        {children.map((sub, idx) => {
+          const isActive =
+            activeSlug?.toLowerCase() === sub.slug.toLowerCase();
+          return (
+            <Link
+              key={sub.id}
+              href={`/catalog/${encodeURIComponent(sub.slug)}`}
+              scroll={false}
+              style={{ 
+                textDecoration: "none", 
+                textAlign: "center",
                 display: "flex",
+                flexDirection: "column",
                 alignItems: "center",
-                justifyContent: "center",
-                fontSize: 24,
-                border: isActive ? "2.5px solid #c8102e" : "2.5px solid transparent",
-                overflow: "hidden",
-                position: "relative"
+                width: "auto",
+                minWidth: 80
               }}
             >
-              {sub.image ? (
-                <Image unoptimized={true} src={sub.image} alt="" fill sizes="72px" priority={idx < 6} style={{ objectFit: "cover" }} />
-              ) : (
-                getCategoryIcon(sub.name)
-              )}
-            </div>
-            <p
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-                color: isActive ? "#ffffff" : "#cccccc",
-                marginTop: 8,
-                lineHeight: 1.2,
-                whiteSpace: "nowrap"
-              }}
-            >
-              {sub.name}
-            </p>
-          </Link>
-        );
-      })}
+              <div
+                className={`sub-circle ${isActive ? "active" : ""}`}
+                style={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: 16,
+                  background: isActive ? "#333333" : "#1e1e1e",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 24,
+                  border: isActive ? "2.5px solid #c8102e" : "2.5px solid transparent",
+                  overflow: "hidden",
+                  position: "relative"
+                }}
+              >
+                {sub.image ? (
+                  <Image unoptimized={true} src={sub.image} alt="" fill sizes="72px" priority={idx < 6} style={{ objectFit: "cover" }} />
+                ) : (
+                  getCategoryIcon(sub.name)
+                )}
+              </div>
+              <p
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  color: isActive ? "#ffffff" : "#cccccc",
+                  marginTop: 8,
+                  lineHeight: 1.2,
+                  whiteSpace: "nowrap"
+                }}
+              >
+                {sub.name}
+              </p>
+            </Link>
+          );
+        })}
+      </div>
+
+      <button 
+        className="mobile-slider-icon right-icon"
+        onClick={(e) => {
+          e.preventDefault();
+          const grid = document.getElementById("subnav-grid");
+          if (grid) grid.scrollBy({ left: 120, behavior: "smooth" });
+        }}
+        aria-label="Scroll right"
+      >
+        <ChevronRight size={16} />
+      </button>
     </div>
   );
 }
@@ -637,6 +664,10 @@ export default function CategoryClient({
           border-color: #c8102e !important;
         }
 
+        .mobile-slider-icon {
+          display: none;
+        }
+
         @media (max-width: 767px) {
           .category-title {
             display: none !important;
@@ -659,8 +690,8 @@ export default function CategoryClient({
             display: flex !important;
             justify-content: flex-start !important;
             flex-wrap: nowrap !important;
-            gap: 12px !important;
-            padding: 0 !important;
+            gap: 8px !important;
+            padding: 0 16px !important;
             margin: 0 !important;
             overflow-x: auto !important;
             -webkit-overflow-scrolling: touch;
@@ -672,6 +703,7 @@ export default function CategoryClient({
           .subcategory-nav-grid > a {
             width: auto !important;
             flex-shrink: 0;
+            min-width: 60px !important;
           }
           .subcategory-nav-grid .sub-circle {
             width: 48px !important;
@@ -688,6 +720,31 @@ export default function CategoryClient({
           .cat-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
             gap: 16px 8px !important;
+          }
+          
+          /* Mobile slider icons */
+          .mobile-slider-icon {
+            display: flex !important;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-60%);
+            width: 24px;
+            height: 24px;
+            background: rgba(30, 30, 30, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border-radius: 50%;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+          }
+          .mobile-slider-icon.left-icon {
+            left: 2px;
+          }
+          .mobile-slider-icon.right-icon {
+            right: 2px;
           }
         }
       `}} />
