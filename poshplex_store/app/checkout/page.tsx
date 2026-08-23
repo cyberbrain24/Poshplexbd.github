@@ -377,8 +377,8 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="container" style={{ paddingTop: 60, paddingBottom: 100, minHeight: "70vh" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 48, gap: 16 }}>
+    <div className="container checkout-container" style={{ paddingTop: 60, paddingBottom: 100, minHeight: "70vh" }}>
+      <div className="checkout-header" style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 48, gap: 16 }}>
         <Lock size={32} color="var(--text-muted)" />
         <h1 style={{ fontSize: 32, fontWeight: 900, color: "var(--text-main)", margin: 0, textTransform: "uppercase", letterSpacing: "-0.03em" }}>
           Secure Checkout
@@ -396,7 +396,7 @@ export default function CheckoutPage() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 420px", gap: 48, alignItems: "start" }} className="checkout-grid">
           {/* Left Column: Form */}
           <div>
-            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 32 }}>
+            <form onSubmit={handleSubmit} className="checkout-form" style={{ display: "flex", flexDirection: "column", gap: 32 }}>
               
               {error && (
                 <div style={{ padding: 16, backgroundColor: "rgba(225, 29, 72, 0.1)", border: "1px solid #e11d48", color: "#e11d48", borderRadius: 4, fontWeight: 500 }}>
@@ -665,23 +665,36 @@ export default function CheckoutPage() {
           .checkout-grid {
             display: flex !important;
             flex-direction: column-reverse !important;
-            gap: 32px !important;
+            gap: 16px !important;
+          }
+          .checkout-container {
+            padding-top: 16px !important;
+            padding-bottom: 24px !important;
+          }
+          .checkout-header {
+            margin-bottom: 20px !important;
+          }
+          .checkout-header h1 {
+            font-size: 22px !important;
           }
           .checkout-section {
-            padding: 20px;
+            padding: 16px !important;
+          }
+          .checkout-form {
+            gap: 16px !important;
           }
           .form-grid {
             grid-template-columns: 1fr !important;
-            gap: 16px !important;
+            gap: 12px !important;
           }
           .checkout-section-title {
-            font-size: 16px !important;
-            margin-bottom: 16px !important;
+            font-size: 14px !important;
+            margin-bottom: 12px !important;
           }
           .summary-card h3 {
-            font-size: 16px !important;
-            margin-bottom: 16px !important;
-            padding-bottom: 12px !important;
+            font-size: 14px !important;
+            margin-bottom: 12px !important;
+            padding-bottom: 8px !important;
           }
           .place-order-btn {
             background-color: #888888 !important;
@@ -692,6 +705,15 @@ export default function CheckoutPage() {
           .promo-input {
             font-size: 12px !important;
             padding: 10px 12px !important;
+          }
+
+          /* Disable sticky headers/footers so keyboard doesn't overlap form */
+          .street-header {
+            position: relative !important;
+          }
+          .mobile-bottom-nav {
+            position: relative !important;
+            bottom: auto !important;
           }
         }
       `}} />
