@@ -658,46 +658,78 @@ export default function CheckoutPage() {
           .checkout-grid {
             display: flex !important;
             flex-direction: column-reverse !important;
-            gap: 16px !important;
+            gap: 12px !important;
           }
           .checkout-container {
-            padding-top: 16px !important;
+            padding-top: 12px !important;
             padding-bottom: 24px !important;
           }
           .checkout-header {
-            margin-bottom: 20px !important;
+            margin-bottom: 16px !important;
           }
           .checkout-header h1 {
-            font-size: 22px !important;
+            font-size: 20px !important;
           }
-          .checkout-section {
+          
+          /* Glassmorphism & identical sizing for both boxes */
+          .checkout-section, .summary-card {
+            background: rgba(255, 255, 255, 0.45) !important;
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.7) !important;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05) !important;
+            border-radius: 12px !important;
             padding: 16px !important;
           }
+
           .checkout-form {
-            gap: 16px !important;
+            gap: 12px !important;
           }
           .form-grid {
             grid-template-columns: 1fr !important;
-            gap: 12px !important;
+            gap: 10px !important;
           }
+          
+          /* Smaller text size */
+          .checkout-section label {
+            font-size: 10px !important;
+            margin-bottom: 6px !important;
+          }
+          .checkout-section input, .checkout-section textarea {
+            font-size: 13px !important;
+            padding: 10px 12px !important;
+          }
+
           .checkout-section-title {
             font-size: 14px !important;
             margin-bottom: 12px !important;
+            text-align: center !important;
           }
           .summary-card h3 {
             font-size: 14px !important;
             margin-bottom: 12px !important;
             padding-bottom: 8px !important;
+            text-align: center !important;
           }
+
+          /* Centered Grey Button */
           .place-order-btn {
             background-color: #888888 !important;
             color: #ffffff !important;
-            font-size: 14px !important;
-            padding: 16px !important;
+            font-size: 13px !important;
+            padding: 14px 24px !important;
+            margin: 10px auto 0 auto !important;
+            width: 100% !important;
+            max-width: 300px !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            border-radius: 8px !important;
           }
+          
           .promo-input {
             font-size: 12px !important;
-            padding: 10px 12px !important;
+            padding: 8px 10px !important;
           }
           
           /* Disable inline sticky behavior for Order Summary on mobile */
