@@ -644,27 +644,42 @@ export default function CategoryClient({
           .category-toolbar {
             display: none !important;
           }
+          .street-header {
+            position: relative !important;
+          }
           .category-header-container {
-            display: none !important;
+            display: block !important;
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 101 !important;
+            background: #1e1e1e !important;
+            padding: 8px 12px !important;
           }
           .subcategory-nav-grid {
             display: flex !important;
-            justify-content: center !important;
-            flex-wrap: wrap !important;
-            gap: 12px 16px !important;
+            justify-content: flex-start !important;
+            flex-wrap: nowrap !important;
+            gap: 12px !important;
             padding: 0 !important;
-            margin-top: 4px !important;
+            margin: 0 !important;
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; /* Firefox */
+          }
+          .subcategory-nav-grid::-webkit-scrollbar {
+            display: none; /* Chrome/Safari */
           }
           .subcategory-nav-grid > a {
             width: auto !important;
+            flex-shrink: 0;
           }
           .subcategory-nav-grid .sub-circle {
-            width: 64px !important;
-            height: 64px !important;
-            border-radius: 14px !important;
+            width: 48px !important;
+            height: 48px !important;
+            border-radius: 12px !important;
           }
           .subcategory-nav-grid p {
-            font-size: 10px !important;
+            font-size: 9px !important;
             margin-top: 4px !important;
           }
           .desktop-filter-btn {
