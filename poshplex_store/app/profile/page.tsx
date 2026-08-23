@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Select from "react-select";
 import { fetchWithAuth } from "../utils/fetchWithAuth";
+import GraffitiBackground from "../components/GraffitiBackground";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -617,7 +618,11 @@ export default function ProfilePage() {
   const profileCompletion = calculateProfileCompletion();
 
   return (
-    <div className="container profile-container-mobile" style={{ paddingBottom: 100 }}>
+    <div style={{ position: "relative", minHeight: "100vh", width: "100%" }}>
+      <div style={{ position: "fixed", inset: 0, zIndex: -1 }}>
+        <GraffitiBackground />
+      </div>
+      <div className="container profile-container-mobile" style={{ position: "relative", zIndex: 1, paddingBottom: 100 }}>
       {/* Styles for dynamic layouts */}
       <style>{`
         .profile-container-mobile {
@@ -1296,18 +1301,21 @@ export default function ProfilePage() {
             window.location.href = "/login";
           }}
           style={{
-            background: "none",
-            border: "none",
+            background: "#ffffff",
+            border: "1px solid rgba(248, 113, 113, 0.3)",
             color: "#f87171",
-            fontSize: 16,
+            fontSize: 14,
             fontWeight: 800,
+            padding: "12px 40px",
+            borderRadius: "8px",
             textTransform: "uppercase",
             cursor: "pointer",
             letterSpacing: "1.5px",
-            transition: "all 0.2s"
+            transition: "all 0.2s",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.05)"
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = "#ef4444"; e.currentTarget.style.transform = "scale(1.05)"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = "#f87171"; e.currentTarget.style.transform = "none"; }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "#fef2f2"; e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.1)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "#ffffff"; e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.05)"; }}
         >
           LOGOUT
         </button>
@@ -1493,6 +1501,7 @@ export default function ProfilePage() {
         </div>
       )}
 
+    </div>
     </div>
   );
 }
