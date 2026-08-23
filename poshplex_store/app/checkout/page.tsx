@@ -450,7 +450,7 @@ export default function CheckoutPage() {
               </div>
 
 
-              <div style={{ marginTop: 24, display: "flex", justifyContent: "center", width: "100%" }}>
+              <div className="place-order-wrapper" style={{ marginTop: 24, display: "flex", justifyContent: "center", width: "100%" }}>
                 <button 
                   type="submit" 
                   disabled={loading}
@@ -667,7 +667,7 @@ export default function CheckoutPage() {
           .checkout-grid {
             display: flex !important;
             flex-direction: column-reverse !important;
-            gap: 8px !important;
+            gap: 4px !important;
             align-items: stretch !important;
           }
           .checkout-container {
@@ -709,8 +709,9 @@ export default function CheckoutPage() {
           }
 
           .checkout-section-title {
-            font-size: 12px !important;
-            margin-bottom: 8px !important;
+            font-size: 13px !important;
+            margin-top: 10px !important;
+            margin-bottom: 16px !important;
             text-align: center !important;
           }
           .summary-card h3 {
@@ -730,19 +731,38 @@ export default function CheckoutPage() {
           .delivery-terms-box { padding: 8px !important; font-size: 10px !important; margin-top: 10px !important; }
           .delivery-terms-title { font-size: 11px !important; }
 
-          /* Centered Black Button */
-          .place-order-btn {
-            background-color: var(--text-main, #111111) !important;
-            color: var(--bg-main, #ffffff) !important;
-            font-size: 11px !important;
-            padding: 10px 16px !important;
-            margin: 6px auto 0 auto !important;
+          /* Sticky White Button */
+          .place-order-wrapper {
+            position: fixed !important;
+            bottom: 52px !important;
+            left: 0 !important;
+            right: 0 !important;
             width: 100% !important;
-            max-width: 250px !important;
+            background: #ffffff !important;
+            padding: 10px 16px !important;
+            margin: 0 !important;
+            box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08) !important;
+            z-index: 90 !important;
+          }
+          .place-order-btn {
+            background-color: #ffffff !important;
+            color: #111111 !important;
+            border: 2px solid #111111 !important;
+            font-size: 12px !important;
+            font-weight: 900 !important;
+            padding: 12px 16px !important;
+            margin: 0 auto !important;
+            width: 100% !important;
+            max-width: 100% !important;
             display: flex !important;
             justify-content: center !important;
             align-items: center !important;
-            border-radius: 8px !important;
+            border-radius: 6px !important;
+          }
+          
+          /* Add padding to the bottom of the container to ensure user can scroll past the sticky button */
+          .checkout-container {
+            padding-bottom: 80px !important;
           }
           
           .promo-input {
