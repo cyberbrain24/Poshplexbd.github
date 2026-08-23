@@ -493,7 +493,7 @@ export default function CheckoutPage() {
                   <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
                       <div style={{ width: 64, height: 64, position: "relative", backgroundColor: "#f5f5f5", borderRadius: 6, overflow: "hidden", border: "1px solid rgba(0,0,0,0.05)" }}>
-                        {item.image && <Image src={item.image} alt={item.name} fill sizes="64px" priority={i < 4} style={{ objectFit: "cover" }} />}
+                        {item.image && <Image unoptimized={true} src={item.image} alt={item.name} fill sizes="64px" priority={i < 4} style={{ objectFit: "cover" }} />}
                       </div>
                       <div>
                         <div style={{ fontSize: 15, fontWeight: 700, color: "#111111", marginBottom: 4 }}>{item.name}</div>

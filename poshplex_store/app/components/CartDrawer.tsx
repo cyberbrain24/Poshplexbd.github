@@ -105,7 +105,7 @@ export default function CartDrawer() {
                   {/* Thumbnail */}
                   <div style={{ width: 72, height: 90, background: "#f5f5f5", flexShrink: 0, position: "relative", borderRadius: 2, overflow: "hidden" }}>
                     {item.image ? (
-                      <Image src={item.image} alt={item.name} fill sizes="72px" style={{ objectFit: "cover" }} />
+                      <Image unoptimized={true} src={item.image} alt={item.name} fill sizes="72px" style={{ objectFit: "cover" }} />
                     ) : (
                       <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                         <ShoppingBag size={24} color="#ccc" />

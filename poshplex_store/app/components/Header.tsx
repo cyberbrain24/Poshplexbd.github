@@ -249,7 +249,7 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
                               border: "1px solid #f0f0f0"
                             }}>
                               {child.image ? (
-                                <Image src={child.image} alt={child.name} fill sizes="140px" style={{ objectFit: "cover" }} />
+                                <Image unoptimized={true} src={child.image} alt={child.name} fill sizes="140px" style={{ objectFit: "cover" }} />
                               ) : (
                                 <span style={{ color: "#777", fontSize: 10, textTransform: "uppercase" }}>No Image</span>
                               )}
@@ -379,7 +379,7 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
                           style={{ display: "flex", gap: 12, alignItems: "center", textDecoration: "none" }}
                         >
                           <div style={{ width: 40, height: 40, position: "relative", borderRadius: 6, overflow: "hidden", background: "#222" }}>
-                            {mainImage && <Image src={mainImage.url} alt={product.name} fill sizes="40px" style={{ objectFit: "cover" }} />}
+                            {mainImage && <Image unoptimized={true} src={mainImage.url} alt={product.name} fill sizes="40px" style={{ objectFit: "cover" }} />}
                           </div>
                           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                             <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-main)", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{product.name}</span>
@@ -502,7 +502,7 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
                         position: "relative"
                       }}>
                         {child.image ? (
-                          <Image src={child.image} alt={child.name} fill sizes="(max-width: 768px) 20vw, 72px" style={{ objectFit: "cover" }} />
+                          <Image unoptimized={true} src={child.image} alt={child.name} fill sizes="(max-width: 768px) 20vw, 72px" style={{ objectFit: "cover" }} />
                         ) : (
                           <span style={{ color: "#666", fontSize: 8, textTransform: "uppercase", fontWeight: 700 }}>Street</span>
                         )}

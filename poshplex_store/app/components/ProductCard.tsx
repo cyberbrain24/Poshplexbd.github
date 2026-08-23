@@ -79,7 +79,7 @@ export default function ProductCard({
         style={{ textDecoration: "none", color: "inherit", display: "flex", flexDirection: "column", flex: 1 }}
       >
         <div style={{ position: "relative", background: "#f0f0f0", overflow: "hidden", aspectRatio: "3/4" }}>
-          <Image
+          <Image unoptimized={true}
             src={imageUrl}
             alt={product.name}
             fill

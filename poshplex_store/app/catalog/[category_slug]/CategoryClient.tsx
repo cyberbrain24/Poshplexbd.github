@@ -119,7 +119,7 @@ function SubcategoryNav({
               }}
             >
               {sub.image ? (
-                <Image src={sub.image} alt="" fill sizes="72px" priority={idx < 6} style={{ objectFit: "cover" }} />
+                <Image unoptimized={true} src={sub.image} alt="" fill sizes="72px" priority={idx < 6} style={{ objectFit: "cover" }} />
               ) : (
                 getCategoryIcon(sub.name)
               )}

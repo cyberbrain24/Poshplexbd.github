@@ -278,7 +278,7 @@ export default function ProductDetailClient({
             {images.length > 0 ? (
               images.map((img: any, idx: number) => (
                 <div key={idx} suppressHydrationWarning style={{ flex: "0 0 100%", scrollSnapAlign: "start", position: "relative", width: "100%", aspectRatio: "1/1" }}>
-                  <Image
+                  <Image unoptimized={true}
                     src={img.url || "https://placehold.co/600x600/f0f0f0/999.png?text=No+Image"}
                     alt={`${product.name} view ${idx + 1}`}
                     className="product-hero-img object-contain"
@@ -291,7 +291,7 @@ export default function ProductDetailClient({
               ))
             ) : (
               <div suppressHydrationWarning style={{ flex: "0 0 100%", scrollSnapAlign: "start", position: "relative", width: "100%", aspectRatio: "1/1" }}>
-                <Image
+                <Image unoptimized={true}
                   src={`https://placehold.co/600x600/f0f0f0/999.png?text=${encodeURIComponent(product.name)}`}
                   alt={product.name}
                   className="product-hero-img object-contain"
@@ -718,7 +718,7 @@ export default function ProductDetailClient({
             <X size={30} />
           </button>
           <div style={{ position: "relative", width: "80vw", height: "85vh" }}>
-            <Image src={lightboxUrl} alt="Zoomed" fill sizes="80vw" style={{ objectFit: "contain" }} />
+            <Image unoptimized={true} src={lightboxUrl} alt="Zoomed" fill sizes="80vw" style={{ objectFit: "contain" }} />
           </div>
         </div>
       )}
