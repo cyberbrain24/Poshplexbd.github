@@ -682,7 +682,7 @@ export default function CategoryClient({
             display: block !important;
             position: sticky !important;
             top: 0 !important;
-            z-index: 101 !important;
+            z-index: 90 !important;
             background: #1e1e1e !important;
             padding: 8px 12px !important;
           }
