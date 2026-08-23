@@ -588,8 +588,8 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
 
         @media (max-width: 768px) {
           .header-main-nav-container {
-            min-height: 56px !important;
-            height: 56px !important;
+            min-height: 48px !important;
+            height: 48px !important;
             padding: 6px 16px !important;
           }
           .header-right-utils {
@@ -603,8 +603,8 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
             order: 1;
           }
           .mobile-menu-overlay {
-            top: 82px !important;
-            height: calc(100vh - 82px) !important;
+            top: 74px !important;
+            height: calc(100vh - 74px) !important;
           }
         }
       ` }} />
