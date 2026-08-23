@@ -477,7 +477,7 @@ export default function CheckoutPage() {
           </div>
 
           {/* Right Column: Order Summary */}
-          <div style={{ position: "sticky", top: 120 }}>
+          <div className="order-summary-wrapper" style={{ position: "sticky", top: 120 }}>
             <div className="summary-card">
               <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 24, color: "#111111", borderBottom: "1px solid rgba(0,0,0,0.1)", paddingBottom: 20, textTransform: "uppercase" }}>Order Summary</h3>
               
@@ -699,7 +699,12 @@ export default function CheckoutPage() {
             font-size: 12px !important;
             padding: 10px 12px !important;
           }
-
+          
+          /* Disable inline sticky behavior for Order Summary on mobile */
+          .order-summary-wrapper {
+            position: relative !important;
+            top: auto !important;
+          }
         }
       `}} />
     </div>
