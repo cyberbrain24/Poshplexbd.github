@@ -672,18 +672,18 @@ export default function CheckoutPage() {
           .checkout-grid {
             display: flex !important;
             flex-direction: column-reverse !important;
-            gap: 4px !important;
+            gap: 24px !important;
             align-items: stretch !important;
           }
           .checkout-container {
-            padding-top: 8px !important;
-            padding-bottom: 16px !important;
+            padding-top: 16px !important;
+            padding-bottom: 24px !important;
           }
           .checkout-header {
-            margin-bottom: 12px !important;
+            margin-bottom: 16px !important;
           }
           .checkout-header h1 {
-            font-size: 18px !important;
+            font-size: 22px !important;
           }
           
           /* Solid White Boxes for Mobile */
@@ -692,51 +692,53 @@ export default function CheckoutPage() {
             border: 1px solid rgba(0, 0, 0, 0.1) !important;
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
             border-radius: 12px !important;
-            padding: 10px !important;
+            padding: 20px !important;
           }
 
           .checkout-form {
-            gap: 8px !important;
+            gap: 16px !important;
           }
           .form-grid {
             grid-template-columns: 1fr !important;
-            gap: 6px !important;
+            gap: 12px !important;
           }
           
-          /* Smaller text size */
+          /* Standard text sizes */
           .checkout-section label {
-            font-size: 9px !important;
-            margin-bottom: 2px !important;
+            font-size: 13px !important;
+            margin-bottom: 6px !important;
+            font-weight: 600 !important;
           }
           .checkout-section input, .checkout-section textarea {
-            font-size: 11px !important;
-            padding: 6px 8px !important;
+            font-size: 15px !important;
+            padding: 12px 14px !important;
+            border-radius: 8px !important;
           }
 
           .checkout-section-title {
-            font-size: 16px !important;
-            margin-top: 10px !important;
-            margin-bottom: 16px !important;
-            text-align: center !important;
+            font-size: 18px !important;
+            margin-top: 0px !important;
+            margin-bottom: 20px !important;
+            text-align: left !important;
             font-weight: 800 !important;
           }
           .summary-card h3 {
-            font-size: 16px !important;
-            margin-bottom: 8px !important;
-            padding-bottom: 6px !important;
-            text-align: center !important;
+            font-size: 18px !important;
+            margin-bottom: 16px !important;
+            padding-bottom: 12px !important;
+            text-align: left !important;
             font-weight: 800 !important;
           }
 
-          /* Summary Box Ultra-compact Text overrides */
-          .summary-item-name { font-size: 12px !important; margin-bottom: 0 !important; }
-          .summary-item-attr { font-size: 9px !important; margin-bottom: 0 !important; }
-          .summary-item-qty { font-size: 10px !important; }
-          .summary-item-price { font-size: 12px !important; }
-          .summary-subtotal-row, .summary-shipping-row, .summary-discount-row { font-size: 12px !important; }
-          .summary-total-row { font-size: 16px !important; margin-top: 8px !important; padding-top: 12px !important; }
-          .delivery-terms-box { padding: 8px !important; font-size: 10px !important; margin-top: 10px !important; }
-          .delivery-terms-title { font-size: 11px !important; }
+          /* Summary Box Standard Text overrides */
+          .summary-item-name { font-size: 14px !important; margin-bottom: 4px !important; }
+          .summary-item-attr { font-size: 12px !important; margin-bottom: 0 !important; }
+          .summary-item-qty { font-size: 13px !important; }
+          .summary-item-price { font-size: 14px !important; font-weight: 600 !important; }
+          .summary-subtotal-row, .summary-shipping-row, .summary-discount-row { font-size: 14px !important; margin-bottom: 8px !important; }
+          .summary-total-row { font-size: 18px !important; margin-top: 12px !important; padding-top: 16px !important; }
+          .delivery-terms-box { padding: 12px !important; font-size: 12px !important; margin-top: 20px !important; }
+          .delivery-terms-title { font-size: 13px !important; margin-bottom: 6px !important; }
 
           /* Sticky White Button */
           .place-order-wrapper {
@@ -746,7 +748,7 @@ export default function CheckoutPage() {
             right: 0 !important;
             width: 100% !important;
             background: #ffffff !important;
-            padding: 10px 16px !important;
+            padding: 12px 20px !important;
             margin: 0 !important;
             box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08) !important;
             z-index: 90 !important;
@@ -755,16 +757,16 @@ export default function CheckoutPage() {
             background-color: #ffffff !important;
             color: #111111 !important;
             border: 2px solid #111111 !important;
-            font-size: 12px !important;
+            font-size: 15px !important;
             font-weight: 900 !important;
-            padding: 12px 16px !important;
+            padding: 16px 20px !important;
             margin: 0 auto !important;
             width: 100% !important;
             max-width: 100% !important;
             display: flex !important;
             justify-content: center !important;
             align-items: center !important;
-            border-radius: 6px !important;
+            border-radius: 8px !important;
             animation: pulse-btn 2s infinite !important;
           }
           
