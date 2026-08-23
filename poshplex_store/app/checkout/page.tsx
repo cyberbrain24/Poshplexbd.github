@@ -573,9 +573,9 @@ export default function CheckoutPage() {
         
         .checkout-section {
           padding: 32px;
-          background-color: rgba(255,255,255,0.01);
+          background-color: #ffffff;
           border: 1px solid var(--border-color, #ddd);
-          borderRadius: 12px;
+          border-radius: 12px;
           box-shadow: 0 4px 20px rgba(0,0,0,0.1);
         }
         
@@ -613,10 +613,8 @@ export default function CheckoutPage() {
         
         .summary-card {
           padding: 32px;
-          background-color: rgba(255, 255, 255, 0.7);
-          backdrop-filter: blur(16px);
-          -webkit-backdrop-filter: blur(16px);
-          border: 1px solid rgba(255, 255, 255, 0.5);
+          background-color: #ffffff;
+          border: 1px solid rgba(0, 0, 0, 0.1);
           border-radius: 12px;
           box-shadow: 0 10px 30px rgba(0,0,0,0.05);
         }
