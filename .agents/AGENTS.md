@@ -50,6 +50,7 @@ To ensure maximum performance and prevent Out-Of-Memory (OOM) crashes, the VPS i
    - Runs 8 worker processes with 2 threads each (`--worker-class gthread`). Capable of serving 500-700 dynamic requests/sec.
 4. **Next.js Storefront**: `1.5 GB`
    - Uses Next.js `output: 'standalone'` configuration to run as a highly minimized Node.js microservice without bloated `node_modules`.
+   - **STRICT RULE:** Next.js Image Optimization MUST be globally disabled via `unoptimized: true` in `next.config.js`. Do NOT enable image optimization on the frontend, as it consumes too much RAM and causes OOM crashes on the VPS. All images must be served directly.
 5. **Celery Worker**: `0.8 GB`
    - Strictly limited to `--concurrency=2` with `--max-tasks-per-child=100` to prevent Python memory leaks during background tasks.
 6. **OS & Nginx Overhead**: `0.8 GB`
