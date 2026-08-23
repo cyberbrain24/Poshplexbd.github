@@ -75,8 +75,9 @@ body {
 .desktop-sider { display: block; }
 @media (max-width: 768px) {
   .desktop-sider { display: none !important; }
+  .desktop-only { display: none !important; }
   .mobile-bottom-nav { display: block !important; }
-  .ant-layout-content { padding: 10px !important; padding-bottom: calc(var(--bottom-nav-height) + 10px) !important; }
+  .ant-layout-content { padding: 4px !important; padding-bottom: calc(var(--bottom-nav-height) + 20px) !important; }
   h1 { font-size: 20px !important; }
   h2 { font-size: 17px !important; }
   h3 { font-size: 15px !important; }
@@ -86,9 +87,49 @@ body {
   .ant-card-body { padding: 12px !important; }
   .ant-card-head { padding: 0 12px !important; min-height: 44px !important; }
   .ant-card-head-title { font-size: 13px !important; padding: 10px 0 !important; }
-  .ant-table { font-size: 12px !important; }
-  .ant-table-thead > tr > th { padding: 8px 8px !important; font-size: 11px !important; }
-  .ant-table-tbody > tr > td { padding: 8px 8px !important; font-size: 12px !important; }
+  
+  /* Mobile App Table-to-Card Conversion */
+  .ant-table { font-size: 13px !important; }
+  .ant-table-thead { display: none !important; }
+  .ant-table-tbody > tr {
+    display: flex !important;
+    flex-direction: column !important;
+    margin-bottom: 16px !important;
+    background: var(--bg-secondary) !important;
+    border: 1px solid var(--border-glass) !important;
+    border-radius: 12px !important;
+    padding: 12px !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2) !important;
+  }
+  .ant-table-tbody > tr > td {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    border-bottom: 1px dashed var(--border-glass) !important;
+    padding: 10px 0 !important;
+    border-top: none !important;
+    background: transparent !important;
+    text-align: right !important;
+    gap: 8px !important;
+  }
+  .ant-table-tbody > tr > td:last-child {
+    border-bottom: none !important;
+  }
+  .ant-table-wrapper {
+    background: transparent !important;
+    border: none !important;
+  }
+  .ant-table-tbody > tr.ant-table-placeholder {
+    display: table-row !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  .ant-table-tbody > tr.ant-table-placeholder > td {
+    display: table-cell !important;
+    text-align: center !important;
+    border-bottom: none !important;
+  }
   .ant-btn { min-height: 36px !important; font-size: 13px !important; padding: 4px 10px !important; }
   .ant-btn-sm { min-height: 30px !important; font-size: 12px !important; padding: 2px 8px !important; }
   .ant-form-item { margin-bottom: 12px !important; }
@@ -112,7 +153,7 @@ body {
   .ant-timeline-item-content { font-size: 12px !important; }
 }
 @media (max-width: 480px) {
-  .ant-layout-content { padding: 8px !important; padding-bottom: calc(var(--bottom-nav-height) + 8px) !important; }
+  .ant-layout-content { padding: 0 !important; padding-bottom: calc(var(--bottom-nav-height) + 20px) !important; }
   .glass-card { padding: 12px; }
   .ant-card-body { padding: 10px !important; }
   h1 { font-size: 18px !important; }

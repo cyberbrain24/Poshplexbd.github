@@ -122,7 +122,7 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
           </div>
           <Space size="small">
             {identity && (
-              <Space size="small">
+              <Space size="small" className="desktop-only">
                 <Avatar size="small" icon={<UserOutlined />} style={{ backgroundColor: "var(--accent-purple)" }} />
                 <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-main)" }}>{identity.username}</span>
               </Space>
