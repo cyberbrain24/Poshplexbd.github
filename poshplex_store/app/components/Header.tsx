@@ -463,16 +463,14 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
                 {cat.name}
               </Link>
               
-              {/* Horizontal Scroll list of Subcategories with Images */}
+              {/* Grid list of Subcategories with Images */}
               {cat.children && cat.children.length > 0 && (
                 <div 
                   style={{ 
-                    display: "flex", 
-                    justifyContent: "flex-end",
-                    gap: 16, 
-                    overflowX: "auto", 
-                    paddingBottom: 8,
-                    scrollbarWidth: "none"
+                    display: "grid", 
+                    gridTemplateColumns: "repeat(5, 1fr)",
+                    gap: "16px 8px", 
+                    paddingBottom: 8
                   }} 
                   className="mobile-menu-subcategories"
                 >
@@ -487,12 +485,12 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
                         alignItems: "center", 
                         gap: 6, 
                         textDecoration: "none",
-                        minWidth: 72 
+                        width: "100%" 
                       }}
                     >
                       <div style={{
-                        width: 72,
-                        height: 72,
+                        width: "100%",
+                        aspectRatio: "1/1",
                         borderRadius: 4,
                         overflow: "hidden",
                         background: "#222",
@@ -503,7 +501,7 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
                         position: "relative"
                       }}>
                         {child.image ? (
-                          <Image src={child.image} alt={child.name} fill sizes="72px" style={{ objectFit: "cover" }} />
+                          <Image src={child.image} alt={child.name} fill sizes="(max-width: 768px) 20vw, 72px" style={{ objectFit: "cover" }} />
                         ) : (
                           <span style={{ color: "#666", fontSize: 8, textTransform: "uppercase", fontWeight: 700 }}>Street</span>
                         )}
