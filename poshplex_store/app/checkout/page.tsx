@@ -8,6 +8,7 @@ import { Lock, ArrowRight, CheckCircle2, ChevronDown, Search } from "lucide-reac
 import { toast } from "react-hot-toast";
 import { fetchWithAuth } from "../utils/fetchWithAuth";
 import { useCart } from "../../context/CartContext";
+import GraffitiBackground from "../components/GraffitiBackground";
 
 // --- CUSTOM SEARCHABLE SELECT COMPONENT ---
 function SearchableSelect({ 
@@ -377,8 +378,11 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="container checkout-container" style={{ paddingTop: 32, paddingBottom: 100, minHeight: "70vh" }}>
-      {cart.length === 0 ? (
+    <div style={{ position: "relative", overflow: "hidden" }}>
+      <GraffitiBackground />
+      <div style={{ position: "relative", zIndex: 1 }}>
+        <div className="container checkout-container" style={{ paddingTop: 32, paddingBottom: 100, minHeight: "70vh" }}>
+          {cart.length === 0 ? (
         <div style={{ textAlign: "center", color: "var(--text-muted)", marginTop: 60 }}>
           <p style={{ fontSize: 18 }}>Your cart is currently empty.</p>
           <Link href="/catalog" className="place-order-btn" style={{ marginTop: 24, padding: "14px 36px", display: "inline-block", textDecoration: "none", fontWeight: 700 }}>
@@ -739,6 +743,8 @@ export default function CheckoutPage() {
           }
         }
       `}} />
+        </div>
+      </div>
     </div>
   );
 }
