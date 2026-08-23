@@ -1101,14 +1101,14 @@ export default function ProductDetailClient({
           }
           .product-action-buttons-wrapper {
             position: fixed !important;
-            bottom: 64px !important;
+            bottom: 52px !important;
             left: 0 !important;
             right: 0 !important;
             background: #fff !important;
             border-top: 1px solid #eee !important;
             padding: 10px 16px !important;
             margin-bottom: 0 !important;
-            z-index: 1000 !important;
+            z-index: 90 !important;
             box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08) !important;
           }
         }
