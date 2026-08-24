@@ -264,7 +264,7 @@ export const Orders: React.FC = () => {
       const res = await axios.post(`${API_URL}/${id}/ship`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      message.success(`Booked with courier. Tracking: ${res.data.tracking_number}`);
+      message.success(`Booked with courier. Parcel ID: ${res.data.courier_consignment_id || res.data.tracking_number}`);
       fetchOrders();
       if (selectedOrder && selectedOrder.id === id) {
         setSelectedOrder(res.data);

@@ -221,6 +221,7 @@ def compile_order_response(order: Order, sku_to_details: dict = None) -> dict:
         "shipping_thana": order.shipping_thana,
         "shipping_postal_code": order.shipping_postal_code,
         "tracking_number": order.tracking_number,
+        "courier_consignment_id": order.courier_consignment_id,
         "courier_status": order.courier_status,
         "customer_notes": order.customer_notes,
         "internal_notes": order.internal_notes,
