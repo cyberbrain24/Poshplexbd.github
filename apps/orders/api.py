@@ -118,6 +118,7 @@ class OrderResponseSchema(Schema):
     shipping_postal_code: Optional[str]
     
     tracking_number: Optional[str] = None
+    courier_consignment_id: Optional[str] = None
     courier_status: Optional[str] = None
     customer_notes: Optional[str] = None
     internal_notes: Optional[str] = None

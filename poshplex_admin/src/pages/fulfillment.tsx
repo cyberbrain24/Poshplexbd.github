@@ -353,7 +353,7 @@ export const Fulfillment: React.FC = () => {
                   
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color: '#10b981' }}>
                     <CheckCircleOutlined />
-                    <strong style={{ color: '#000' }}>Parcel ID: {order.tracking_number || 'N/A'}</strong>
+                    <strong style={{ color: '#fff' }}>Parcel ID: {order.courier_consignment_id || order.tracking_number || 'N/A'}</strong>
                     {order.tracking_number && (
                       <a href={`https://steadfast.com.bd/tracking?id=${order.tracking_number}`} target="_blank" rel="noreferrer">
                         <EyeOutlined style={{ color: '#888' }} />
@@ -464,7 +464,7 @@ export const Fulfillment: React.FC = () => {
 
             <Divider>Decoupled Tracking details</Divider>
             <Descriptions bordered column={2}>
-              <Descriptions.Item label="Tracking number">{selectedOrder.tracking_number || "NO CODE"}</Descriptions.Item>
+              <Descriptions.Item label="Parcel ID / Tracking">{selectedOrder.courier_consignment_id || selectedOrder.tracking_number || "NO CODE"}</Descriptions.Item>
               <Descriptions.Item label="Courier status">{formatCourierStatus(selectedOrder.courier_status)}</Descriptions.Item>
             </Descriptions>
             <Button icon={<EditOutlined />} onClick={() => { trackingForm.setFieldsValue(selectedOrder); setIsEditTrackingOpen(true); }}>

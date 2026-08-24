@@ -563,8 +563,10 @@ export const Orders: React.FC = () => {
     {
       title: "Tracking",
       dataIndex: "tracking_number",
-      key: "tracking_number",
-      render: (track: string) => (track ? <code style={{ color: "var(--accent-purple)" }}>{track}</code> : <Tag>NO COURIER</Tag>),
+      render: (track: string, record: any) => {
+        const id = record.courier_consignment_id || track;
+        return id ? <code style={{ color: "var(--accent-purple)" }}>{id}</code> : <Tag>NO COURIER</Tag>;
+      },
     },
     {
       title: "Operations",
@@ -740,10 +742,10 @@ export const Orders: React.FC = () => {
                     </Button>
                   ) : (
                     <>
-                      <Button size="small" style={{ flex: 1, borderColor: '#10b981', color: '#10b981', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4, overflow: 'hidden' }} onClick={() => { navigator.clipboard.writeText(order.tracking_number); message.success('Parcel ID copied to clipboard'); }}>
+                      <Button size="small" style={{ flex: 1, borderColor: '#10b981', color: '#10b981', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4, overflow: 'hidden' }} onClick={() => { navigator.clipboard.writeText(order.courier_consignment_id || order.tracking_number); message.success('Parcel ID copied to clipboard'); }}>
                         <CheckCircleOutlined style={{ flexShrink: 0 }} /> 
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          Shipped: {order.tracking_number}
+                          Shipped: {order.courier_consignment_id || order.tracking_number}
                         </span>
                       </Button>
                       <Button size="small" danger icon={<DeleteOutlined />} onClick={() => handleRemoveShipment(order.id)} />
@@ -1075,7 +1077,7 @@ export const Orders: React.FC = () => {
                 </Col>
                 <Col span={12}>
                   <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Courier Tracking</div>
-                  <div style={{ fontWeight: 600 }}>{selectedOrder.tracking_number || "NOT DISPATCHED"}</div>
+                  <div style={{ fontWeight: 600 }}>{selectedOrder.courier_consignment_id || selectedOrder.tracking_number || "NOT DISPATCHED"}</div>
                   <div style={{ color: '#888', fontSize: 13 }}>{selectedOrder.courier_status || "PENDING"}</div>
                 </Col>
                 <Col span={12}>
@@ -1320,7 +1322,8 @@ export const Orders: React.FC = () => {
 
             <Descriptions title="Fulfillment Demographics" column={2} style={{ marginBottom: 24 }}>
               <Descriptions.Item label="Customer Name">{selectedOrder.shipping_name || selectedOrder.customer_name}</Descriptions.Item>
-              <Descriptions.Item label="Courier Tracking">{selectedOrder.tracking_number || "Not generated yet"}</Descriptions.Item>
+              <Descriptions.Item label="Courier Status"><Tag color={selectedOrder.courier_status === 'delivered' ? 'green' : 'blue'}>{selectedOrder.courier_status || "N/A"}</Tag></Descriptions.Item>
+              <Descriptions.Item label="Courier Tracking">{selectedOrder.courier_consignment_id || selectedOrder.tracking_number || "Not generated yet"}</Descriptions.Item>
               <Descriptions.Item label="District Location">{selectedOrder.shipping_district}</Descriptions.Item>
               <Descriptions.Item label="Thana location Hub">{selectedOrder.shipping_thana}</Descriptions.Item>
               <Descriptions.Item label="Courier Address" span={2}>{selectedOrder.shipping_address}</Descriptions.Item>
