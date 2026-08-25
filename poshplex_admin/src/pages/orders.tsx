@@ -712,7 +712,7 @@ export const Orders: React.FC = () => {
                 {/* Qty & Price */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
                   <span>{items.reduce((acc: number, item: any) => acc + item.quantity, 0)} items</span>
-                  <strong style={{ color: '#000' }}>৳{total}</strong>
+                  <strong style={{ color: '#fff' }}>৳{total}</strong>
                 </div>
 
                 {/* Paid & Due */}
