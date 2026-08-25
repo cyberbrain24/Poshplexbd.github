@@ -1,7 +1,7 @@
 import React, { Suspense } from "react";
 import { Refine, Authenticated } from "@refinedev/core";
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
-import { ConfigProvider, theme, Spin } from "antd";
+import { ConfigProvider, theme, Spin, App as AntdApp } from "antd";
 
 import { dataProvider } from "./providers/dataProvider";
 import { authProvider, accessControlProvider } from "./providers/authProvider";
@@ -24,6 +24,7 @@ const SystemMonitor = React.lazy(() => import("./pages/system-monitor"));
 const RolesPage = React.lazy(() => import("./pages/roles"));
 const StaffPage = React.lazy(() => import("./pages/staff"));
 const TasksPage = React.lazy(() => import("./pages/tasks"));
+const LocationsPage = React.lazy(() => import("./pages/locations"));
 
 // Curated administrative dark-theme tokens matching streetwear aesthetics
 const customTheme = {
@@ -37,7 +38,7 @@ const customTheme = {
   },
 };
 
-import { App as AntdApp } from "antd";
+
 
 const originalWarn = console.warn;
 console.warn = (...args) => {
@@ -89,6 +90,7 @@ export const App: React.FC = () => {
                   <Route path="/system-monitor" element={<SystemMonitor />} />
                   <Route path="/roles" element={<RolesPage />} />
                   <Route path="/staff" element={<StaffPage />} />
+                  <Route path="/locations" element={<LocationsPage />} />
                 </Route>
                 
                 {/* Fallbacks */}

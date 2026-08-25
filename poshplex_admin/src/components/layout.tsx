@@ -4,7 +4,7 @@ import {
   DashboardOutlined, ShoppingCartOutlined, AppstoreOutlined, AuditOutlined,
   TeamOutlined, ApiOutlined, FolderOpenOutlined, LogoutOutlined, UserOutlined,
   CarOutlined, GiftOutlined, SoundOutlined, SettingOutlined, PrinterOutlined,
-  MenuOutlined, EllipsisOutlined, PictureOutlined, DesktopOutlined, CheckSquareOutlined
+  MenuOutlined, EllipsisOutlined, PictureOutlined, DesktopOutlined, CheckSquareOutlined, GlobalOutlined
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useLogout, useGetIdentity } from "@refinedev/core";
@@ -61,6 +61,7 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
     { key: "/catalog", icon: <AppstoreOutlined />, label: "Catalog Manager", module: "catalog" },
     { key: "/promo-codes", icon: <GiftOutlined />, label: "Promo Codes", module: "marketing" },
     { key: "/finance", icon: <AuditOutlined />, label: "Financial Ledger", module: "finance" },
+    { key: "/locations", icon: <GlobalOutlined />, label: "Locations & Zones", module: "orders" },
     { key: "/tasks", icon: <CheckSquareOutlined />, label: "Task Management", module: "tasks" },
     { key: "/integrations", icon: <ApiOutlined />, label: "Integration Setup", module: "core" },
     { key: "/media", icon: <FolderOpenOutlined />, label: "Media Library", module: "media" },
