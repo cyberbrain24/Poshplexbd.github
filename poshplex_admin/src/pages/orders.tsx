@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
-  Table, Tag, Button, Space, Card, Modal, Form, Input, 
+  Table, Tag, Button, Space, Card, Modal, Form, Input, Pagination,
   InputNumber, Select, Descriptions, Divider, message, Tabs, Drawer, Timeline, Tooltip, Switch, Row, Col, Alert, Badge, Popconfirm
 } from "antd";
 import {
@@ -19,7 +19,7 @@ export const Orders: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(32);
   const [searchText, setSearchText] = useState("");
   
   // Extra list filters
@@ -781,6 +781,21 @@ export const Orders: React.FC = () => {
               </Card>
             );
           })}
+        </div>
+
+        {/* Pagination Control */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24, paddingBottom: 12 }}>
+          <Pagination
+            current={currentPage}
+            pageSize={pageSize}
+            total={totalCount}
+            showSizeChanger
+            pageSizeOptions={['16', '32', '64', '100']}
+            onChange={(page, size) => {
+              setCurrentPage(page);
+              setPageSize(size);
+            }}
+          />
         </div>
       </Card>
 
