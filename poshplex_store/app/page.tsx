@@ -6,7 +6,7 @@ import FeaturedReviewsCarousel from "./components/FeaturedReviewsCarousel";
 
 async function getFeaturedProducts() {
   try {
-    const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/products?is_featured=true`, {
+    const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/products?is_featured=true&limit=18`, {
       next: { revalidate: 60 },
     });
     if (res.ok) {
@@ -241,7 +241,7 @@ export default async function Home() {
         </div>
 
         <div className="product-grid">
-          {products.slice(0, 12).map((product: any, i: number) => (
+          {products.slice(0, 18).map((product: any, i: number) => (
             <div
               key={product.id}
               className="product-card"
