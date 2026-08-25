@@ -20,6 +20,8 @@ export interface FBUserData {
   st?: string; // state
   zp?: string; // zip
   country?: string; // country code (bd)
+  ge?: string; // gender (m, f)
+  db?: string; // date of birth (YYYYMMDD)
   external_id?: string;
 }
 
