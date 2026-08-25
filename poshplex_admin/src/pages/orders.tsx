@@ -687,7 +687,7 @@ export const Orders: React.FC = () => {
                 {/* PO & Date */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
                   <strong>{order.order_number || `#${order.id}`}</strong>
-                  <span style={{ color: '#888' }}>{order.created_at ? new Date(order.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}</span>
+                  <span style={{ color: '#888' }}>{order.created_at ? new Date(order.created_at).toLocaleString('en-US', { timeZone: 'Asia/Dhaka', month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : ''}</span>
                 </div>
 
                 {/* Customer Name & Phone */}

@@ -379,7 +379,7 @@ export const Fulfillment: React.FC = () => {
                   )}
                   
                   <div style={{ color: '#888', fontSize: 12, marginTop: 4 }}>
-                    {order.created_at ? new Date(order.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''} • ৳{Math.round(parseFloat(order.total_amount || 0))}
+                    {order.created_at ? new Date(order.created_at).toLocaleString('en-US', { timeZone: 'Asia/Dhaka', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : ''} • ৳{Math.round(parseFloat(order.total_amount || 0))}
                   </div>
                 </Col>
 
