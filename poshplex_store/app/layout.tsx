@@ -81,7 +81,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   } catch (err) {
     console.error("Failed to fetch categories for footer:", err);
   }
-  let fbPixelId = process.env.NEXT_PUBLIC_FB_PIXEL_ID || "";
+  let fbPixelId = process.env.NEXT_PUBLIC_FB_PIXEL_ID || "1764455794927154";
   try {
     const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/tracking_pixels`, { next: { revalidate: 60 } });
     if (res.ok) {

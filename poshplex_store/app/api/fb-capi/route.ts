@@ -20,8 +20,8 @@ const hashData = (val: string | undefined, isPhone: boolean = false): string | u
 export async function POST(req: Request) {
   try {
     // 1. Fetch dynamic credentials from Django Backend
-    let PIXEL_ID = process.env.NEXT_PUBLIC_FB_PIXEL_ID;
-    let ACCESS_TOKEN = process.env.FB_CAPI_ACCESS_TOKEN;
+    let PIXEL_ID = process.env.NEXT_PUBLIC_FB_PIXEL_ID || "1764455794927154";
+    let ACCESS_TOKEN = process.env.FB_CAPI_ACCESS_TOKEN || "EAARa5vP9uQgBRnv7be9OjfT2xmNKJQZCDUInk1oS6w4ZCt3ZBrMyAu0JnwjP3Ts5OIdlfr3t4wPbVVomE5yZA52HdORaB1dJUeZBL1ZBjYU1OIoCZCrWZAJsrZAvHRX0NdDJEBs0D0uhjvn1nbqP9XncePtfxIroIsmoVDd7jovHiB32CQdP6tZCDutkk8UZCwGkWg9UQZDZD";
 
     try {
       const settingsRes = await fetch(
