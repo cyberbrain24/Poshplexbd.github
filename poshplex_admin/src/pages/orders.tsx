@@ -9,6 +9,7 @@ import {
 } from "@ant-design/icons";
 import { EditOrderModal } from "../components/EditOrderModal";
 import axios from "axios";
+import { getOrderLocationZone } from "../utils/orderUtils";
 
 const API_URL = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/orders";
 const CATALOG_API_URL = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/catalog";
@@ -731,7 +732,7 @@ export const Orders: React.FC = () => {
                 {/* Payment Method & Location */}
                 <div style={{ fontSize: 11, color: '#888', marginBottom: 2 }}>{order.payments?.[0]?.method || 'Cash on Delivery'}</div>
                 <div style={{ fontSize: 11, color: '#10b981', fontWeight: 600, marginBottom: 12 }}>
-                  Location: {order.shipping_district === 'Dhaka' ? 'Inside Dhaka' : 'Outside Dhaka'}
+                  Location: {getOrderLocationZone(order)}
                 </div>
 
                 {/* Actions */}

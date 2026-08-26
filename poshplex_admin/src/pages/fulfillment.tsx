@@ -5,8 +5,9 @@ import {
 } from "antd";
 import {
   CarOutlined, PrinterOutlined, CheckCircleOutlined, SyncOutlined, 
-  EyeOutlined, EditOutlined, DollarOutlined, SolutionOutlined, LoadingOutlined, PhoneOutlined, InboxOutlined, PushpinOutlined
+  EyeOutlined, EditOutlined, DollarOutlined, SolutionOutlined, LoadingOutlined, PhoneOutlined, InboxOutlined, PushpinOutlined, WarningOutlined
 } from "@ant-design/icons";
+import { getOrderLocationZone } from "../utils/orderUtils";
 import axios from "axios";
 import { EditOrderModal } from "../components/EditOrderModal";
 
@@ -364,6 +365,9 @@ export const Fulfillment: React.FC = () => {
                   <div style={{ marginBottom: 4, color: '#333' }}>{order.shipping_name || order.customer_name}</div>
                   <div style={{ color: '#666', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
                     <PhoneOutlined /> {order.shipping_phone || order.customer_phone}
+                  </div>
+                  <div style={{ color: '#10b981', fontWeight: 600, fontSize: 12, marginBottom: 8 }}>
+                    Location: {getOrderLocationZone(order)}
                   </div>
                   {order.customer_notes && (
                     <div style={{ color: '#666', fontSize: 12, marginBottom: 4, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
