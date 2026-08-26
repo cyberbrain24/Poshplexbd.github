@@ -2,11 +2,18 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import crypto from "crypto";
 
-// Helper to hash user data as per Facebook CAPI requirements
-const hashData = (val: string | undefined): string | undefined => {
+const hashData = (val: string | undefined, isPhone: boolean = false): string | undefined => {
   if (!val) return undefined;
-  const clean = val.trim().toLowerCase();
+  let clean = val.trim().toLowerCase();
   if (!clean) return undefined;
+  
+  if (isPhone) {
+    clean = clean.replace(/\D/g, '');
+    if (clean.startsWith('01') && clean.length === 11) {
+      clean = '88' + clean;
+    }
+  }
+  
   return crypto.createHash("sha256").update(clean).digest("hex");
 };
 
@@ -57,7 +64,7 @@ export async function POST(req: Request) {
       fbc: fbc,
       country: hashData(userData?.country),
       em: hashData(userData?.em),
-      ph: hashData(userData?.ph),
+      ph: hashData(userData?.ph, true),
       fn: hashData(userData?.fn),
       ln: hashData(userData?.ln),
       ct: hashData(userData?.ct),

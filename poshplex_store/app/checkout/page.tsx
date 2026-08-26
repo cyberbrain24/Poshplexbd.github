@@ -333,9 +333,6 @@ export default function CheckoutPage() {
       if (res.ok) {
         setSuccess(true);
         
-        // --- Fallback Randomization Logic for Event Match Quality ---
-        const finalEmail = formData.email || `po.${Math.random().toString(36).substring(2, 10)}@gmail.com`;
-        
         const finalGender = (formData.gender && ['m', 'f'].includes(formData.gender.toLowerCase())) 
             ? formData.gender.toLowerCase() 
             : (Math.random() > 0.5 ? 'm' : 'f');
@@ -354,7 +351,7 @@ export default function CheckoutPage() {
            content_type: "product",
            num_items: cart.length
         }, {
-           em: finalEmail,
+           em: formData.email,
            ph: formData.phone,
            fn: formData.name,
            ct: formData.thana,
