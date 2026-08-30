@@ -732,6 +732,26 @@ export const Orders: React.FC = () => {
                   )}
                 </div>
 
+                {order.customer_notes && (
+                  <Tooltip title={order.customer_notes} placement="top">
+                    <div style={{
+                      fontSize: 11,
+                      color: "#c084fc",
+                      backgroundColor: "rgba(192, 132, 252, 0.1)",
+                      padding: "4px 8px",
+                      borderRadius: 4,
+                      marginBottom: 8,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      cursor: "pointer",
+                      border: "1px solid rgba(192, 132, 252, 0.2)"
+                    }}>
+                      <strong style={{ color: "#e879f9" }}>Note:</strong> {order.customer_notes}
+                    </div>
+                  </Tooltip>
+                )}
+
                 {/* Qty & Price */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
                   <span>{items.reduce((acc: number, item: any) => acc + item.quantity, 0)} items</span>
