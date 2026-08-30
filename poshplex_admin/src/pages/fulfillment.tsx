@@ -281,6 +281,29 @@ export const Fulfillment: React.FC = () => {
 
   return (
     <Space direction="vertical" size="middle" style={{ width: "100%", paddingBottom: 64 }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .mobile-product-grid {
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 12px !important;
+            overflow-x: visible !important;
+            width: 100%;
+          }
+          .mobile-product-grid > div {
+            min-width: 0 !important;
+            width: 100% !important;
+          }
+          .mobile-product-grid .img-container {
+            width: 100% !important;
+            height: auto !important;
+            aspect-ratio: 1 / 1;
+          }
+          .mobile-parcel-id {
+            font-size: 18px !important;
+          }
+        }
+      `}</style>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -326,10 +349,10 @@ export const Fulfillment: React.FC = () => {
               <Row gutter={[24, 24]} align="middle">
                 {/* Left: Products list */}
                 <Col xs={24} md={10} lg={8}>
-                  <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 8 }}>
+                  <div className="mobile-product-grid" style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 8 }}>
                     {items.map((item: any, idx: number) => (
                       <div key={idx} style={{ textAlign: 'center', minWidth: 100, width: 120 }}>
-                        <div style={{ background: '#f5f5f5', borderRadius: 8, padding: 8, marginBottom: 8, width: 120, height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div className="img-container" style={{ background: '#f5f5f5', borderRadius: 8, padding: 8, marginBottom: 8, width: 120, height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           {item.image ? (
                             <Image src={item.image.startsWith('http') ? item.image : `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}${item.image}`} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} alt="product" />
                           ) : (
@@ -354,7 +377,7 @@ export const Fulfillment: React.FC = () => {
                   
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color: '#10b981' }}>
                     <CheckCircleOutlined />
-                    <strong style={{ color: '#fff' }}>Parcel ID: {order.courier_consignment_id || order.tracking_number || 'N/A'}</strong>
+                    <strong className="mobile-parcel-id" style={{ color: '#fff' }}>Parcel ID: {order.courier_consignment_id || order.tracking_number || 'N/A'}</strong>
                     {order.tracking_number && (
                       <a href={`https://steadfast.com.bd/tracking?id=${order.tracking_number}`} target="_blank" rel="noreferrer">
                         <EyeOutlined style={{ color: '#888' }} />
