@@ -158,9 +158,52 @@ class OrderNotesUpdateSchema(Schema):
 
 # --- Helper Functions ---
 
+def build_sku_to_details(skus: set) -> dict:
+    sku_to_details = {}
+    if not skus:
+        return sku_to_details
+        
+    from apps.catalog.models import ProductVariant, Product
+    
+    # 1. Fetch variants
+    variants = ProductVariant.objects.filter(sku__in=skus).select_related('image', 'product').prefetch_related('product__images')
+    for v in variants:
+        image_url = None
+        if v.image and v.image.image:
+            image_url = v.image.image.url
+        else:
+            prod_images = list(v.product.images.all())
+            if prod_images:
+                main_img = next((img for img in prod_images if img.is_main), prod_images[0])
+                if main_img.image:
+                    image_url = main_img.image.url
+        sku_to_details[v.sku] = {
+            "image": image_url,
+            "attributes": v.attributes
+        }
+        
+    # 2. Fetch simple products for remaining SKUs
+    remaining_skus = skus - set(sku_to_details.keys())
+    if remaining_skus:
+        products = Product.objects.filter(sku__in=remaining_skus).prefetch_related('images')
+        for p in products:
+            image_url = None
+            prod_images = list(p.images.all())
+            if prod_images:
+                main_img = next((img for img in prod_images if img.is_main), prod_images[0])
+                if main_img.image:
+                    image_url = main_img.image.url
+            sku_to_details[p.sku] = {
+                "image": image_url,
+                "attributes": {}
+            }
+            
+    return sku_to_details
+
 def compile_order_response(order: Order, sku_to_details: dict = None) -> dict:
     if sku_to_details is None:
-        sku_to_details = {}
+        skus = {item.sku for item in order.items.all()}
+        sku_to_details = build_sku_to_details(skus)
     items = [{
         "id": item.id,
         "sku": item.sku,
@@ -302,25 +345,7 @@ def list_orders(
         for i in o.items.all():
             all_skus.add(i.sku)
             
-    sku_to_details = {}
-    if all_skus:
-        from apps.catalog.models import ProductVariant
-        variants = ProductVariant.objects.filter(sku__in=all_skus).select_related('image', 'product').prefetch_related('product__images')
-        for v in variants:
-            image_url = None
-            if v.image and v.image.image:
-                image_url = v.image.image.url
-            else:
-                prod_images = list(v.product.images.all())
-                if prod_images:
-                    main_img = next((img for img in prod_images if img.is_main), prod_images[0])
-                    if main_img.image:
-                        image_url = main_img.image.url
-                        
-            sku_to_details[v.sku] = {
-                "image": image_url,
-                "attributes": v.attributes
-            }
+    sku_to_details = build_sku_to_details(all_skus)
 
     results = [compile_order_response(o, sku_to_details) for o in paginated_qs]
     return {"count": total_count, "results": results}
@@ -948,25 +973,7 @@ def list_fulfillment_queue(
         for i in o.items.all():
             all_skus.add(i.sku)
             
-    sku_to_details = {}
-    if all_skus:
-        from apps.catalog.models import ProductVariant
-        variants = ProductVariant.objects.filter(sku__in=all_skus).select_related('image', 'product').prefetch_related('product__images')
-        for v in variants:
-            image_url = None
-            if v.image and v.image.image:
-                image_url = v.image.image.url
-            else:
-                prod_images = list(v.product.images.all())
-                if prod_images:
-                    main_img = next((img for img in prod_images if img.is_main), prod_images[0])
-                    if main_img.image:
-                        image_url = main_img.image.url
-                        
-            sku_to_details[v.sku] = {
-                "image": image_url,
-                "attributes": v.attributes
-            }
+    sku_to_details = build_sku_to_details(all_skus)
 
     results = [compile_order_response(o, sku_to_details) for o in paginated_qs]
     return {"count": total_count, "results": results}
