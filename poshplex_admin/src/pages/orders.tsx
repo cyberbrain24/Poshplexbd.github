@@ -570,6 +570,28 @@ export const Orders: React.FC = () => {
       },
     },
     {
+      title: "Notes",
+      dataIndex: "customer_notes",
+      key: "customer_notes",
+      render: (text: string) => {
+        if (!text) return <span style={{ color: "var(--text-muted)" }}>-</span>;
+        return (
+          <Tooltip title={text} placement="top">
+            <div style={{
+              maxWidth: 140,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              cursor: "pointer",
+              color: "var(--text-main)"
+            }}>
+              {text}
+            </div>
+          </Tooltip>
+        );
+      }
+    },
+    {
       title: "Operations",
       key: "operations",
       render: (record: any) => (
