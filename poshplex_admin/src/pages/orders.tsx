@@ -5,13 +5,21 @@ import {
 } from "antd";
 import {
   ShoppingCartOutlined, CheckCircleOutlined, CarOutlined, 
-  PrinterOutlined, PlusOutlined, ShoppingOutlined, EyeOutlined, SyncOutlined, DeleteOutlined, GiftOutlined, CloseCircleOutlined, EditOutlined, WhatsAppOutlined, SaveOutlined, PhoneOutlined
+  PrinterOutlined, PlusOutlined, ShoppingOutlined, EyeOutlined, SyncOutlined, DeleteOutlined, GiftOutlined, CloseCircleOutlined, EditOutlined, WhatsAppOutlined, SaveOutlined, PhoneOutlined, WarningOutlined
 } from "@ant-design/icons";
 import axios from "axios";
 import { getOrderLocationZone } from "../utils/orderUtils";
 
 const API_URL = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/orders";
 const CATALOG_API_URL = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/catalog";
+
+const isValidPhone = (phone: string | undefined | null) => {
+  if (!phone) return false;
+  let digits = phone.replace(/\D/g, '');
+  if (digits.startsWith('8801') && digits.length === 13) digits = digits.slice(2);
+  else if (digits.startsWith('008801') && digits.length === 15) digits = digits.slice(4);
+  return digits.startsWith('01') && digits.length === 11;
+};
 
 export const Orders: React.FC = () => {
   const [activeTab, setActiveTab] = useState("all");
@@ -258,6 +266,18 @@ export const Orders: React.FC = () => {
 
   // Steadfast Courier actions
   const handleBookShipment = async (id: number) => {
+    const order = orders.find(o => o.id === id);
+    if (order) {
+      const phoneToUse = order.shipping_phone || order.customer_phone;
+      if (!isValidPhone(phoneToUse)) {
+        Modal.error({
+          title: 'Invalid Phone Number',
+          content: 'The customer did not provide a valid Bangladeshi phone number. The parcel cannot be shipped. Please click the eye icon to edit the order and update the phone number to a valid 11-digit number.',
+        });
+        return;
+      }
+    }
+
     try {
       const token = localStorage.getItem("poshplex_access_token");
       const res = await axios.post(`${API_URL}/${id}/ship`, {}, {
@@ -719,7 +739,14 @@ export const Orders: React.FC = () => {
                   {order.shipping_name || order.customer_name}
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 'bold', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  {order.customer_phone}
+                  <Space>
+                    {order.customer_phone}
+                    {!isValidPhone(order.shipping_phone || order.customer_phone) && (
+                      <Tooltip title="Invalid Phone Number. Cannot Ship. Click eye icon to edit.">
+                        <WarningOutlined style={{ color: 'red' }} />
+                      </Tooltip>
+                    )}
+                  </Space>
                   {activePhones[order.id] ? (
                     <PhoneOutlined 
                       style={{ color: '#25D366', cursor: 'pointer', fontSize: 16 }} 

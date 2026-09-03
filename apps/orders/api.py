@@ -678,6 +678,37 @@ def update_order_endpoint(request, order_id: int, data: OrderCreateInputSchema):
             if hasattr(data, 'is_print_ready'):
                 order.is_print_ready = data.is_print_ready
             
+            # Sync CRM profile if it exists
+            if hasattr(order.user, 'crm_profile'):
+                crm = order.user.crm_profile
+                crm_updated = False
+                
+                if data.shipping_phone and crm.phone != data.shipping_phone:
+                    from apps.crm.models import CustomerProfile
+                    if not CustomerProfile.objects.filter(phone=data.shipping_phone).exclude(id=crm.id).exists():
+                        crm.phone = data.shipping_phone
+                        crm_updated = True
+                
+                if data.shipping_address and crm.address != data.shipping_address:
+                    crm.address = data.shipping_address
+                    crm_updated = True
+                    
+                if data.shipping_district and crm.district_id != data.shipping_district:
+                    crm.district_id = data.shipping_district
+                    crm_updated = True
+                    
+                if data.shipping_thana and crm.thana_id != data.shipping_thana:
+                    crm.thana_id = data.shipping_thana
+                    crm_updated = True
+                    
+                if crm_updated:
+                    crm.save()
+                    
+                if data.shipping_name and order.user.first_name != data.shipping_name:
+                    # Update the User's first_name with the new shipping name
+                    order.user.first_name = data.shipping_name[:150]  # Respect max_length of first_name
+                    order.user.save(update_fields=['first_name'])
+            
             # Recalculate subtotal
             subtotal = Decimal('0.00')
             order.items.all().delete()

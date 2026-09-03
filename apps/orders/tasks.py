@@ -44,7 +44,7 @@ def dispatch_order_to_steadfast_task(self, order_id: int):
     if order.payment_status == 'paid':
         cod_amount = 0.0
 
-    raw_phone = order.shipping_phone or order.user.crm_profile.phone if hasattr(order.user, 'crm_profile') else ""
+    raw_phone = order.shipping_phone or (order.user.crm_profile.phone if hasattr(order.user, 'crm_profile') else "")
     formatted_phone = normalize_phone_for_steadfast(raw_phone)
 
     payload = {
