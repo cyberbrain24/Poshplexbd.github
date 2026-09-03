@@ -7,7 +7,6 @@ import {
   ShoppingCartOutlined, CheckCircleOutlined, CarOutlined, 
   PrinterOutlined, PlusOutlined, ShoppingOutlined, EyeOutlined, SyncOutlined, DeleteOutlined, GiftOutlined, CloseCircleOutlined, EditOutlined, WhatsAppOutlined, SaveOutlined, PhoneOutlined
 } from "@ant-design/icons";
-import { EditOrderModal } from "../components/EditOrderModal";
 import axios from "axios";
 import { getOrderLocationZone } from "../utils/orderUtils";
 
@@ -55,7 +54,6 @@ export const Orders: React.FC = () => {
   const [orderCounts, setOrderCounts] = useState<any>({});
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   // Modals / Drawer toggles
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
@@ -451,6 +449,7 @@ export const Orders: React.FC = () => {
         customer_notes: selectedOrder.customer_notes,
         internal_notes: selectedOrder.internal_notes,
         payment_status: selectedOrder.payment_status,
+        status: selectedOrder.status,
       };
       const res = await axios.put(`${API_URL}/${selectedOrder.id}`, payload, {
         headers: { Authorization: `Bearer ${token}` }
@@ -606,7 +605,7 @@ export const Orders: React.FC = () => {
               Sync Status
             </Button>
           )}
-                    <Button size="small" type="primary" ghost icon={<EditOutlined />} onClick={() => { setSelectedOrder(record); setIsEditModalOpen(true); }}>
+          <Button size="small" type="primary" ghost icon={<EditOutlined />} onClick={() => handleOpenDrawerWithDraft(record)}>
             Edit
           </Button>
           <Button size="small" icon={<PrinterOutlined />} onClick={() => { setSelectedOrder(record); setIsPrintModalOpen(true); }}>
@@ -841,19 +840,6 @@ export const Orders: React.FC = () => {
           />
         </div>
       </Card>
-
-      
-      <EditOrderModal
-        visible={isEditModalOpen}
-        order={selectedOrder}
-        onClose={() => setIsEditModalOpen(false)}
-        onRefresh={() => {
-          setIsEditModalOpen(false);
-          fetchOrders();
-        }}
-        productsList={productsList}
-        paymentMethods={paymentMethods}
-      />
 
       {/* Manual Creation Modal */}
       <Modal 
@@ -1091,9 +1077,6 @@ export const Orders: React.FC = () => {
         open={isDetailDrawerOpen}
         extra={
           <Space>
-            <Button icon={<EditOutlined />} onClick={() => setIsEditModalOpen(true)}>
-              Edit Order
-            </Button>
             <Button danger icon={<DeleteOutlined />} onClick={() => handleDeleteOrder(selectedOrder.id)}>
               Delete Order
             </Button>
@@ -1118,20 +1101,65 @@ export const Orders: React.FC = () => {
             />
 
             <div style={{ marginBottom: 24 }}>
-              <h3 style={{ fontSize: 16, marginBottom: 16, fontWeight: 600 }}>Order Coordinates</h3>
+              <h3 style={{ fontSize: 16, marginBottom: 16, fontWeight: 600 }}>Order Coordinates & Editable Details</h3>
               <Row gutter={[16, 16]}>
                 <Col span={12}>
                   <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Order Status</div>
-                  <div style={{ marginTop: 4 }}>{getStatusTag(selectedOrder.status)}</div>
+                  <Select 
+                    value={selectedOrder.status} 
+                    style={{ width: '100%', marginTop: 4 }}
+                    onChange={(v) => setSelectedOrder({...selectedOrder, status: v})}
+                  >
+                    <Select.Option value="placed">Order Placed</Select.Option>
+                    <Select.Option value="review">In Review</Select.Option>
+                    <Select.Option value="pending">Pending</Select.Option>
+                    <Select.Option value="hold">Hold</Select.Option>
+                    <Select.Option value="approval_pending">Approval Pending</Select.Option>
+                    <Select.Option value="delivered">Delivered</Select.Option>
+                    <Select.Option value="partially_delivered">Partially Delivered</Select.Option>
+                    <Select.Option value="cancelled">Cancelled</Select.Option>
+                    <Select.Option value="returned">Returned</Select.Option>
+                    <Select.Option value="rto">RTO</Select.Option>
+                  </Select>
                 </Col>
                 <Col span={12}>
                   <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Payment Status</div>
-                  <div style={{ marginTop: 4 }}>{getPaymentStatusTag(selectedOrder.payment_status)}</div>
+                  <Select 
+                    value={selectedOrder.payment_status} 
+                    style={{ width: '100%', marginTop: 4 }}
+                    onChange={(v) => setSelectedOrder({...selectedOrder, payment_status: v})}
+                  >
+                    <Select.Option value="unpaid">Unpaid</Select.Option>
+                    <Select.Option value="pending_verification">Pending Verification</Select.Option>
+                    <Select.Option value="paid">Paid</Select.Option>
+                    <Select.Option value="partially_paid">Partially Paid</Select.Option>
+                    <Select.Option value="refunded">Refunded</Select.Option>
+                    <Select.Option value="failed">Failed</Select.Option>
+                  </Select>
                 </Col>
                 <Col span={12}>
-                  <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Customer</div>
-                  <div style={{ fontWeight: 600, fontSize: 14 }}>{selectedOrder.shipping_name || selectedOrder.customer_name}</div>
-                  <div style={{ color: '#888', fontSize: 13 }}>{selectedOrder.shipping_phone || selectedOrder.customer_phone}</div>
+                  <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Customer Name</div>
+                  <Input value={selectedOrder.shipping_name || selectedOrder.customer_name} onChange={e => setSelectedOrder({...selectedOrder, shipping_name: e.target.value})} style={{ marginTop: 4 }} />
+                </Col>
+                <Col span={12}>
+                  <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Phone</div>
+                  <Input value={selectedOrder.shipping_phone || selectedOrder.customer_phone} onChange={e => setSelectedOrder({...selectedOrder, shipping_phone: e.target.value})} style={{ marginTop: 4 }} />
+                </Col>
+                <Col span={8}>
+                  <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>District</div>
+                  <Input value={selectedOrder.shipping_district} onChange={e => setSelectedOrder({...selectedOrder, shipping_district: e.target.value})} style={{ marginTop: 4 }} />
+                </Col>
+                <Col span={8}>
+                  <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Thana</div>
+                  <Input value={selectedOrder.shipping_thana} onChange={e => setSelectedOrder({...selectedOrder, shipping_thana: e.target.value})} style={{ marginTop: 4 }} />
+                </Col>
+                <Col span={8}>
+                  <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Postal Code</div>
+                  <Input value={selectedOrder.shipping_postal_code} onChange={e => setSelectedOrder({...selectedOrder, shipping_postal_code: e.target.value})} style={{ marginTop: 4 }} />
+                </Col>
+                <Col span={24}>
+                  <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Detailed Address</div>
+                  <Input.TextArea value={selectedOrder.shipping_address} onChange={e => setSelectedOrder({...selectedOrder, shipping_address: e.target.value})} style={{ marginTop: 4 }} />
                 </Col>
                 <Col span={12}>
                   <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Courier Tracking</div>
@@ -1139,20 +1167,16 @@ export const Orders: React.FC = () => {
                   <div style={{ color: '#888', fontSize: 13 }}>{selectedOrder.courier_status || "PENDING"}</div>
                 </Col>
                 <Col span={12}>
-                  <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Location</div>
-                  <div style={{ fontWeight: 600 }}>{selectedOrder.shipping_district}, {selectedOrder.shipping_thana}</div>
-                </Col>
-                <Col span={24}>
-                  <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Address</div>
-                  <div style={{ fontWeight: 600 }}>{selectedOrder.shipping_address}</div>
+                  <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Shipping Cost Override</div>
+                  <InputNumber min={0} value={selectedOrder.shipping_cost} onChange={v => setSelectedOrder({...selectedOrder, shipping_cost: v})} style={{ width: '100%', marginTop: 4 }} />
                 </Col>
                 <Col span={12}>
                   <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Customer Notes</div>
-                  <div style={{ fontWeight: 600 }}>{selectedOrder.customer_notes || "-"}</div>
+                  <Input.TextArea value={selectedOrder.customer_notes} onChange={e => setSelectedOrder({...selectedOrder, customer_notes: e.target.value})} style={{ marginTop: 4 }} />
                 </Col>
                 <Col span={12}>
                   <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Internal Notes</div>
-                  <div style={{ fontWeight: 600, color: '#e11d48' }}>{selectedOrder.internal_notes || "-"}</div>
+                  <Input.TextArea value={selectedOrder.internal_notes} onChange={e => setSelectedOrder({...selectedOrder, internal_notes: e.target.value})} style={{ marginTop: 4 }} />
                 </Col>
               </Row>
             </div>
@@ -1479,23 +1503,6 @@ export const Orders: React.FC = () => {
         </Form>
       </Modal>
 
-      {/* Edit Order Modal */}
-      <EditOrderModal
-        visible={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        order={selectedOrder}
-        onRefresh={() => {
-          setIsEditModalOpen(false);
-          fetchOrders();
-          if (selectedOrder) {
-            // Re-fetch or update the selectedOrder if needed. The drawer might show stale data until refetched.
-            const updated = orders.find(o => o.id === selectedOrder.id);
-            if (updated) setSelectedOrder(updated);
-          }
-        }}
-        productsList={productsList}
-        paymentMethods={paymentMethods}
-      />
     </Space>
   );
 };

@@ -9,7 +9,6 @@ import {
 } from "@ant-design/icons";
 import { getOrderLocationZone } from "../utils/orderUtils";
 import axios from "axios";
-import { EditOrderModal } from "../components/EditOrderModal";
 
 const API_URL = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/orders";
 const CATALOG_API_URL = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/catalog";
@@ -49,8 +48,7 @@ export const Fulfillment: React.FC = () => {
   // Progress states for bulk dispatches
   const [syncTotal, setSyncTotal] = useState(0);
 
-  // Edit Modal and Metadata
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  // Metadata
   const [orderCounts, setOrderCounts] = useState<any>({});
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
   const [productsList, setProductsList] = useState<any[]>([]);
@@ -231,6 +229,29 @@ export const Fulfillment: React.FC = () => {
       }
       fetchFulfillmentQueue();
     } catch (err: any) { if (err?.response?.status !== 403) message.error("Failed to update ready state."); }
+  };
+
+  const handleTogglePrintReady = async (orderToUpdate: any) => {
+    try {
+      const token = localStorage.getItem("poshplex_access_token");
+      const updatedData = {
+        ...orderToUpdate,
+        is_print_ready: !orderToUpdate.is_print_ready,
+        items: orderToUpdate.items.map((i: any) => ({
+          sku: i.sku,
+          quantity: i.quantity,
+          price: i.price
+        }))
+      };
+      const res = await axios.put(`${API_URL}/${orderToUpdate.id}`, updatedData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      message.success(`Order marked as ${!orderToUpdate.is_print_ready ? 'Print Ready' : 'Not Print Ready'}`);
+      if (selectedOrder && selectedOrder.id === orderToUpdate.id) {
+        setSelectedOrder(res.data);
+      }
+      fetchFulfillmentQueue();
+    } catch (err: any) { if (err?.response?.status !== 403) message.error("Failed to update print ready state."); }
   };
 
   const handleUpdateIssue = async (orderToUpdate: any, issue: string) => {
@@ -424,23 +445,28 @@ export const Fulfillment: React.FC = () => {
                     <Select.Option value="Others Issues">Others Issues</Select.Option>
                   </Select>
                   
-                  <Button 
-                    type="primary" 
-                    icon={!isReady ? <InboxOutlined /> : <CheckCircleOutlined />}
-                    style={{ width: '100%', backgroundColor: !isReady ? '#000' : '#10b981', borderColor: !isReady ? '#000' : '#10b981', borderRadius: 4 }}
-                    onClick={() => {
-                      handleToggleReady(order);
-                    }}
-                  >
-                    {!isReady ? 'Percel Ready' : 'Ready'}
-                  </Button>
-                  <Button 
-                    icon={<PrinterOutlined />}
-                    style={{ width: '100%', borderRadius: 4 }}
-                    onClick={() => triggerPrintWindow(order)}
-                  >
-                    Print ready
-                  </Button>
+                  <Row gutter={8} style={{ width: '100%', margin: 0 }}>
+                    <Col xs={12} md={24} style={{ paddingLeft: 0, paddingRight: 4, marginBottom: 8 }}>
+                      <Button 
+                        type="primary"
+                        icon={!order.is_print_ready ? <PrinterOutlined /> : <CheckCircleOutlined />}
+                        style={{ width: '100%', backgroundColor: !order.is_print_ready ? '#000' : '#10b981', borderColor: !order.is_print_ready ? '#000' : '#10b981', borderRadius: 4 }}
+                        onClick={() => handleTogglePrintReady(order)}
+                      >
+                        {!order.is_print_ready ? 'Print ready' : 'Printed'}
+                      </Button>
+                    </Col>
+                    <Col xs={12} md={24} style={{ paddingLeft: 4, paddingRight: 0, marginBottom: 8 }}>
+                      <Button 
+                        type="primary" 
+                        icon={!isReady ? <InboxOutlined /> : <CheckCircleOutlined />}
+                        style={{ width: '100%', backgroundColor: !isReady ? '#000' : '#10b981', borderColor: !isReady ? '#000' : '#10b981', borderRadius: 4 }}
+                        onClick={() => handleToggleReady(order)}
+                      >
+                        {!isReady ? 'Percel Ready' : 'Ready'}
+                      </Button>
+                    </Col>
+                  </Row>
                 </Col>
               </Row>
             </Card>
@@ -456,9 +482,6 @@ export const Fulfillment: React.FC = () => {
         open={isDetailDrawerOpen}
         extra={
           <Space>
-            <Button icon={<EditOutlined />} onClick={() => setIsEditModalOpen(true)}>
-              Edit Order
-            </Button>
             <Button icon={<PrinterOutlined />} onClick={() => triggerPrintWindow(selectedOrder)}>
               Print Pack list
             </Button>
@@ -617,18 +640,6 @@ export const Fulfillment: React.FC = () => {
           )}
         </div>
       </div>
-
-      <EditOrderModal
-        visible={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        order={selectedOrder}
-        onRefresh={() => {
-          setIsEditModalOpen(false);
-          fetchFulfillmentQueue();
-        }}
-        productsList={productsList}
-        paymentMethods={paymentMethods}
-      />
     </Space>
   );
 };

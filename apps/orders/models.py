@@ -61,6 +61,7 @@ class Order(AuditedModelMixin):
     internal_notes = models.TextField(blank=True, null=True)
     issue_status = models.CharField(max_length=100, default='None', blank=True, null=True)
     is_ready = models.BooleanField(default=False)
+    is_print_ready = models.BooleanField(default=False)
     
     # Risk flags
     risk_level = models.CharField(max_length=20, default='low')

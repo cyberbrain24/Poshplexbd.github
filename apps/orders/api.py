@@ -52,6 +52,7 @@ class OrderCreateInputSchema(Schema):
     internal_notes: Optional[str] = ""
     issue_status: Optional[str] = "None"
     is_ready: Optional[bool] = False
+    is_print_ready: Optional[bool] = False
     
     # Optional payment on creation
     payment_method: Optional[str] = "COD"
@@ -124,6 +125,7 @@ class OrderResponseSchema(Schema):
     internal_notes: Optional[str] = None
     issue_status: Optional[str] = "None"
     is_ready: Optional[bool] = False
+    is_print_ready: Optional[bool] = False
     
     risk_level: str
     risk_reasons: List[str]
@@ -270,6 +272,7 @@ def compile_order_response(order: Order, sku_to_details: dict = None) -> dict:
         "internal_notes": order.internal_notes,
         "issue_status": getattr(order, 'issue_status', 'None'),
         "is_ready": getattr(order, 'is_ready', False),
+        "is_print_ready": getattr(order, 'is_print_ready', False),
         "risk_level": order.risk_level,
         "risk_reasons": order.risk_reasons or [],
         "items": items,
@@ -663,6 +666,8 @@ def update_order_endpoint(request, order_id: int, data: OrderCreateInputSchema):
                 order.issue_status = data.issue_status
             if hasattr(data, 'is_ready'):
                 order.is_ready = data.is_ready
+            if hasattr(data, 'is_print_ready'):
+                order.is_print_ready = data.is_print_ready
             
             # Recalculate subtotal
             subtotal = Decimal('0.00')
