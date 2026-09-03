@@ -432,7 +432,14 @@ export const Fulfillment: React.FC = () => {
                       handleToggleReady(order);
                     }}
                   >
-                    {!isReady ? 'Mark as Ready' : 'Ready'}
+                    {!isReady ? 'Percel Ready' : 'Ready'}
+                  </Button>
+                  <Button 
+                    icon={<PrinterOutlined />}
+                    style={{ width: '100%', borderRadius: 4 }}
+                    onClick={() => triggerPrintWindow(order)}
+                  >
+                    Print ready
                   </Button>
                 </Col>
               </Row>

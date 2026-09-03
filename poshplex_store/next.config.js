@@ -11,15 +11,21 @@ const withPWA = require("@ducanh2912/next-pwa").default({
     // Exclude media files, API calls, and any localhost references from SW caching
     // This prevents broken localhost:8000 URLs from being permanently cached
     exclude: [
-      /\/media\//,
       /localhost/,
       /127\.0\.0\.1/,
     ],
     runtimeCaching: [
       {
-        // Never cache media files - always fetch fresh from the server
+        // Cache media files locally for 30 days to drastically improve performance on repeat visits
         urlPattern: /\/media\/.*/,
-        handler: 'NetworkOnly',
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'media-images-cache',
+          expiration: {
+            maxEntries: 200,
+            maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
+          },
+        },
       },
       {
         // Never cache API responses in SW - let Next.js handle caching
