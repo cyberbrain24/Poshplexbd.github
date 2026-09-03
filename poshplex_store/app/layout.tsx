@@ -94,10 +94,38 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     console.error("Failed to fetch tracking_pixels:", err);
   }
 
+  // Fetch hero banner URL for preloading to improve LCP
+  let desktopBannerUrl = null;
+  let mobileBannerUrl = null;
+  try {
+    const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/general`, { next: { revalidate: 60 } });
+    if (res.ok) {
+      const data = await res.json();
+      const settings = data.value;
+      desktopBannerUrl = settings?.desktop_hero_banner_url
+        ? `${settings.desktop_hero_banner_url}`
+        : (settings?.banner_image_url ? `${settings.banner_image_url}` : null);
+      mobileBannerUrl = settings?.mobile_hero_banner_url
+        ? `${settings.mobile_hero_banner_url}`
+        : desktopBannerUrl;
+    }
+  } catch (err) {
+    console.error("Failed to fetch settings for preload:", err);
+  }
+
   return (
     <html lang="en" className={outfit.className} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://media.poshplexbd.com" />
+        {desktopBannerUrl && (
+          <link rel="preload" href={desktopBannerUrl} as="image" fetchPriority="high" media="(min-width: 769px)" />
+        )}
+        {mobileBannerUrl && mobileBannerUrl !== desktopBannerUrl && (
+          <link rel="preload" href={mobileBannerUrl} as="image" fetchPriority="high" media="(max-width: 768px)" />
+        )}
+        {mobileBannerUrl === desktopBannerUrl && desktopBannerUrl && (
+          <link rel="preload" href={desktopBannerUrl} as="image" fetchPriority="high" />
+        )}
       </head>
       <body suppressHydrationWarning>
         <React.Suspense fallback={null}>
