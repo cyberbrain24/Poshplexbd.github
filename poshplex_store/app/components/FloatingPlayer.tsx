@@ -84,7 +84,7 @@ export const FloatingPlayer: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, [isMinimized, isMobile, showPlaylist, toggleMinimize]);
 
-  if (!isReady || !isVisible || !currentTrack || isMobile) return null;
+  if (!isReady || !isVisible || !currentTrack) return null;
 
   if (isMinimized) {
     return (

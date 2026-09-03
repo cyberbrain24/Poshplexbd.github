@@ -347,7 +347,7 @@ export const Orders: React.FC = () => {
     setModalSelectedProduct(null);
     try {
       const token = localStorage.getItem("poshplex_access_token");
-      const params: any = {};
+      const params: any = { limit: 1000 };
       if (catId) params.category_id = catId;
       if (search) params.search = search;
       const res = await axios.get(`${CATALOG_API_URL}/products`, { params, headers: { Authorization: `Bearer ${token}` }});
@@ -408,7 +408,7 @@ export const Orders: React.FC = () => {
     setSelectedGridProduct(null);
     try {
       const token = localStorage.getItem("poshplex_access_token");
-      const res = await axios.get(`${CATALOG_API_URL}/products?category_id=${catId}`, { headers: { Authorization: `Bearer ${token}` }});
+      const res = await axios.get(`${CATALOG_API_URL}/products?category_id=${catId}&limit=1000`, { headers: { Authorization: `Bearer ${token}` }});
       setGridProducts(res.data.results);
     } catch (e: any) { if (e?.response?.status !== 403) message.error("Failed to fetch products"); }
   };
@@ -419,6 +419,8 @@ export const Orders: React.FC = () => {
     if (!variant) return;
     setDraftItems([...draftItems, {
       sku: variant.sku,
+      product_name: selectedGridProduct.name,
+      attributes: variant.attributes,
       price: variant.selling_price,
       quantity: addQty,
       image: selectedGridProduct.images?.[0]?.image_url || null,
@@ -649,7 +651,7 @@ export const Orders: React.FC = () => {
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <Input
-              placeholder="Search Order No / Phone..."
+              placeholder="Search Order / Phone / Name / Consignment ID..."
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               style={{ flex: 1, minWidth: 160, borderRadius: 6 }}
@@ -984,7 +986,7 @@ export const Orders: React.FC = () => {
               </Col>
             </Row>
             {modalGridProducts.length > 0 && (
-              <div style={{ display: 'flex', gap: 12, overflowX: 'auto', marginTop: 16, paddingBottom: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginTop: 16, paddingBottom: 8, maxHeight: 400, overflowY: 'auto', paddingRight: 4 }}>
                 {modalGridProducts.map(p => (
                   <Card 
                     key={p.id} 
@@ -1190,7 +1192,23 @@ export const Orders: React.FC = () => {
               pagination={false}
               rowKey={(rec) => rec.sku}
               columns={[
-                { title: "SKU Variant", dataIndex: "sku", key: "sku" },
+                { 
+                  title: "SKU Variant", 
+                  dataIndex: "sku", 
+                  key: "sku",
+                  render: (text, rec: any) => {
+                    const attrs = rec.attributes && Object.keys(rec.attributes).length > 0 
+                      ? Object.entries(rec.attributes).map(([k, v]) => `${k}: ${v}`).join(', ') 
+                      : '';
+                    return (
+                      <div>
+                        <div style={{ fontWeight: 500 }}>{rec.product_name || 'Unknown Product'}</div>
+                        <div style={{ fontSize: '0.85em', color: '#666' }}>{text}</div>
+                        {attrs && <div style={{ fontSize: '0.85em', color: '#888' }}>( {attrs} )</div>}
+                      </div>
+                    );
+                  }
+                },
                 { title: "Price", dataIndex: "price", key: "price", render: (val) => `৳${Math.round(val)}` },
                 { title: "Qty Ordered", dataIndex: "quantity", key: "quantity" },
                 { title: "Returned Qty", dataIndex: "returned_quantity", key: "returned_quantity" },
@@ -1216,7 +1234,7 @@ export const Orders: React.FC = () => {
                   </Col>
                 </Row>
                 {gridProducts.length > 0 && (
-                  <div style={{ display: 'flex', gap: 12, overflowX: 'auto', marginTop: 16, paddingBottom: 8 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginTop: 16, paddingBottom: 8, maxHeight: 400, overflowY: 'auto', paddingRight: 4 }}>
                     {gridProducts.map(p => (
                       <Card 
                         key={p.id} 

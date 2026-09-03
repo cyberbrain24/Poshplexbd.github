@@ -64,6 +64,7 @@ class OrderCreateInputSchema(Schema):
 class OrderItemSchema(Schema):
     id: int
     sku: str
+    product_name: Optional[str] = None
     image: Optional[str] = None
     attributes: Optional[dict] = None
     quantity: int
@@ -181,7 +182,8 @@ def build_sku_to_details(skus: set) -> dict:
                     image_url = main_img.image.url
         sku_to_details[v.sku] = {
             "image": image_url,
-            "attributes": v.attributes
+            "attributes": v.attributes,
+            "product_name": v.product.name if v.product else None
         }
         
     # 2. Fetch simple products for remaining SKUs
@@ -197,7 +199,8 @@ def build_sku_to_details(skus: set) -> dict:
                     image_url = main_img.image.url
             sku_to_details[p.sku] = {
                 "image": image_url,
-                "attributes": {}
+                "attributes": {},
+                "product_name": p.name
             }
             
     return sku_to_details
@@ -209,6 +212,7 @@ def compile_order_response(order: Order, sku_to_details: dict = None) -> dict:
     items = [{
         "id": item.id,
         "sku": item.sku,
+        "product_name": sku_to_details.get(item.sku, {}).get("product_name"),
         "image": sku_to_details.get(item.sku, {}).get("image"),
         "attributes": sku_to_details.get(item.sku, {}).get("attributes"),
         "quantity": item.quantity,
@@ -320,7 +324,12 @@ def list_orders(
         qs = qs.filter(
             Q(order_number__icontains=search) |
             Q(user__username__icontains=search) |
-            Q(shipping_phone__icontains=search)
+            Q(shipping_phone__icontains=search) |
+            Q(courier_consignment_id__icontains=search) |
+            Q(tracking_number__icontains=search) |
+            Q(shipping_name__icontains=search) |
+            Q(user__first_name__icontains=search) |
+            Q(user__last_name__icontains=search)
         ).distinct()
 
     if status:
