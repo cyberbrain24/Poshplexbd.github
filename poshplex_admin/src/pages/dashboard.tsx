@@ -1,34 +1,46 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Row, Col, Card, Statistic, Space, Spin, Alert } from "antd";
 import { ArrowUpOutlined, ArrowDownOutlined, AccountBookOutlined, ShoppingCartOutlined, DollarOutlined, RiseOutlined } from "@ant-design/icons";
-import { useList } from "@refinedev/core";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from "recharts";
+import axios from "axios";
 
 export const Dashboard: React.FC = () => {
-  // Query finance ledger summary from Django Modular Backend
-  const { data: summaryData, isLoading: isSummaryLoading, error: summaryError } = useList<any>({
-    resource: "summary",
-  });
-
-  // Query active orders count
-  const { data: ordersData, isLoading: isOrdersLoading } = useList<any>({
-    resource: "orders",
-  });
-
-  const isLoading = isSummaryLoading || isOrdersLoading;
-
-  // Extract financial data
-  const finance = summaryData?.data?.[0] || {
+  const [finance, setFinance] = useState<any>({
     revenue: "0.00",
     expense: "0.00",
     net_income: "0.00",
     asset: "0.00",
     liability: "0.00"
-  };
+  });
+  const [ordersCount, setOrdersCount] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [summaryError, setSummaryError] = useState<boolean>(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem("poshplex_access_token");
+        const headers = { Authorization: `Bearer ${token}` };
+        const API_URL = import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000');
+        
+        const [financeRes, ordersRes] = await Promise.all([
+          axios.get(`${API_URL}/api/v1/finance/summary`, { headers }),
+          axios.get(`${API_URL}/api/v1/orders/counts`, { headers })
+        ]);
+        
+        if (financeRes.data) setFinance(financeRes.data);
+        if (ordersRes.data && ordersRes.data.all !== undefined) setOrdersCount(ordersRes.data.all);
+      } catch (err) {
+        setSummaryError(true);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   const revenueVal = parseFloat(finance.revenue) || 0;
   const profitVal = parseFloat(finance.net_income) || 0;
-  const ordersCount = ordersData?.total || 0;
 
   // Compile mock historical dataset for chart visualization
   const chartData = [
@@ -74,7 +86,7 @@ export const Dashboard: React.FC = () => {
               value={revenueVal}
               precision={2}
               valueStyle={{ color: "var(--accent-purple)", fontSize: 24, fontWeight: 700 }}
-              prefix="$"
+              prefix="৳"
             />
             <div style={{ marginTop: 8, fontSize: 12, color: "var(--accent-green)" }}>
               <ArrowUpOutlined /> 12.5% vs last month
@@ -89,7 +101,7 @@ export const Dashboard: React.FC = () => {
               value={profitVal}
               precision={2}
               valueStyle={{ color: "var(--accent-cyan)", fontSize: 24, fontWeight: 700 }}
-              prefix="$"
+              prefix="৳"
             />
             <div style={{ marginTop: 8, fontSize: 12, color: "var(--accent-green)" }}>
               <ArrowUpOutlined /> 8.3% profit margin growth
@@ -117,7 +129,7 @@ export const Dashboard: React.FC = () => {
               value={parseFloat(finance.asset) || 0}
               precision={2}
               valueStyle={{ color: "var(--accent-green)", fontSize: 24, fontWeight: 700 }}
-              prefix="$"
+              prefix="৳"
             />
             <div style={{ marginTop: 8, fontSize: 12, color: "var(--text-muted)" }}>
               Double-entry balanced status: OK
