@@ -435,6 +435,10 @@ input:focus, select:focus, textarea:focus {
 /* Responsive Overrides */
 
 @media (max-width: 768px) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
 
   .container {
 

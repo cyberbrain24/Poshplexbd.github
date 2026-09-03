@@ -84,10 +84,9 @@ export const FloatingPlayer: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, [isMinimized, isMobile, showPlaylist, toggleMinimize]);
 
-  if (!isReady || !isVisible || !currentTrack) return null;
+  if (!isReady || !isVisible || !currentTrack || isMobile) return null;
 
   if (isMinimized) {
-    if (isMobile) return null; // Completely hide minimized floating circle badge on mobile viewports
     return (
       <div 
         onClick={toggleMinimize}
