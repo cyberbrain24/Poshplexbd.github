@@ -19,6 +19,7 @@ from apps.printing.api import router as printing_router
 from apps.image_optimizer.api import router as image_optimizer_router
 from apps.monitor.api import router as monitor_router
 from apps.tasks.api import router as tasks_router
+from apps.report.api import router as report_router
 
 # Register routers with clear namespaces
 api.add_router("/core", core_router)
@@ -33,6 +34,7 @@ api.add_router("/printing", printing_router)
 api.add_router("/image-optimizer", image_optimizer_router)
 api.add_router("/monitor", monitor_router)
 api.add_router("/tasks", tasks_router)
+api.add_router("/report", report_router)
 
 from django.db import connection
 from django.core.cache import cache

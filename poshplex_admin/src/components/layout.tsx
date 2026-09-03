@@ -4,7 +4,7 @@ import {
   DashboardOutlined, ShoppingCartOutlined, AppstoreOutlined, AuditOutlined,
   TeamOutlined, ApiOutlined, FolderOpenOutlined, LogoutOutlined, UserOutlined,
   CarOutlined, GiftOutlined, SoundOutlined, SettingOutlined, PrinterOutlined,
-  MenuOutlined, EllipsisOutlined, PictureOutlined, DesktopOutlined, CheckSquareOutlined, GlobalOutlined
+  MenuOutlined, EllipsisOutlined, PictureOutlined, DesktopOutlined, CheckSquareOutlined, GlobalOutlined, BarChartOutlined
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useLogout, useGetIdentity } from "@refinedev/core";
@@ -54,6 +54,7 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
 
   const rawMenuItems = [
     { key: "/", icon: <DashboardOutlined />, label: "Dashboard", module: null },
+    { key: "/reports", icon: <BarChartOutlined />, label: "Sales Reports", module: "report" },
     { key: "/orders", icon: <ShoppingCartOutlined />, label: "Orders Queue", module: "orders" },
     { key: "/printing", icon: <PrinterOutlined />, label: "Printing Queue", module: "orders" },
     { key: "/fulfillment", icon: <CarOutlined />, label: "Fulfillment Queue", module: "orders" },

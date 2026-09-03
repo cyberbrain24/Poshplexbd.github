@@ -25,6 +25,7 @@ const RolesPage = React.lazy(() => import("./pages/roles"));
 const StaffPage = React.lazy(() => import("./pages/staff"));
 const TasksPage = React.lazy(() => import("./pages/tasks"));
 const LocationsPage = React.lazy(() => import("./pages/locations"));
+const ReportsPage = React.lazy(() => import("./pages/reports"));
 
 // Curated administrative dark-theme tokens matching streetwear aesthetics
 const customTheme = {
@@ -75,6 +76,7 @@ export const App: React.FC = () => {
                   }
                 >
                   <Route path="/" element={<Dashboard />} />
+                  <Route path="/reports" element={<ReportsPage />} />
                   <Route path="/orders" element={<Orders />} />
                   <Route path="/fulfillment" element={<Fulfillment />} />
                   <Route path="/promo-codes" element={<PromoCodes />} />
