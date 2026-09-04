@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Card, Row, Col, Typography, Spin, message, DatePicker, Select, Space, Divider, Tag } from "antd";
+import { Card, Row, Col, Typography, Spin, message, DatePicker, Select, Space, Divider, Tag, Checkbox } from "antd";
 import { BarChartOutlined, LineChartOutlined, ClockCircleOutlined, SyncOutlined, StopOutlined, CarOutlined, UndoOutlined, PauseCircleOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
@@ -16,10 +16,38 @@ export const ReportsPage: React.FC = () => {
   
   const [filterType, setFilterType] = useState<string>("today");
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
+  const [activeStatuses, setActiveStatuses] = useState<string[]>([]);
 
   useEffect(() => {
     fetchReport();
   }, [filterType, dateRange]);
+
+  useEffect(() => {
+    if (data?.status_report) {
+      setActiveStatuses(Object.keys(data.status_report));
+    }
+  }, [data]);
+
+  const filteredSnapshot = React.useMemo(() => {
+    if (!data?.status_report) return { orders_qty: 0, product_qty: 0, total_amount: 0, avg_order: 0 };
+    let orders = 0;
+    let products = 0;
+    let amount = 0;
+    activeStatuses.forEach(key => {
+      const s = data.status_report[key];
+      if (s) {
+        orders += s.orders_qty || 0;
+        products += s.product_qty || 0;
+        amount += s.total_amount || 0;
+      }
+    });
+    return {
+      orders_qty: orders,
+      product_qty: products,
+      total_amount: amount,
+      avg_order: orders > 0 ? amount / orders : 0
+    };
+  }, [data, activeStatuses]);
 
   const fetchReport = async () => {
     setLoading(true);
@@ -120,7 +148,7 @@ export const ReportsPage: React.FC = () => {
 
       <Spin spinning={loading}>
         <Title level={4} style={{ marginTop: 0 }}>
-          {getFilterTitle()} <Tag color="purple" style={{ marginLeft: 8 }}>{data?.snapshot?.orders_qty || 0} Orders</Tag>
+          {getFilterTitle()} <Tag color="purple" style={{ marginLeft: 8 }}>{filteredSnapshot.orders_qty} Orders</Tag>
         </Title>
         <Divider style={{ borderColor: 'var(--border-glass)' }} />
 
@@ -129,20 +157,20 @@ export const ReportsPage: React.FC = () => {
           <Col xs={12} sm={12} md={6}>
             <Card bordered={false} style={{ background: "var(--bg-secondary)", borderRadius: 8, border: "1px solid var(--border-glass)" }}>
               <Text type="secondary">Total Orders</Text>
-              <div style={{ fontSize: 24, fontWeight: 'bold' }}>{data?.snapshot?.orders_qty || 0}</div>
+              <div style={{ fontSize: 24, fontWeight: 'bold' }}>{filteredSnapshot.orders_qty}</div>
             </Card>
           </Col>
           <Col xs={12} sm={12} md={6}>
             <Card bordered={false} style={{ background: "var(--bg-secondary)", borderRadius: 8, border: "1px solid var(--border-glass)" }}>
               <Text type="secondary">Total Products</Text>
-              <div style={{ fontSize: 24, fontWeight: 'bold' }}>{data?.snapshot?.product_qty || 0}</div>
+              <div style={{ fontSize: 24, fontWeight: 'bold' }}>{filteredSnapshot.product_qty}</div>
             </Card>
           </Col>
           <Col xs={12} sm={12} md={6}>
             <Card bordered={false} style={{ background: "var(--bg-secondary)", borderRadius: 8, border: "1px solid var(--border-glass)" }}>
               <Text type="secondary">Total Amount</Text>
               <div style={{ fontSize: 24, fontWeight: 'bold', color: 'var(--accent-purple)' }}>
-                ৳{Math.round(data?.snapshot?.total_amount || 0)}
+                ৳{Math.round(filteredSnapshot.total_amount)}
               </div>
             </Card>
           </Col>
@@ -150,7 +178,7 @@ export const ReportsPage: React.FC = () => {
             <Card bordered={false} style={{ background: "var(--bg-secondary)", borderRadius: 8, border: "1px solid var(--border-glass)" }}>
               <Text type="secondary">Avg Order Value</Text>
               <div style={{ fontSize: 24, fontWeight: 'bold', color: 'var(--accent-cyan)' }}>
-                ৳{Math.round(data?.snapshot?.avg_order || 0)}
+                ৳{Math.round(filteredSnapshot.avg_order)}
               </div>
             </Card>
           </Col>
@@ -163,9 +191,21 @@ export const ReportsPage: React.FC = () => {
             return (
               <Col xs={24} sm={12} md={8} lg={6} key={statusKey}>
                 <Card bordered={false} style={{ background: "var(--bg-secondary)", borderRadius: 8, border: "1px solid var(--border-glass)" }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                    {statusIcons[statusKey] || <LineChartOutlined />}
-                    <Text strong style={{ fontSize: 16 }}>{formatStatus(statusKey)}</Text>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {statusIcons[statusKey] || <LineChartOutlined />}
+                      <Text strong style={{ fontSize: 16 }}>{formatStatus(statusKey)}</Text>
+                    </div>
+                    <Checkbox 
+                      checked={activeStatuses.includes(statusKey)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setActiveStatuses([...activeStatuses, statusKey]);
+                        } else {
+                          setActiveStatuses(activeStatuses.filter(k => k !== statusKey));
+                        }
+                      }}
+                    />
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                     <Text type="secondary">Orders:</Text>
