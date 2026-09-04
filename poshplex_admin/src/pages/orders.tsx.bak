@@ -1117,202 +1117,25 @@ export const Orders: React.FC = () => {
 
       {/* Detailed Side Drawer Overlay */}
       <Drawer
-        title={!isAddingProduct ? `Order Details: ${selectedOrder?.order_number || "#" + selectedOrder?.id}` : null}
-        width={isAddingProduct ? "100vw" : "min(750px, 96vw)"}
+        title={`Order Details: ${selectedOrder?.order_number || "#" + selectedOrder?.id}`}
+        width="min(750px, 96vw)"
         onClose={() => setIsDetailDrawerOpen(false)}
         open={isDetailDrawerOpen}
-        bodyStyle={{ padding: 0, overflow: 'hidden' }}
-        headerStyle={isAddingProduct ? { display: 'none' } : {}}
-        closeIcon={!isAddingProduct ? undefined : null}
-        extra={!isAddingProduct ? (
+        extra={
           <Space>
             <Button danger icon={<DeleteOutlined />} onClick={() => handleDeleteOrder(selectedOrder.id)}>
               Delete Order
             </Button>
           </Space>
-        ) : null}
-        footer={!isAddingProduct ? (
+        }
+        footer={
           <div style={{ textAlign: 'right' }}>
             <Button type="primary" size="large" icon={<SaveOutlined />} block onClick={handleSaveDrawerEdits} loading={isSavingDraft}>
               Save Order Changes
             </Button>
           </div>
-        ) : null}
+        }
       >
-        <div style={{ display: 'flex', height: '100%', width: '100vw', overflow: 'hidden' }}>
-          {isAddingProduct && (
-            <div style={{ flex: 1, background: '#141414', color: '#fff', display: 'flex', flexDirection: 'column', height: '100%', borderRight: '1px solid #333' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid #333', background: '#1f1f1f' }}>
-                <span style={{ fontSize: 16, fontWeight: 600 }}>Product Catalog</span>
-                <Button type="text" onClick={() => setIsAddingProduct(false)} style={{ color: '#fff', fontSize: 16, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  X
-                </Button>
-              </div>
-              
-              <div style={{ padding: 24, overflowY: 'auto', flex: 1 }}>
-                <Input.Search
-                  placeholder="Search products..."
-                  allowClear
-                  size="large"
-                  value={catalogSearchText}
-                  onChange={(e) => setCatalogSearchText(e.target.value)}
-                  onSearch={handleCatalogSearch}
-                  enterButton
-                  style={{ backgroundColor: '#1f1f1f', border: 'none', borderRadius: 6, marginBottom: 16 }}
-                />
-                <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-                  <Col span={12}>
-                    <Select 
-                      style={{ width: '100%' }} 
-                      placeholder="Select Category" 
-                      value={selectedCategoryId} 
-                      onChange={(val) => { setSelectedCategoryId(val); setSelectedSubcategoryId(null); }}
-                      dropdownStyle={{ background: '#1f1f1f', color: '#fff' }}
-                    >
-                      {catalogCategories.map(c => <Select.Option key={c.id} value={c.id} style={{ color: '#fff' }}>{c.name}</Select.Option>)}
-                    </Select>
-                  </Col>
-                  <Col span={12}>
-                    <Select 
-                      style={{ width: '100%' }} 
-                      placeholder="Select Subcategory" 
-                      value={selectedSubcategoryId} 
-                      onChange={fetchCategoryProducts} 
-                      disabled={!selectedCategoryId}
-                      dropdownStyle={{ background: '#1f1f1f', color: '#fff' }}
-                    >
-                      {catalogCategories.find(c => c.id === selectedCategoryId)?.children?.map((sub: any) => (
-                        <Select.Option key={sub.id} value={sub.id} style={{ color: '#fff' }}>{sub.name}</Select.Option>
-                      ))}
-                    </Select>
-                  </Col>
-                </Row>
-
-                {gridProducts.length > 0 ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 12 }}>
-                    {gridProducts.map(p => (
-                      <Card 
-                        key={p.id} 
-                        hoverable 
-                        size="small"
-                        onClick={() => { setSelectedGridProduct(p); setSelectedVariantSku(""); setSelectedAttributes({}); }}
-                        style={{ 
-                          border: selectedGridProduct?.id === p.id ? '2px solid #1677ff' : '1px solid #333',
-                          borderRadius: 8,
-                          overflow: 'hidden',
-                          background: '#1f1f1f',
-                          color: '#fff'
-                        }}
-                        bodyStyle={{ padding: 8 }}
-                      >
-                        <img 
-                          src={p.images?.[0]?.url ? (p.images[0].url.startsWith('http') ? p.images[0].url : `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}${p.images[0].url}`) : ''} 
-                          style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: 4 }} 
-                          alt={p.name} 
-                        />
-                        <div style={{ fontSize: 10, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'center', fontWeight: 600, color: '#ccc' }}>{p.name}</div>
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <div style={{ textAlign: 'center', padding: '40px 0', color: '#666' }}>No products found.</div>
-                )}
-              </div>
-
-              {selectedGridProduct && (
-                <div style={{ padding: 24, background: '#1f1f1f', borderTop: '1px solid #333' }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#fff' }}>Select Variation for {selectedGridProduct.name}</div>
-                  
-                  {(() => {
-                    const attrMap: Record<string, Set<string>> = {};
-                    selectedGridProduct.variants.forEach((v: any) => {
-                      if (v.attributes) {
-                        Object.entries(v.attributes).forEach(([key, val]) => {
-                          if (!attrMap[key]) attrMap[key] = new Set();
-                          attrMap[key].add(String(val));
-                        });
-                      }
-                    });
-
-                    return Object.entries(attrMap).map(([attrKey, valuesSet]) => (
-                      <div key={attrKey} style={{ marginBottom: 16 }}>
-                        <div style={{ fontSize: 12, color: '#aaa', marginBottom: 8 }}>Choose {attrKey}</div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                          {Array.from(valuesSet).map(val => {
-                            const isSelected = selectedAttributes[attrKey] === val;
-                            if (attrKey.toLowerCase() === 'color') {
-                              return (
-                                <div
-                                  key={val}
-                                  onClick={() => {
-                                    const newAttrs = { ...selectedAttributes, [attrKey]: val };
-                                    setSelectedAttributes(newAttrs);
-                                    const matchingVariant = selectedGridProduct.variants.find((v: any) => Object.entries(newAttrs).every(([k, v_val]) => v.attributes?.[k] === v_val));
-                                    setSelectedVariantSku(matchingVariant ? matchingVariant.sku : "");
-                                  }}
-                                  style={{
-                                    width: 30, height: 30, borderRadius: '50%',
-                                    backgroundColor: val.toLowerCase(),
-                                    border: isSelected ? '2px solid #1677ff' : '2px solid #444',
-                                    cursor: 'pointer',
-                                    boxShadow: isSelected ? '0 0 0 2px rgba(255,255,255,0.8)' : 'none'
-                                  }}
-                                  title={val}
-                                />
-                              );
-                            }
-                            return (
-                              <div
-                                key={val}
-                                onClick={() => {
-                                  const newAttrs = { ...selectedAttributes, [attrKey]: val };
-                                  setSelectedAttributes(newAttrs);
-                                  const matchingVariant = selectedGridProduct.variants.find((v: any) => Object.entries(newAttrs).every(([k, v_val]) => v.attributes?.[k] === v_val));
-                                  setSelectedVariantSku(matchingVariant ? matchingVariant.sku : "");
-                                }}
-                                style={{
-                                  padding: '4px 12px',
-                                  border: isSelected ? '1px solid #1677ff' : '1px solid #444',
-                                  background: isSelected ? 'rgba(22, 119, 255, 0.1)' : 'transparent',
-                                  color: isSelected ? '#1677ff' : '#ccc',
-                                  borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: isSelected ? 600 : 400
-                                }}
-                              >
-                                {val}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ));
-                  })()}
-
-                  {!selectedVariantSku && Object.keys(selectedAttributes).length > 0 && (
-                    <div style={{ color: '#ff4d4f', fontSize: 12, marginBottom: 8 }}>Selected combination is unavailable.</div>
-                  )}
-                  {selectedVariantSku && (() => {
-                    const v = selectedGridProduct.variants.find((x: any) => x.sku === selectedVariantSku);
-                    return v ? <div style={{ color: '#52c41a', fontSize: 12, marginBottom: 8 }}>Price: ৳{Math.round(v.selling_price)}</div> : null;
-                  })()}
-                  
-                  <Row gutter={16} align="middle" style={{ marginTop: 12 }}>
-                    <Col span={8}>
-                      <div style={{ fontSize: 12, color: '#aaa', marginBottom: 4 }}>Quantity</div>
-                      <InputNumber min={1} value={addQty} onChange={(val) => setAddQty(val || 1)} style={{ width: '100%', background: '#333', color: '#fff', border: '1px solid #444' }} />
-                    </Col>
-                    <Col span={16}>
-                      <Button type="primary" onClick={handleAddDraftItem} block size="large" disabled={!selectedVariantSku} style={{ marginTop: 22 }}>
-                        Add to Order
-                      </Button>
-                    </Col>
-                  </Row>
-                </div>
-              )}
-            </div>
-          )}
-
-          <div style={{ width: isAddingProduct ? 'min(750px, 100vw)' : '100%', height: '100%', overflowY: 'auto', background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: 24, flex: 1 }}>
         {selectedOrder && (
           <Space direction="vertical" size="large" style={{ width: "100%" }}>
             
@@ -1466,7 +1289,66 @@ export const Orders: React.FC = () => {
               ]}
             />
 
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 16, marginTop: 16 }}>
+            {isAddingProduct ? (
+              <Card size="small" style={{ marginTop: 16, background: '#f9f9f9', borderColor: '#e5e5e5' }}>
+                <Row gutter={[16, 16]}>
+                  <Col span={12}>
+                    <Select style={{ width: '100%' }} placeholder="Select Category" value={selectedCategoryId} onChange={(val) => { setSelectedCategoryId(val); setSelectedSubcategoryId(null); }}>
+                      {catalogCategories.map(c => <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>)}
+                    </Select>
+                  </Col>
+                  <Col span={12}>
+                    <Select style={{ width: '100%' }} placeholder="Select Subcategory" value={selectedSubcategoryId} onChange={fetchCategoryProducts} disabled={!selectedCategoryId}>
+                      {catalogCategories.find(c => c.id === selectedCategoryId)?.children?.map((sub: any) => (
+                        <Select.Option key={sub.id} value={sub.id}>{sub.name}</Select.Option>
+                      ))}
+                    </Select>
+                  </Col>
+                </Row>
+                {gridProducts.length > 0 && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginTop: 16, paddingBottom: 8, maxHeight: 400, overflowY: 'auto', paddingRight: 4 }}>
+                    {gridProducts.map(p => (
+                      <Card 
+                        key={p.id} 
+                        hoverable 
+                        size="small"
+                        onClick={() => setSelectedGridProduct(p)}
+                        style={{ minWidth: 100, border: selectedGridProduct?.id === p.id ? '2px solid var(--primary-color)' : '1px solid #d9d9d9' }}
+                      >
+                        <img src={p.images?.[0]?.url ? (p.images[0].url.startsWith('http') ? p.images[0].url : `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}${p.images[0].url}`) : ''} style={{ width: '100%', height: 60, objectFit: 'cover' }} alt="prod" />
+                        <div style={{ fontSize: 10, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+                {selectedGridProduct && (
+                  <Row gutter={16} align="bottom" style={{ marginTop: 16 }}>
+                    <Col span={12}>
+                      <Select style={{ width: '100%' }} placeholder="Select Variant" value={selectedVariantSku} onChange={setSelectedVariantSku}>
+                        {selectedGridProduct.variants.map((v: any) => {
+                          const attrLabel = v.attributes && Object.keys(v.attributes).length > 0
+                            ? Object.entries(v.attributes).map(([key, val]) => `${key}: ${val}`).join(', ')
+                            : v.sku;
+                          return (
+                            <Select.Option key={v.sku} value={v.sku}>
+                              {attrLabel} - ৳{Math.round(v.selling_price)}
+                            </Select.Option>
+                          );
+                        })}
+                      </Select>
+                    </Col>
+                    <Col span={6}>
+                      <InputNumber min={1} value={addQty} onChange={(val) => setAddQty(val || 1)} style={{ width: '100%' }} />
+                    </Col>
+                    <Col span={6}>
+                      <Button type="primary" onClick={handleAddDraftItem} block disabled={!selectedVariantSku}>Add to Order</Button>
+                    </Col>
+                  </Row>
+                )}
+                <Button type="text" danger block style={{ marginTop: 8 }} onClick={() => setIsAddingProduct(false)}>Cancel</Button>
+              </Card>
+            ) : (
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 16, marginTop: 16 }}>
                 <Button type="dashed" icon={<PlusOutlined />} onClick={handleOpenAddProduct}>
                   Add New Product
                 </Button>
@@ -1474,6 +1356,7 @@ export const Orders: React.FC = () => {
                   Process Return Request
                 </Button>
               </div>
+            )}
 
             <Card size="small" style={{ marginTop: 16, borderColor: '#e5e5e5' }}>
               <Row gutter={16}>
@@ -1576,18 +1459,6 @@ export const Orders: React.FC = () => {
 
           </Space>
         )}
-
-
-            </div>
-            {isAddingProduct && (
-              <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border-glass)', textAlign: 'right', background: 'var(--bg-primary)', position: 'sticky', bottom: 0, zIndex: 10 }}>
-                <Button type="primary" size="large" icon={<SaveOutlined />} block onClick={handleSaveDrawerEdits} loading={isSavingDraft}>
-                  Save Order Changes
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
       </Drawer>
 
       {/* Invoice packing slip modal preview */}
