@@ -50,6 +50,7 @@ class OrderCreateInputSchema(Schema):
     shipping_cost: Optional[Decimal] = Decimal('0.00')
     customer_notes: Optional[str] = ""
     internal_notes: Optional[str] = ""
+    status: Optional[str] = None
     issue_status: Optional[str] = "None"
     is_ready: Optional[bool] = False
     is_print_ready: Optional[bool] = False
@@ -682,6 +683,10 @@ def update_order_endpoint(request, order_id: int, data: OrderCreateInputSchema):
             order.shipping_cost = data.shipping_cost
             order.customer_notes = data.customer_notes
             order.internal_notes = data.internal_notes
+            if getattr(data, 'status', None):
+                order.status = data.status
+            if getattr(data, 'payment_status', None):
+                order.payment_status = data.payment_status
             if hasattr(data, 'issue_status'):
                 order.issue_status = data.issue_status
             if hasattr(data, 'is_ready'):
