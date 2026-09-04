@@ -933,24 +933,27 @@ def process_return_endpoint(request, order_id: int, data: ProcessReturnInputSche
 @router.get("/shipping-locations/rates")
 def list_shipping_locations_rates(request):
     """Returns the district-thana location tree with corresponding delivery rates."""
+    from apps.orders.models import District
+    districts = District.objects.filter(is_active=True).prefetch_related('thanas')
+    
+    district_list = []
+    for d in districts:
+        active_thanas = d.thanas.filter(is_active=True)
+        thana_names = list(active_thanas.values_list('name', flat=True))
+        if not thana_names:
+            continue
+            
+        first_thana = active_thanas.first()
+        cost = float(first_thana.shipping_cost) if first_thana else 120.0
+        
+        district_list.append({
+            "name": d.name,
+            "shipping_cost": cost,
+            "thanas": thana_names
+        })
+        
     return {
-        "districts": [
-            {
-                "name": "Dhaka",
-                "shipping_cost": 120,
-                "thanas": ["Banani", "Gulshan", "Dhanmondi", "Uttara", "Mirpur"]
-            },
-            {
-                "name": "Chittagong",
-                "shipping_cost": 240,
-                "thanas": ["Panchlaish", "Double Mooring", "Halishahar", "Nasirabad"]
-            },
-            {
-                "name": "Sylhet",
-                "shipping_cost": 240,
-                "thanas": ["Zindabazar", "Ambarkhana", "Uposhahar"]
-            }
-        ]
+        "districts": district_list
     }
 
 # --- Payment Method & COD Approval API Endpoints ---
