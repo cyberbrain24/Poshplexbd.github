@@ -85,6 +85,7 @@ export const Orders: React.FC = () => {
   const [gridProducts, setGridProducts] = useState<any[]>([]);
   const [selectedGridProduct, setSelectedGridProduct] = useState<any>(null);
   const [selectedVariantSku, setSelectedVariantSku] = useState<string>("");
+  const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
   const [addQty, setAddQty] = useState<number>(1);
 
   // Modal product flow states
@@ -652,14 +653,17 @@ export const Orders: React.FC = () => {
           </Button>
     
       <Drawer
-        title="Product Catalog"
+        title={<span style={{ color: '#fff' }}>Product Catalog</span>}
         placement="left"
-        width={800}
+        width="calc(100vw - min(750px, 96vw))"
+        mask={false}
         onClose={() => setIsAddingProduct(false)}
         open={isAddingProduct}
-        bodyStyle={{ padding: 16, background: '#f5f5f5' }}
+        bodyStyle={{ padding: 16, background: '#141414', color: '#fff' }}
+        headerStyle={{ background: '#1f1f1f', borderBottom: '1px solid #333' }}
+        closeIcon={<span style={{ color: '#fff' }}>X</span>}
       >
-        <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#f5f5f5', paddingBottom: 16, borderBottom: '1px solid #e8e8e8', marginBottom: 16 }}>
+        <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#141414', paddingBottom: 16, borderBottom: '1px solid #333', marginBottom: 16 }}>
           <Input.Search
             placeholder="Search products..."
             allowClear
@@ -668,17 +672,35 @@ export const Orders: React.FC = () => {
             onChange={(e) => setCatalogSearchText(e.target.value)}
             onSearch={handleCatalogSearch}
             enterButton
+            style={{ 
+              backgroundColor: '#1f1f1f',
+              border: 'none',
+              borderRadius: 6
+            }}
           />
           <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
             <Col span={12}>
-              <Select style={{ width: '100%' }} placeholder="Select Category" value={selectedCategoryId} onChange={(val) => { setSelectedCategoryId(val); setSelectedSubcategoryId(null); }}>
-                {catalogCategories.map(c => <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>)}
+              <Select 
+                style={{ width: '100%' }} 
+                placeholder="Select Category" 
+                value={selectedCategoryId} 
+                onChange={(val) => { setSelectedCategoryId(val); setSelectedSubcategoryId(null); }}
+                dropdownStyle={{ background: '#1f1f1f', color: '#fff' }}
+              >
+                {catalogCategories.map(c => <Select.Option key={c.id} value={c.id} style={{ color: '#fff' }}>{c.name}</Select.Option>)}
               </Select>
             </Col>
             <Col span={12}>
-              <Select style={{ width: '100%' }} placeholder="Select Subcategory" value={selectedSubcategoryId} onChange={fetchCategoryProducts} disabled={!selectedCategoryId}>
+              <Select 
+                style={{ width: '100%' }} 
+                placeholder="Select Subcategory" 
+                value={selectedSubcategoryId} 
+                onChange={fetchCategoryProducts} 
+                disabled={!selectedCategoryId}
+                dropdownStyle={{ background: '#1f1f1f', color: '#fff' }}
+              >
                 {catalogCategories.find(c => c.id === selectedCategoryId)?.children?.map((sub: any) => (
-                  <Select.Option key={sub.id} value={sub.id}>{sub.name}</Select.Option>
+                  <Select.Option key={sub.id} value={sub.id} style={{ color: '#fff' }}>{sub.name}</Select.Option>
                 ))}
               </Select>
             </Col>
@@ -692,11 +714,13 @@ export const Orders: React.FC = () => {
                 key={p.id} 
                 hoverable 
                 size="small"
-                onClick={() => setSelectedGridProduct(p)}
+                onClick={() => { setSelectedGridProduct(p); setSelectedVariantSku(""); setSelectedAttributes({}); }}
                 style={{ 
-                  border: selectedGridProduct?.id === p.id ? '2px solid var(--primary-color)' : '1px solid #d9d9d9',
+                  border: selectedGridProduct?.id === p.id ? '2px solid #1677ff' : '1px solid #333',
                   borderRadius: 8,
-                  overflow: 'hidden'
+                  overflow: 'hidden',
+                  background: '#1f1f1f',
+                  color: '#fff'
                 }}
                 bodyStyle={{ padding: 8 }}
               >
@@ -705,39 +729,120 @@ export const Orders: React.FC = () => {
                   style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: 4 }} 
                   alt={p.name} 
                 />
-                <div style={{ fontSize: 10, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'center', fontWeight: 600 }}>{p.name}</div>
+                <div style={{ fontSize: 10, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'center', fontWeight: 600, color: '#ccc' }}>{p.name}</div>
               </Card>
             ))}
           </div>
         ) : (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>No products found.</div>
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#666' }}>No products found.</div>
         )}
 
         {selectedGridProduct && (
-          <Card style={{ position: 'sticky', bottom: 0, marginTop: 16, boxShadow: '0 -4px 12px rgba(0,0,0,0.05)', borderRadius: '12px 12px 0 0', border: 'none' }} bodyStyle={{ padding: 16 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Select Variation for {selectedGridProduct.name}</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-              {selectedGridProduct.variants.map((v: any) => {
-                const attrLabel = v.attributes && Object.keys(v.attributes).length > 0
-                  ? Object.entries(v.attributes).map(([key, val]) => `${val}`).join('/')
-                  : v.sku;
-                return (
-                  <Button 
-                    key={v.sku} 
-                    type={selectedVariantSku === v.sku ? 'primary' : 'default'}
-                    onClick={() => setSelectedVariantSku(v.sku)}
-                    style={{ borderRadius: 20 }}
-                  >
-                    {attrLabel} (৳{Math.round(v.selling_price)})
-                  </Button>
-                );
-              })}
-            </div>
+          <Card style={{ position: 'sticky', bottom: 0, marginTop: 16, boxShadow: '0 -10px 30px rgba(0,0,0,0.5)', borderRadius: '12px 12px 0 0', border: '1px solid #333', background: '#1f1f1f', color: '#fff' }} bodyStyle={{ padding: 16 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#fff' }}>Select Variation for {selectedGridProduct.name}</div>
             
-            <Row gutter={16} align="middle">
+            {(() => {
+              // Extract unique attribute keys and their possible values
+              const attrMap: Record<string, Set<string>> = {};
+              selectedGridProduct.variants.forEach((v: any) => {
+                if (v.attributes) {
+                  Object.entries(v.attributes).forEach(([key, val]) => {
+                    if (!attrMap[key]) attrMap[key] = new Set();
+                    attrMap[key].add(String(val));
+                  });
+                }
+              });
+
+              return Object.entries(attrMap).map(([attrKey, valuesSet]) => (
+                <div key={attrKey} style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 12, color: '#aaa', marginBottom: 8 }}>Choose {attrKey}</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {Array.from(valuesSet).map(val => {
+                      const isSelected = selectedAttributes[attrKey] === val;
+                      
+                      // Special rendering for 'Color' to look like a swatch
+                      if (attrKey.toLowerCase() === 'color') {
+                        return (
+                          <div
+                            key={val}
+                            onClick={() => {
+                              const newAttrs = { ...selectedAttributes, [attrKey]: val };
+                              setSelectedAttributes(newAttrs);
+                              
+                              // Check if we have a match
+                              const matchingVariant = selectedGridProduct.variants.find((v: any) => {
+                                return Object.entries(newAttrs).every(([k, v_val]) => v.attributes?.[k] === v_val);
+                              });
+                              if (matchingVariant) {
+                                setSelectedVariantSku(matchingVariant.sku);
+                              } else {
+                                setSelectedVariantSku("");
+                              }
+                            }}
+                            style={{
+                              width: 30,
+                              height: 30,
+                              borderRadius: '50%',
+                              backgroundColor: val.toLowerCase(),
+                              border: isSelected ? '2px solid #1677ff' : '2px solid #444',
+                              cursor: 'pointer',
+                              boxShadow: isSelected ? '0 0 0 2px rgba(255,255,255,0.8)' : 'none'
+                            }}
+                            title={val}
+                          />
+                        );
+                      }
+
+                      // Default rendering for other attributes (like Size)
+                      return (
+                        <div
+                          key={val}
+                          onClick={() => {
+                            const newAttrs = { ...selectedAttributes, [attrKey]: val };
+                            setSelectedAttributes(newAttrs);
+                            
+                            // Check if we have a match
+                            const matchingVariant = selectedGridProduct.variants.find((v: any) => {
+                              return Object.entries(newAttrs).every(([k, v_val]) => v.attributes?.[k] === v_val);
+                            });
+                            if (matchingVariant) {
+                              setSelectedVariantSku(matchingVariant.sku);
+                            } else {
+                              setSelectedVariantSku("");
+                            }
+                          }}
+                          style={{
+                            padding: '4px 12px',
+                            border: isSelected ? '1px solid #1677ff' : '1px solid #444',
+                            background: isSelected ? 'rgba(22, 119, 255, 0.1)' : 'transparent',
+                            color: isSelected ? '#1677ff' : '#ccc',
+                            borderRadius: 4,
+                            cursor: 'pointer',
+                            fontSize: 12,
+                            fontWeight: isSelected ? 600 : 400
+                          }}
+                        >
+                          {val}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ));
+            })()}
+
+            {!selectedVariantSku && Object.keys(selectedAttributes).length > 0 && (
+              <div style={{ color: '#ff4d4f', fontSize: 12, marginBottom: 8 }}>Selected combination is unavailable.</div>
+            )}
+            {selectedVariantSku && (() => {
+              const v = selectedGridProduct.variants.find((x: any) => x.sku === selectedVariantSku);
+              return v ? <div style={{ color: '#52c41a', fontSize: 12, marginBottom: 8 }}>Price: ৳{Math.round(v.selling_price)}</div> : null;
+            })()}
+            
+            <Row gutter={16} align="middle" style={{ marginTop: 12 }}>
               <Col span={8}>
-                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>Quantity</div>
-                <InputNumber min={1} value={addQty} onChange={(val) => setAddQty(val || 1)} style={{ width: '100%' }} />
+                <div style={{ fontSize: 12, color: '#aaa', marginBottom: 4 }}>Quantity</div>
+                <InputNumber min={1} value={addQty} onChange={(val) => setAddQty(val || 1)} style={{ width: '100%', background: '#333', color: '#fff', border: '1px solid #444' }} />
               </Col>
               <Col span={16}>
                 <Button type="primary" onClick={handleAddDraftItem} block size="large" disabled={!selectedVariantSku} style={{ marginTop: 22 }}>
@@ -864,14 +969,17 @@ export const Orders: React.FC = () => {
                     )}
               
       <Drawer
-        title="Product Catalog"
+        title={<span style={{ color: '#fff' }}>Product Catalog</span>}
         placement="left"
-        width={800}
+        width="calc(100vw - min(750px, 96vw))"
+        mask={false}
         onClose={() => setIsAddingProduct(false)}
         open={isAddingProduct}
-        bodyStyle={{ padding: 16, background: '#f5f5f5' }}
+        bodyStyle={{ padding: 16, background: '#141414', color: '#fff' }}
+        headerStyle={{ background: '#1f1f1f', borderBottom: '1px solid #333' }}
+        closeIcon={<span style={{ color: '#fff' }}>X</span>}
       >
-        <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#f5f5f5', paddingBottom: 16, borderBottom: '1px solid #e8e8e8', marginBottom: 16 }}>
+        <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#141414', paddingBottom: 16, borderBottom: '1px solid #333', marginBottom: 16 }}>
           <Input.Search
             placeholder="Search products..."
             allowClear
@@ -880,17 +988,35 @@ export const Orders: React.FC = () => {
             onChange={(e) => setCatalogSearchText(e.target.value)}
             onSearch={handleCatalogSearch}
             enterButton
+            style={{ 
+              backgroundColor: '#1f1f1f',
+              border: 'none',
+              borderRadius: 6
+            }}
           />
           <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
             <Col span={12}>
-              <Select style={{ width: '100%' }} placeholder="Select Category" value={selectedCategoryId} onChange={(val) => { setSelectedCategoryId(val); setSelectedSubcategoryId(null); }}>
-                {catalogCategories.map(c => <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>)}
+              <Select 
+                style={{ width: '100%' }} 
+                placeholder="Select Category" 
+                value={selectedCategoryId} 
+                onChange={(val) => { setSelectedCategoryId(val); setSelectedSubcategoryId(null); }}
+                dropdownStyle={{ background: '#1f1f1f', color: '#fff' }}
+              >
+                {catalogCategories.map(c => <Select.Option key={c.id} value={c.id} style={{ color: '#fff' }}>{c.name}</Select.Option>)}
               </Select>
             </Col>
             <Col span={12}>
-              <Select style={{ width: '100%' }} placeholder="Select Subcategory" value={selectedSubcategoryId} onChange={fetchCategoryProducts} disabled={!selectedCategoryId}>
+              <Select 
+                style={{ width: '100%' }} 
+                placeholder="Select Subcategory" 
+                value={selectedSubcategoryId} 
+                onChange={fetchCategoryProducts} 
+                disabled={!selectedCategoryId}
+                dropdownStyle={{ background: '#1f1f1f', color: '#fff' }}
+              >
                 {catalogCategories.find(c => c.id === selectedCategoryId)?.children?.map((sub: any) => (
-                  <Select.Option key={sub.id} value={sub.id}>{sub.name}</Select.Option>
+                  <Select.Option key={sub.id} value={sub.id} style={{ color: '#fff' }}>{sub.name}</Select.Option>
                 ))}
               </Select>
             </Col>
@@ -904,11 +1030,13 @@ export const Orders: React.FC = () => {
                 key={p.id} 
                 hoverable 
                 size="small"
-                onClick={() => setSelectedGridProduct(p)}
+                onClick={() => { setSelectedGridProduct(p); setSelectedVariantSku(""); setSelectedAttributes({}); }}
                 style={{ 
-                  border: selectedGridProduct?.id === p.id ? '2px solid var(--primary-color)' : '1px solid #d9d9d9',
+                  border: selectedGridProduct?.id === p.id ? '2px solid #1677ff' : '1px solid #333',
                   borderRadius: 8,
-                  overflow: 'hidden'
+                  overflow: 'hidden',
+                  background: '#1f1f1f',
+                  color: '#fff'
                 }}
                 bodyStyle={{ padding: 8 }}
               >
@@ -917,39 +1045,120 @@ export const Orders: React.FC = () => {
                   style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: 4 }} 
                   alt={p.name} 
                 />
-                <div style={{ fontSize: 10, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'center', fontWeight: 600 }}>{p.name}</div>
+                <div style={{ fontSize: 10, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'center', fontWeight: 600, color: '#ccc' }}>{p.name}</div>
               </Card>
             ))}
           </div>
         ) : (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>No products found.</div>
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#666' }}>No products found.</div>
         )}
 
         {selectedGridProduct && (
-          <Card style={{ position: 'sticky', bottom: 0, marginTop: 16, boxShadow: '0 -4px 12px rgba(0,0,0,0.05)', borderRadius: '12px 12px 0 0', border: 'none' }} bodyStyle={{ padding: 16 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Select Variation for {selectedGridProduct.name}</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-              {selectedGridProduct.variants.map((v: any) => {
-                const attrLabel = v.attributes && Object.keys(v.attributes).length > 0
-                  ? Object.entries(v.attributes).map(([key, val]) => `${val}`).join('/')
-                  : v.sku;
-                return (
-                  <Button 
-                    key={v.sku} 
-                    type={selectedVariantSku === v.sku ? 'primary' : 'default'}
-                    onClick={() => setSelectedVariantSku(v.sku)}
-                    style={{ borderRadius: 20 }}
-                  >
-                    {attrLabel} (৳{Math.round(v.selling_price)})
-                  </Button>
-                );
-              })}
-            </div>
+          <Card style={{ position: 'sticky', bottom: 0, marginTop: 16, boxShadow: '0 -10px 30px rgba(0,0,0,0.5)', borderRadius: '12px 12px 0 0', border: '1px solid #333', background: '#1f1f1f', color: '#fff' }} bodyStyle={{ padding: 16 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#fff' }}>Select Variation for {selectedGridProduct.name}</div>
             
-            <Row gutter={16} align="middle">
+            {(() => {
+              // Extract unique attribute keys and their possible values
+              const attrMap: Record<string, Set<string>> = {};
+              selectedGridProduct.variants.forEach((v: any) => {
+                if (v.attributes) {
+                  Object.entries(v.attributes).forEach(([key, val]) => {
+                    if (!attrMap[key]) attrMap[key] = new Set();
+                    attrMap[key].add(String(val));
+                  });
+                }
+              });
+
+              return Object.entries(attrMap).map(([attrKey, valuesSet]) => (
+                <div key={attrKey} style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 12, color: '#aaa', marginBottom: 8 }}>Choose {attrKey}</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {Array.from(valuesSet).map(val => {
+                      const isSelected = selectedAttributes[attrKey] === val;
+                      
+                      // Special rendering for 'Color' to look like a swatch
+                      if (attrKey.toLowerCase() === 'color') {
+                        return (
+                          <div
+                            key={val}
+                            onClick={() => {
+                              const newAttrs = { ...selectedAttributes, [attrKey]: val };
+                              setSelectedAttributes(newAttrs);
+                              
+                              // Check if we have a match
+                              const matchingVariant = selectedGridProduct.variants.find((v: any) => {
+                                return Object.entries(newAttrs).every(([k, v_val]) => v.attributes?.[k] === v_val);
+                              });
+                              if (matchingVariant) {
+                                setSelectedVariantSku(matchingVariant.sku);
+                              } else {
+                                setSelectedVariantSku("");
+                              }
+                            }}
+                            style={{
+                              width: 30,
+                              height: 30,
+                              borderRadius: '50%',
+                              backgroundColor: val.toLowerCase(),
+                              border: isSelected ? '2px solid #1677ff' : '2px solid #444',
+                              cursor: 'pointer',
+                              boxShadow: isSelected ? '0 0 0 2px rgba(255,255,255,0.8)' : 'none'
+                            }}
+                            title={val}
+                          />
+                        );
+                      }
+
+                      // Default rendering for other attributes (like Size)
+                      return (
+                        <div
+                          key={val}
+                          onClick={() => {
+                            const newAttrs = { ...selectedAttributes, [attrKey]: val };
+                            setSelectedAttributes(newAttrs);
+                            
+                            // Check if we have a match
+                            const matchingVariant = selectedGridProduct.variants.find((v: any) => {
+                              return Object.entries(newAttrs).every(([k, v_val]) => v.attributes?.[k] === v_val);
+                            });
+                            if (matchingVariant) {
+                              setSelectedVariantSku(matchingVariant.sku);
+                            } else {
+                              setSelectedVariantSku("");
+                            }
+                          }}
+                          style={{
+                            padding: '4px 12px',
+                            border: isSelected ? '1px solid #1677ff' : '1px solid #444',
+                            background: isSelected ? 'rgba(22, 119, 255, 0.1)' : 'transparent',
+                            color: isSelected ? '#1677ff' : '#ccc',
+                            borderRadius: 4,
+                            cursor: 'pointer',
+                            fontSize: 12,
+                            fontWeight: isSelected ? 600 : 400
+                          }}
+                        >
+                          {val}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ));
+            })()}
+
+            {!selectedVariantSku && Object.keys(selectedAttributes).length > 0 && (
+              <div style={{ color: '#ff4d4f', fontSize: 12, marginBottom: 8 }}>Selected combination is unavailable.</div>
+            )}
+            {selectedVariantSku && (() => {
+              const v = selectedGridProduct.variants.find((x: any) => x.sku === selectedVariantSku);
+              return v ? <div style={{ color: '#52c41a', fontSize: 12, marginBottom: 8 }}>Price: ৳{Math.round(v.selling_price)}</div> : null;
+            })()}
+            
+            <Row gutter={16} align="middle" style={{ marginTop: 12 }}>
               <Col span={8}>
-                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>Quantity</div>
-                <InputNumber min={1} value={addQty} onChange={(val) => setAddQty(val || 1)} style={{ width: '100%' }} />
+                <div style={{ fontSize: 12, color: '#aaa', marginBottom: 4 }}>Quantity</div>
+                <InputNumber min={1} value={addQty} onChange={(val) => setAddQty(val || 1)} style={{ width: '100%', background: '#333', color: '#fff', border: '1px solid #444' }} />
               </Col>
               <Col span={16}>
                 <Button type="primary" onClick={handleAddDraftItem} block size="large" disabled={!selectedVariantSku} style={{ marginTop: 22 }}>
@@ -1326,14 +1535,17 @@ export const Orders: React.FC = () => {
             </Button>
       
       <Drawer
-        title="Product Catalog"
+        title={<span style={{ color: '#fff' }}>Product Catalog</span>}
         placement="left"
-        width={800}
+        width="calc(100vw - min(750px, 96vw))"
+        mask={false}
         onClose={() => setIsAddingProduct(false)}
         open={isAddingProduct}
-        bodyStyle={{ padding: 16, background: '#f5f5f5' }}
+        bodyStyle={{ padding: 16, background: '#141414', color: '#fff' }}
+        headerStyle={{ background: '#1f1f1f', borderBottom: '1px solid #333' }}
+        closeIcon={<span style={{ color: '#fff' }}>X</span>}
       >
-        <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#f5f5f5', paddingBottom: 16, borderBottom: '1px solid #e8e8e8', marginBottom: 16 }}>
+        <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#141414', paddingBottom: 16, borderBottom: '1px solid #333', marginBottom: 16 }}>
           <Input.Search
             placeholder="Search products..."
             allowClear
@@ -1342,17 +1554,35 @@ export const Orders: React.FC = () => {
             onChange={(e) => setCatalogSearchText(e.target.value)}
             onSearch={handleCatalogSearch}
             enterButton
+            style={{ 
+              backgroundColor: '#1f1f1f',
+              border: 'none',
+              borderRadius: 6
+            }}
           />
           <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
             <Col span={12}>
-              <Select style={{ width: '100%' }} placeholder="Select Category" value={selectedCategoryId} onChange={(val) => { setSelectedCategoryId(val); setSelectedSubcategoryId(null); }}>
-                {catalogCategories.map(c => <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>)}
+              <Select 
+                style={{ width: '100%' }} 
+                placeholder="Select Category" 
+                value={selectedCategoryId} 
+                onChange={(val) => { setSelectedCategoryId(val); setSelectedSubcategoryId(null); }}
+                dropdownStyle={{ background: '#1f1f1f', color: '#fff' }}
+              >
+                {catalogCategories.map(c => <Select.Option key={c.id} value={c.id} style={{ color: '#fff' }}>{c.name}</Select.Option>)}
               </Select>
             </Col>
             <Col span={12}>
-              <Select style={{ width: '100%' }} placeholder="Select Subcategory" value={selectedSubcategoryId} onChange={fetchCategoryProducts} disabled={!selectedCategoryId}>
+              <Select 
+                style={{ width: '100%' }} 
+                placeholder="Select Subcategory" 
+                value={selectedSubcategoryId} 
+                onChange={fetchCategoryProducts} 
+                disabled={!selectedCategoryId}
+                dropdownStyle={{ background: '#1f1f1f', color: '#fff' }}
+              >
                 {catalogCategories.find(c => c.id === selectedCategoryId)?.children?.map((sub: any) => (
-                  <Select.Option key={sub.id} value={sub.id}>{sub.name}</Select.Option>
+                  <Select.Option key={sub.id} value={sub.id} style={{ color: '#fff' }}>{sub.name}</Select.Option>
                 ))}
               </Select>
             </Col>
@@ -1366,11 +1596,13 @@ export const Orders: React.FC = () => {
                 key={p.id} 
                 hoverable 
                 size="small"
-                onClick={() => setSelectedGridProduct(p)}
+                onClick={() => { setSelectedGridProduct(p); setSelectedVariantSku(""); setSelectedAttributes({}); }}
                 style={{ 
-                  border: selectedGridProduct?.id === p.id ? '2px solid var(--primary-color)' : '1px solid #d9d9d9',
+                  border: selectedGridProduct?.id === p.id ? '2px solid #1677ff' : '1px solid #333',
                   borderRadius: 8,
-                  overflow: 'hidden'
+                  overflow: 'hidden',
+                  background: '#1f1f1f',
+                  color: '#fff'
                 }}
                 bodyStyle={{ padding: 8 }}
               >
@@ -1379,39 +1611,120 @@ export const Orders: React.FC = () => {
                   style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: 4 }} 
                   alt={p.name} 
                 />
-                <div style={{ fontSize: 10, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'center', fontWeight: 600 }}>{p.name}</div>
+                <div style={{ fontSize: 10, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'center', fontWeight: 600, color: '#ccc' }}>{p.name}</div>
               </Card>
             ))}
           </div>
         ) : (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>No products found.</div>
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#666' }}>No products found.</div>
         )}
 
         {selectedGridProduct && (
-          <Card style={{ position: 'sticky', bottom: 0, marginTop: 16, boxShadow: '0 -4px 12px rgba(0,0,0,0.05)', borderRadius: '12px 12px 0 0', border: 'none' }} bodyStyle={{ padding: 16 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Select Variation for {selectedGridProduct.name}</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-              {selectedGridProduct.variants.map((v: any) => {
-                const attrLabel = v.attributes && Object.keys(v.attributes).length > 0
-                  ? Object.entries(v.attributes).map(([key, val]) => `${val}`).join('/')
-                  : v.sku;
-                return (
-                  <Button 
-                    key={v.sku} 
-                    type={selectedVariantSku === v.sku ? 'primary' : 'default'}
-                    onClick={() => setSelectedVariantSku(v.sku)}
-                    style={{ borderRadius: 20 }}
-                  >
-                    {attrLabel} (৳{Math.round(v.selling_price)})
-                  </Button>
-                );
-              })}
-            </div>
+          <Card style={{ position: 'sticky', bottom: 0, marginTop: 16, boxShadow: '0 -10px 30px rgba(0,0,0,0.5)', borderRadius: '12px 12px 0 0', border: '1px solid #333', background: '#1f1f1f', color: '#fff' }} bodyStyle={{ padding: 16 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#fff' }}>Select Variation for {selectedGridProduct.name}</div>
             
-            <Row gutter={16} align="middle">
+            {(() => {
+              // Extract unique attribute keys and their possible values
+              const attrMap: Record<string, Set<string>> = {};
+              selectedGridProduct.variants.forEach((v: any) => {
+                if (v.attributes) {
+                  Object.entries(v.attributes).forEach(([key, val]) => {
+                    if (!attrMap[key]) attrMap[key] = new Set();
+                    attrMap[key].add(String(val));
+                  });
+                }
+              });
+
+              return Object.entries(attrMap).map(([attrKey, valuesSet]) => (
+                <div key={attrKey} style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 12, color: '#aaa', marginBottom: 8 }}>Choose {attrKey}</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {Array.from(valuesSet).map(val => {
+                      const isSelected = selectedAttributes[attrKey] === val;
+                      
+                      // Special rendering for 'Color' to look like a swatch
+                      if (attrKey.toLowerCase() === 'color') {
+                        return (
+                          <div
+                            key={val}
+                            onClick={() => {
+                              const newAttrs = { ...selectedAttributes, [attrKey]: val };
+                              setSelectedAttributes(newAttrs);
+                              
+                              // Check if we have a match
+                              const matchingVariant = selectedGridProduct.variants.find((v: any) => {
+                                return Object.entries(newAttrs).every(([k, v_val]) => v.attributes?.[k] === v_val);
+                              });
+                              if (matchingVariant) {
+                                setSelectedVariantSku(matchingVariant.sku);
+                              } else {
+                                setSelectedVariantSku("");
+                              }
+                            }}
+                            style={{
+                              width: 30,
+                              height: 30,
+                              borderRadius: '50%',
+                              backgroundColor: val.toLowerCase(),
+                              border: isSelected ? '2px solid #1677ff' : '2px solid #444',
+                              cursor: 'pointer',
+                              boxShadow: isSelected ? '0 0 0 2px rgba(255,255,255,0.8)' : 'none'
+                            }}
+                            title={val}
+                          />
+                        );
+                      }
+
+                      // Default rendering for other attributes (like Size)
+                      return (
+                        <div
+                          key={val}
+                          onClick={() => {
+                            const newAttrs = { ...selectedAttributes, [attrKey]: val };
+                            setSelectedAttributes(newAttrs);
+                            
+                            // Check if we have a match
+                            const matchingVariant = selectedGridProduct.variants.find((v: any) => {
+                              return Object.entries(newAttrs).every(([k, v_val]) => v.attributes?.[k] === v_val);
+                            });
+                            if (matchingVariant) {
+                              setSelectedVariantSku(matchingVariant.sku);
+                            } else {
+                              setSelectedVariantSku("");
+                            }
+                          }}
+                          style={{
+                            padding: '4px 12px',
+                            border: isSelected ? '1px solid #1677ff' : '1px solid #444',
+                            background: isSelected ? 'rgba(22, 119, 255, 0.1)' : 'transparent',
+                            color: isSelected ? '#1677ff' : '#ccc',
+                            borderRadius: 4,
+                            cursor: 'pointer',
+                            fontSize: 12,
+                            fontWeight: isSelected ? 600 : 400
+                          }}
+                        >
+                          {val}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ));
+            })()}
+
+            {!selectedVariantSku && Object.keys(selectedAttributes).length > 0 && (
+              <div style={{ color: '#ff4d4f', fontSize: 12, marginBottom: 8 }}>Selected combination is unavailable.</div>
+            )}
+            {selectedVariantSku && (() => {
+              const v = selectedGridProduct.variants.find((x: any) => x.sku === selectedVariantSku);
+              return v ? <div style={{ color: '#52c41a', fontSize: 12, marginBottom: 8 }}>Price: ৳{Math.round(v.selling_price)}</div> : null;
+            })()}
+            
+            <Row gutter={16} align="middle" style={{ marginTop: 12 }}>
               <Col span={8}>
-                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>Quantity</div>
-                <InputNumber min={1} value={addQty} onChange={(val) => setAddQty(val || 1)} style={{ width: '100%' }} />
+                <div style={{ fontSize: 12, color: '#aaa', marginBottom: 4 }}>Quantity</div>
+                <InputNumber min={1} value={addQty} onChange={(val) => setAddQty(val || 1)} style={{ width: '100%', background: '#333', color: '#fff', border: '1px solid #444' }} />
               </Col>
               <Col span={16}>
                 <Button type="primary" onClick={handleAddDraftItem} block size="large" disabled={!selectedVariantSku} style={{ marginTop: 22 }}>
@@ -1696,14 +2009,17 @@ export const Orders: React.FC = () => {
 
       
       <Drawer
-        title="Product Catalog"
+        title={<span style={{ color: '#fff' }}>Product Catalog</span>}
         placement="left"
-        width={800}
+        width="calc(100vw - min(750px, 96vw))"
+        mask={false}
         onClose={() => setIsAddingProduct(false)}
         open={isAddingProduct}
-        bodyStyle={{ padding: 16, background: '#f5f5f5' }}
+        bodyStyle={{ padding: 16, background: '#141414', color: '#fff' }}
+        headerStyle={{ background: '#1f1f1f', borderBottom: '1px solid #333' }}
+        closeIcon={<span style={{ color: '#fff' }}>X</span>}
       >
-        <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#f5f5f5', paddingBottom: 16, borderBottom: '1px solid #e8e8e8', marginBottom: 16 }}>
+        <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#141414', paddingBottom: 16, borderBottom: '1px solid #333', marginBottom: 16 }}>
           <Input.Search
             placeholder="Search products..."
             allowClear
@@ -1712,17 +2028,35 @@ export const Orders: React.FC = () => {
             onChange={(e) => setCatalogSearchText(e.target.value)}
             onSearch={handleCatalogSearch}
             enterButton
+            style={{ 
+              backgroundColor: '#1f1f1f',
+              border: 'none',
+              borderRadius: 6
+            }}
           />
           <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
             <Col span={12}>
-              <Select style={{ width: '100%' }} placeholder="Select Category" value={selectedCategoryId} onChange={(val) => { setSelectedCategoryId(val); setSelectedSubcategoryId(null); }}>
-                {catalogCategories.map(c => <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>)}
+              <Select 
+                style={{ width: '100%' }} 
+                placeholder="Select Category" 
+                value={selectedCategoryId} 
+                onChange={(val) => { setSelectedCategoryId(val); setSelectedSubcategoryId(null); }}
+                dropdownStyle={{ background: '#1f1f1f', color: '#fff' }}
+              >
+                {catalogCategories.map(c => <Select.Option key={c.id} value={c.id} style={{ color: '#fff' }}>{c.name}</Select.Option>)}
               </Select>
             </Col>
             <Col span={12}>
-              <Select style={{ width: '100%' }} placeholder="Select Subcategory" value={selectedSubcategoryId} onChange={fetchCategoryProducts} disabled={!selectedCategoryId}>
+              <Select 
+                style={{ width: '100%' }} 
+                placeholder="Select Subcategory" 
+                value={selectedSubcategoryId} 
+                onChange={fetchCategoryProducts} 
+                disabled={!selectedCategoryId}
+                dropdownStyle={{ background: '#1f1f1f', color: '#fff' }}
+              >
                 {catalogCategories.find(c => c.id === selectedCategoryId)?.children?.map((sub: any) => (
-                  <Select.Option key={sub.id} value={sub.id}>{sub.name}</Select.Option>
+                  <Select.Option key={sub.id} value={sub.id} style={{ color: '#fff' }}>{sub.name}</Select.Option>
                 ))}
               </Select>
             </Col>
@@ -1736,11 +2070,13 @@ export const Orders: React.FC = () => {
                 key={p.id} 
                 hoverable 
                 size="small"
-                onClick={() => setSelectedGridProduct(p)}
+                onClick={() => { setSelectedGridProduct(p); setSelectedVariantSku(""); setSelectedAttributes({}); }}
                 style={{ 
-                  border: selectedGridProduct?.id === p.id ? '2px solid var(--primary-color)' : '1px solid #d9d9d9',
+                  border: selectedGridProduct?.id === p.id ? '2px solid #1677ff' : '1px solid #333',
                   borderRadius: 8,
-                  overflow: 'hidden'
+                  overflow: 'hidden',
+                  background: '#1f1f1f',
+                  color: '#fff'
                 }}
                 bodyStyle={{ padding: 8 }}
               >
@@ -1749,39 +2085,120 @@ export const Orders: React.FC = () => {
                   style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: 4 }} 
                   alt={p.name} 
                 />
-                <div style={{ fontSize: 10, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'center', fontWeight: 600 }}>{p.name}</div>
+                <div style={{ fontSize: 10, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'center', fontWeight: 600, color: '#ccc' }}>{p.name}</div>
               </Card>
             ))}
           </div>
         ) : (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>No products found.</div>
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#666' }}>No products found.</div>
         )}
 
         {selectedGridProduct && (
-          <Card style={{ position: 'sticky', bottom: 0, marginTop: 16, boxShadow: '0 -4px 12px rgba(0,0,0,0.05)', borderRadius: '12px 12px 0 0', border: 'none' }} bodyStyle={{ padding: 16 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Select Variation for {selectedGridProduct.name}</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-              {selectedGridProduct.variants.map((v: any) => {
-                const attrLabel = v.attributes && Object.keys(v.attributes).length > 0
-                  ? Object.entries(v.attributes).map(([key, val]) => `${val}`).join('/')
-                  : v.sku;
-                return (
-                  <Button 
-                    key={v.sku} 
-                    type={selectedVariantSku === v.sku ? 'primary' : 'default'}
-                    onClick={() => setSelectedVariantSku(v.sku)}
-                    style={{ borderRadius: 20 }}
-                  >
-                    {attrLabel} (৳{Math.round(v.selling_price)})
-                  </Button>
-                );
-              })}
-            </div>
+          <Card style={{ position: 'sticky', bottom: 0, marginTop: 16, boxShadow: '0 -10px 30px rgba(0,0,0,0.5)', borderRadius: '12px 12px 0 0', border: '1px solid #333', background: '#1f1f1f', color: '#fff' }} bodyStyle={{ padding: 16 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#fff' }}>Select Variation for {selectedGridProduct.name}</div>
             
-            <Row gutter={16} align="middle">
+            {(() => {
+              // Extract unique attribute keys and their possible values
+              const attrMap: Record<string, Set<string>> = {};
+              selectedGridProduct.variants.forEach((v: any) => {
+                if (v.attributes) {
+                  Object.entries(v.attributes).forEach(([key, val]) => {
+                    if (!attrMap[key]) attrMap[key] = new Set();
+                    attrMap[key].add(String(val));
+                  });
+                }
+              });
+
+              return Object.entries(attrMap).map(([attrKey, valuesSet]) => (
+                <div key={attrKey} style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 12, color: '#aaa', marginBottom: 8 }}>Choose {attrKey}</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {Array.from(valuesSet).map(val => {
+                      const isSelected = selectedAttributes[attrKey] === val;
+                      
+                      // Special rendering for 'Color' to look like a swatch
+                      if (attrKey.toLowerCase() === 'color') {
+                        return (
+                          <div
+                            key={val}
+                            onClick={() => {
+                              const newAttrs = { ...selectedAttributes, [attrKey]: val };
+                              setSelectedAttributes(newAttrs);
+                              
+                              // Check if we have a match
+                              const matchingVariant = selectedGridProduct.variants.find((v: any) => {
+                                return Object.entries(newAttrs).every(([k, v_val]) => v.attributes?.[k] === v_val);
+                              });
+                              if (matchingVariant) {
+                                setSelectedVariantSku(matchingVariant.sku);
+                              } else {
+                                setSelectedVariantSku("");
+                              }
+                            }}
+                            style={{
+                              width: 30,
+                              height: 30,
+                              borderRadius: '50%',
+                              backgroundColor: val.toLowerCase(),
+                              border: isSelected ? '2px solid #1677ff' : '2px solid #444',
+                              cursor: 'pointer',
+                              boxShadow: isSelected ? '0 0 0 2px rgba(255,255,255,0.8)' : 'none'
+                            }}
+                            title={val}
+                          />
+                        );
+                      }
+
+                      // Default rendering for other attributes (like Size)
+                      return (
+                        <div
+                          key={val}
+                          onClick={() => {
+                            const newAttrs = { ...selectedAttributes, [attrKey]: val };
+                            setSelectedAttributes(newAttrs);
+                            
+                            // Check if we have a match
+                            const matchingVariant = selectedGridProduct.variants.find((v: any) => {
+                              return Object.entries(newAttrs).every(([k, v_val]) => v.attributes?.[k] === v_val);
+                            });
+                            if (matchingVariant) {
+                              setSelectedVariantSku(matchingVariant.sku);
+                            } else {
+                              setSelectedVariantSku("");
+                            }
+                          }}
+                          style={{
+                            padding: '4px 12px',
+                            border: isSelected ? '1px solid #1677ff' : '1px solid #444',
+                            background: isSelected ? 'rgba(22, 119, 255, 0.1)' : 'transparent',
+                            color: isSelected ? '#1677ff' : '#ccc',
+                            borderRadius: 4,
+                            cursor: 'pointer',
+                            fontSize: 12,
+                            fontWeight: isSelected ? 600 : 400
+                          }}
+                        >
+                          {val}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ));
+            })()}
+
+            {!selectedVariantSku && Object.keys(selectedAttributes).length > 0 && (
+              <div style={{ color: '#ff4d4f', fontSize: 12, marginBottom: 8 }}>Selected combination is unavailable.</div>
+            )}
+            {selectedVariantSku && (() => {
+              const v = selectedGridProduct.variants.find((x: any) => x.sku === selectedVariantSku);
+              return v ? <div style={{ color: '#52c41a', fontSize: 12, marginBottom: 8 }}>Price: ৳{Math.round(v.selling_price)}</div> : null;
+            })()}
+            
+            <Row gutter={16} align="middle" style={{ marginTop: 12 }}>
               <Col span={8}>
-                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>Quantity</div>
-                <InputNumber min={1} value={addQty} onChange={(val) => setAddQty(val || 1)} style={{ width: '100%' }} />
+                <div style={{ fontSize: 12, color: '#aaa', marginBottom: 4 }}>Quantity</div>
+                <InputNumber min={1} value={addQty} onChange={(val) => setAddQty(val || 1)} style={{ width: '100%', background: '#333', color: '#fff', border: '1px solid #444' }} />
               </Col>
               <Col span={16}>
                 <Button type="primary" onClick={handleAddDraftItem} block size="large" disabled={!selectedVariantSku} style={{ marginTop: 22 }}>
@@ -1927,14 +2344,17 @@ export const Orders: React.FC = () => {
 
 
       <Drawer
-        title="Product Catalog"
+        title={<span style={{ color: '#fff' }}>Product Catalog</span>}
         placement="left"
-        width={800}
+        width="calc(100vw - min(750px, 96vw))"
+        mask={false}
         onClose={() => setIsAddingProduct(false)}
         open={isAddingProduct}
-        bodyStyle={{ padding: 16, background: '#f5f5f5' }}
+        bodyStyle={{ padding: 16, background: '#141414', color: '#fff' }}
+        headerStyle={{ background: '#1f1f1f', borderBottom: '1px solid #333' }}
+        closeIcon={<span style={{ color: '#fff' }}>X</span>}
       >
-        <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#f5f5f5', paddingBottom: 16, borderBottom: '1px solid #e8e8e8', marginBottom: 16 }}>
+        <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#141414', paddingBottom: 16, borderBottom: '1px solid #333', marginBottom: 16 }}>
           <Input.Search
             placeholder="Search products..."
             allowClear
@@ -1943,17 +2363,35 @@ export const Orders: React.FC = () => {
             onChange={(e) => setCatalogSearchText(e.target.value)}
             onSearch={handleCatalogSearch}
             enterButton
+            style={{ 
+              backgroundColor: '#1f1f1f',
+              border: 'none',
+              borderRadius: 6
+            }}
           />
           <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
             <Col span={12}>
-              <Select style={{ width: '100%' }} placeholder="Select Category" value={selectedCategoryId} onChange={(val) => { setSelectedCategoryId(val); setSelectedSubcategoryId(null); }}>
-                {catalogCategories.map(c => <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>)}
+              <Select 
+                style={{ width: '100%' }} 
+                placeholder="Select Category" 
+                value={selectedCategoryId} 
+                onChange={(val) => { setSelectedCategoryId(val); setSelectedSubcategoryId(null); }}
+                dropdownStyle={{ background: '#1f1f1f', color: '#fff' }}
+              >
+                {catalogCategories.map(c => <Select.Option key={c.id} value={c.id} style={{ color: '#fff' }}>{c.name}</Select.Option>)}
               </Select>
             </Col>
             <Col span={12}>
-              <Select style={{ width: '100%' }} placeholder="Select Subcategory" value={selectedSubcategoryId} onChange={fetchCategoryProducts} disabled={!selectedCategoryId}>
+              <Select 
+                style={{ width: '100%' }} 
+                placeholder="Select Subcategory" 
+                value={selectedSubcategoryId} 
+                onChange={fetchCategoryProducts} 
+                disabled={!selectedCategoryId}
+                dropdownStyle={{ background: '#1f1f1f', color: '#fff' }}
+              >
                 {catalogCategories.find(c => c.id === selectedCategoryId)?.children?.map((sub: any) => (
-                  <Select.Option key={sub.id} value={sub.id}>{sub.name}</Select.Option>
+                  <Select.Option key={sub.id} value={sub.id} style={{ color: '#fff' }}>{sub.name}</Select.Option>
                 ))}
               </Select>
             </Col>
@@ -1967,11 +2405,13 @@ export const Orders: React.FC = () => {
                 key={p.id} 
                 hoverable 
                 size="small"
-                onClick={() => setSelectedGridProduct(p)}
+                onClick={() => { setSelectedGridProduct(p); setSelectedVariantSku(""); setSelectedAttributes({}); }}
                 style={{ 
-                  border: selectedGridProduct?.id === p.id ? '2px solid var(--primary-color)' : '1px solid #d9d9d9',
+                  border: selectedGridProduct?.id === p.id ? '2px solid #1677ff' : '1px solid #333',
                   borderRadius: 8,
-                  overflow: 'hidden'
+                  overflow: 'hidden',
+                  background: '#1f1f1f',
+                  color: '#fff'
                 }}
                 bodyStyle={{ padding: 8 }}
               >
@@ -1980,39 +2420,120 @@ export const Orders: React.FC = () => {
                   style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: 4 }} 
                   alt={p.name} 
                 />
-                <div style={{ fontSize: 10, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'center', fontWeight: 600 }}>{p.name}</div>
+                <div style={{ fontSize: 10, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'center', fontWeight: 600, color: '#ccc' }}>{p.name}</div>
               </Card>
             ))}
           </div>
         ) : (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>No products found.</div>
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#666' }}>No products found.</div>
         )}
 
         {selectedGridProduct && (
-          <Card style={{ position: 'sticky', bottom: 0, marginTop: 16, boxShadow: '0 -4px 12px rgba(0,0,0,0.05)', borderRadius: '12px 12px 0 0', border: 'none' }} bodyStyle={{ padding: 16 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Select Variation for {selectedGridProduct.name}</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-              {selectedGridProduct.variants.map((v: any) => {
-                const attrLabel = v.attributes && Object.keys(v.attributes).length > 0
-                  ? Object.entries(v.attributes).map(([key, val]) => `${val}`).join('/')
-                  : v.sku;
-                return (
-                  <Button 
-                    key={v.sku} 
-                    type={selectedVariantSku === v.sku ? 'primary' : 'default'}
-                    onClick={() => setSelectedVariantSku(v.sku)}
-                    style={{ borderRadius: 20 }}
-                  >
-                    {attrLabel} (৳{Math.round(v.selling_price)})
-                  </Button>
-                );
-              })}
-            </div>
+          <Card style={{ position: 'sticky', bottom: 0, marginTop: 16, boxShadow: '0 -10px 30px rgba(0,0,0,0.5)', borderRadius: '12px 12px 0 0', border: '1px solid #333', background: '#1f1f1f', color: '#fff' }} bodyStyle={{ padding: 16 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#fff' }}>Select Variation for {selectedGridProduct.name}</div>
             
-            <Row gutter={16} align="middle">
+            {(() => {
+              // Extract unique attribute keys and their possible values
+              const attrMap: Record<string, Set<string>> = {};
+              selectedGridProduct.variants.forEach((v: any) => {
+                if (v.attributes) {
+                  Object.entries(v.attributes).forEach(([key, val]) => {
+                    if (!attrMap[key]) attrMap[key] = new Set();
+                    attrMap[key].add(String(val));
+                  });
+                }
+              });
+
+              return Object.entries(attrMap).map(([attrKey, valuesSet]) => (
+                <div key={attrKey} style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 12, color: '#aaa', marginBottom: 8 }}>Choose {attrKey}</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {Array.from(valuesSet).map(val => {
+                      const isSelected = selectedAttributes[attrKey] === val;
+                      
+                      // Special rendering for 'Color' to look like a swatch
+                      if (attrKey.toLowerCase() === 'color') {
+                        return (
+                          <div
+                            key={val}
+                            onClick={() => {
+                              const newAttrs = { ...selectedAttributes, [attrKey]: val };
+                              setSelectedAttributes(newAttrs);
+                              
+                              // Check if we have a match
+                              const matchingVariant = selectedGridProduct.variants.find((v: any) => {
+                                return Object.entries(newAttrs).every(([k, v_val]) => v.attributes?.[k] === v_val);
+                              });
+                              if (matchingVariant) {
+                                setSelectedVariantSku(matchingVariant.sku);
+                              } else {
+                                setSelectedVariantSku("");
+                              }
+                            }}
+                            style={{
+                              width: 30,
+                              height: 30,
+                              borderRadius: '50%',
+                              backgroundColor: val.toLowerCase(),
+                              border: isSelected ? '2px solid #1677ff' : '2px solid #444',
+                              cursor: 'pointer',
+                              boxShadow: isSelected ? '0 0 0 2px rgba(255,255,255,0.8)' : 'none'
+                            }}
+                            title={val}
+                          />
+                        );
+                      }
+
+                      // Default rendering for other attributes (like Size)
+                      return (
+                        <div
+                          key={val}
+                          onClick={() => {
+                            const newAttrs = { ...selectedAttributes, [attrKey]: val };
+                            setSelectedAttributes(newAttrs);
+                            
+                            // Check if we have a match
+                            const matchingVariant = selectedGridProduct.variants.find((v: any) => {
+                              return Object.entries(newAttrs).every(([k, v_val]) => v.attributes?.[k] === v_val);
+                            });
+                            if (matchingVariant) {
+                              setSelectedVariantSku(matchingVariant.sku);
+                            } else {
+                              setSelectedVariantSku("");
+                            }
+                          }}
+                          style={{
+                            padding: '4px 12px',
+                            border: isSelected ? '1px solid #1677ff' : '1px solid #444',
+                            background: isSelected ? 'rgba(22, 119, 255, 0.1)' : 'transparent',
+                            color: isSelected ? '#1677ff' : '#ccc',
+                            borderRadius: 4,
+                            cursor: 'pointer',
+                            fontSize: 12,
+                            fontWeight: isSelected ? 600 : 400
+                          }}
+                        >
+                          {val}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ));
+            })()}
+
+            {!selectedVariantSku && Object.keys(selectedAttributes).length > 0 && (
+              <div style={{ color: '#ff4d4f', fontSize: 12, marginBottom: 8 }}>Selected combination is unavailable.</div>
+            )}
+            {selectedVariantSku && (() => {
+              const v = selectedGridProduct.variants.find((x: any) => x.sku === selectedVariantSku);
+              return v ? <div style={{ color: '#52c41a', fontSize: 12, marginBottom: 8 }}>Price: ৳{Math.round(v.selling_price)}</div> : null;
+            })()}
+            
+            <Row gutter={16} align="middle" style={{ marginTop: 12 }}>
               <Col span={8}>
-                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>Quantity</div>
-                <InputNumber min={1} value={addQty} onChange={(val) => setAddQty(val || 1)} style={{ width: '100%' }} />
+                <div style={{ fontSize: 12, color: '#aaa', marginBottom: 4 }}>Quantity</div>
+                <InputNumber min={1} value={addQty} onChange={(val) => setAddQty(val || 1)} style={{ width: '100%', background: '#333', color: '#fff', border: '1px solid #444' }} />
               </Col>
               <Col span={16}>
                 <Button type="primary" onClick={handleAddDraftItem} block size="large" disabled={!selectedVariantSku} style={{ marginTop: 22 }}>
