@@ -22,7 +22,7 @@ const isValidPhone = (phone: string | undefined | null) => {
 };
 
 export const Orders: React.FC = () => {
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState("placed");
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
@@ -694,15 +694,15 @@ export const Orders: React.FC = () => {
           </div>
         </div>
         <Tabs activeKey={activeTab} onChange={setActiveTab} type="card" items={[
-          { label: <span>All <Badge count={orderCounts.all || 0} showZero style={{ backgroundColor: '#52c41a' }} /></span>, key: "all" },
-          { label: <span>Placed <Badge count={orderCounts.placed || 0} showZero color="gold" /></span>, key: "placed" },
-          { label: <span>Review <Badge count={orderCounts.review || 0} showZero color="cyan" /></span>, key: "review" },
-          { label: <span>Pending <Badge count={orderCounts.pending || 0} showZero color="orange" /></span>, key: "pending" },
-          { label: <span>Hold <Badge count={orderCounts.hold || 0} showZero color="volcano" /></span>, key: "hold" },
-          { label: <span>Approval Pending <Badge count={orderCounts.approval_pending || 0} showZero color="blue" /></span>, key: "approval_pending" },
-          { label: <span>Delivered <Badge count={orderCounts.delivered || 0} showZero color="green" /></span>, key: "delivered" },
-          { label: <span>Returned <Badge count={orderCounts.returned || 0} showZero color="purple" /></span>, key: "returned" },
-          { label: <span>Cancelled <Badge count={orderCounts.cancelled || 0} showZero color="red" /></span>, key: "cancelled" },
+          { label: <span>All <Badge count={orderCounts.all || 0} overflowCount={99999} showZero style={{ backgroundColor: '#52c41a' }} /></span>, key: "all" },
+          { label: <span>Placed <Badge count={orderCounts.placed || 0} overflowCount={99999} showZero color="gold" /></span>, key: "placed" },
+          { label: <span>Review <Badge count={orderCounts.review || 0} overflowCount={99999} showZero color="cyan" /></span>, key: "review" },
+          { label: <span>Pending <Badge count={orderCounts.pending || 0} overflowCount={99999} showZero color="orange" /></span>, key: "pending" },
+          { label: <span>Hold <Badge count={orderCounts.hold || 0} overflowCount={99999} showZero color="volcano" /></span>, key: "hold" },
+          { label: <span>Approval Pending <Badge count={orderCounts.approval_pending || 0} overflowCount={99999} showZero color="blue" /></span>, key: "approval_pending" },
+          { label: <span>Delivered <Badge count={orderCounts.delivered || 0} overflowCount={99999} showZero color="green" /></span>, key: "delivered" },
+          { label: <span>Returned <Badge count={orderCounts.returned || 0} overflowCount={99999} showZero color="purple" /></span>, key: "returned" },
+          { label: <span>Cancelled <Badge count={orderCounts.cancelled || 0} overflowCount={99999} showZero color="red" /></span>, key: "cancelled" },
         ]} />
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
