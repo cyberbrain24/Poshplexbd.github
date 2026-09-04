@@ -78,6 +78,7 @@ export const Orders: React.FC = () => {
 
   // New product flow states
   const [isAddingProduct, setIsAddingProduct] = useState(false);
+  const [catalogSearchText, setCatalogSearchText] = useState("");
   const [catalogCategories, setCatalogCategories] = useState<any[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<number | null>(null);
@@ -433,6 +434,22 @@ export const Orders: React.FC = () => {
     } catch (e: any) { if (e?.response?.status !== 403) message.error("Failed to fetch products"); }
   };
 
+  
+  const handleCatalogSearch = async (value: string) => {
+    setSelectedSubcategoryId(null);
+    setSelectedGridProduct(null);
+    try {
+      const token = localStorage.getItem("poshplex_access_token");
+      const url = value 
+        ? `${CATALOG_API_URL}/products?search=${encodeURIComponent(value)}&limit=1000`
+        : selectedCategoryId ? `${CATALOG_API_URL}/products?category_id=${selectedCategoryId}&limit=1000` : `${CATALOG_API_URL}/products?limit=50`;
+      const res = await axios.get(url, { headers: { Authorization: `Bearer ${token}` }});
+      setGridProducts(res.data.results);
+    } catch (e: any) { 
+      if (e?.response?.status !== 403) message.error("Failed to fetch products"); 
+    }
+  };
+
   const handleAddDraftItem = () => {
     if (!selectedGridProduct || !selectedVariantSku) return;
     const variant = selectedGridProduct.variants.find((v: any) => v.sku === selectedVariantSku);
@@ -633,7 +650,106 @@ export const Orders: React.FC = () => {
           <Button size="small" icon={<PrinterOutlined />} onClick={() => { setSelectedOrder(record); setIsPrintModalOpen(true); }}>
             Invoice Slip
           </Button>
-        </Space>
+    
+      <Drawer
+        title="Product Catalog"
+        placement="left"
+        width={800}
+        onClose={() => setIsAddingProduct(false)}
+        open={isAddingProduct}
+        bodyStyle={{ padding: 16, background: '#f5f5f5' }}
+      >
+        <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#f5f5f5', paddingBottom: 16, borderBottom: '1px solid #e8e8e8', marginBottom: 16 }}>
+          <Input.Search
+            placeholder="Search products..."
+            allowClear
+            size="large"
+            value={catalogSearchText}
+            onChange={(e) => setCatalogSearchText(e.target.value)}
+            onSearch={handleCatalogSearch}
+            enterButton
+          />
+          <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+            <Col span={12}>
+              <Select style={{ width: '100%' }} placeholder="Select Category" value={selectedCategoryId} onChange={(val) => { setSelectedCategoryId(val); setSelectedSubcategoryId(null); }}>
+                {catalogCategories.map(c => <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>)}
+              </Select>
+            </Col>
+            <Col span={12}>
+              <Select style={{ width: '100%' }} placeholder="Select Subcategory" value={selectedSubcategoryId} onChange={fetchCategoryProducts} disabled={!selectedCategoryId}>
+                {catalogCategories.find(c => c.id === selectedCategoryId)?.children?.map((sub: any) => (
+                  <Select.Option key={sub.id} value={sub.id}>{sub.name}</Select.Option>
+                ))}
+              </Select>
+            </Col>
+          </Row>
+        </div>
+
+        {gridProducts.length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 12 }}>
+            {gridProducts.map(p => (
+              <Card 
+                key={p.id} 
+                hoverable 
+                size="small"
+                onClick={() => setSelectedGridProduct(p)}
+                style={{ 
+                  border: selectedGridProduct?.id === p.id ? '2px solid var(--primary-color)' : '1px solid #d9d9d9',
+                  borderRadius: 8,
+                  overflow: 'hidden'
+                }}
+                bodyStyle={{ padding: 8 }}
+              >
+                <img 
+                  src={p.images?.[0]?.url ? (p.images[0].url.startsWith('http') ? p.images[0].url : `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}${p.images[0].url}`) : ''} 
+                  style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: 4 }} 
+                  alt={p.name} 
+                />
+                <div style={{ fontSize: 10, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'center', fontWeight: 600 }}>{p.name}</div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>No products found.</div>
+        )}
+
+        {selectedGridProduct && (
+          <Card style={{ position: 'sticky', bottom: 0, marginTop: 16, boxShadow: '0 -4px 12px rgba(0,0,0,0.05)', borderRadius: '12px 12px 0 0', border: 'none' }} bodyStyle={{ padding: 16 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Select Variation for {selectedGridProduct.name}</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+              {selectedGridProduct.variants.map((v: any) => {
+                const attrLabel = v.attributes && Object.keys(v.attributes).length > 0
+                  ? Object.entries(v.attributes).map(([key, val]) => `${val}`).join('/')
+                  : v.sku;
+                return (
+                  <Button 
+                    key={v.sku} 
+                    type={selectedVariantSku === v.sku ? 'primary' : 'default'}
+                    onClick={() => setSelectedVariantSku(v.sku)}
+                    style={{ borderRadius: 20 }}
+                  >
+                    {attrLabel} (৳{Math.round(v.selling_price)})
+                  </Button>
+                );
+              })}
+            </div>
+            
+            <Row gutter={16} align="middle">
+              <Col span={8}>
+                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>Quantity</div>
+                <InputNumber min={1} value={addQty} onChange={(val) => setAddQty(val || 1)} style={{ width: '100%' }} />
+              </Col>
+              <Col span={16}>
+                <Button type="primary" onClick={handleAddDraftItem} block size="large" disabled={!selectedVariantSku} style={{ marginTop: 22 }}>
+                  Add to Order
+                </Button>
+              </Col>
+            </Row>
+          </Card>
+        )}
+      </Drawer>
+
+    </Space>
       ),
     },
   ];
@@ -746,7 +862,106 @@ export const Orders: React.FC = () => {
                         <WarningOutlined style={{ color: 'red' }} />
                       </Tooltip>
                     )}
-                  </Space>
+              
+      <Drawer
+        title="Product Catalog"
+        placement="left"
+        width={800}
+        onClose={() => setIsAddingProduct(false)}
+        open={isAddingProduct}
+        bodyStyle={{ padding: 16, background: '#f5f5f5' }}
+      >
+        <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#f5f5f5', paddingBottom: 16, borderBottom: '1px solid #e8e8e8', marginBottom: 16 }}>
+          <Input.Search
+            placeholder="Search products..."
+            allowClear
+            size="large"
+            value={catalogSearchText}
+            onChange={(e) => setCatalogSearchText(e.target.value)}
+            onSearch={handleCatalogSearch}
+            enterButton
+          />
+          <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+            <Col span={12}>
+              <Select style={{ width: '100%' }} placeholder="Select Category" value={selectedCategoryId} onChange={(val) => { setSelectedCategoryId(val); setSelectedSubcategoryId(null); }}>
+                {catalogCategories.map(c => <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>)}
+              </Select>
+            </Col>
+            <Col span={12}>
+              <Select style={{ width: '100%' }} placeholder="Select Subcategory" value={selectedSubcategoryId} onChange={fetchCategoryProducts} disabled={!selectedCategoryId}>
+                {catalogCategories.find(c => c.id === selectedCategoryId)?.children?.map((sub: any) => (
+                  <Select.Option key={sub.id} value={sub.id}>{sub.name}</Select.Option>
+                ))}
+              </Select>
+            </Col>
+          </Row>
+        </div>
+
+        {gridProducts.length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 12 }}>
+            {gridProducts.map(p => (
+              <Card 
+                key={p.id} 
+                hoverable 
+                size="small"
+                onClick={() => setSelectedGridProduct(p)}
+                style={{ 
+                  border: selectedGridProduct?.id === p.id ? '2px solid var(--primary-color)' : '1px solid #d9d9d9',
+                  borderRadius: 8,
+                  overflow: 'hidden'
+                }}
+                bodyStyle={{ padding: 8 }}
+              >
+                <img 
+                  src={p.images?.[0]?.url ? (p.images[0].url.startsWith('http') ? p.images[0].url : `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}${p.images[0].url}`) : ''} 
+                  style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: 4 }} 
+                  alt={p.name} 
+                />
+                <div style={{ fontSize: 10, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'center', fontWeight: 600 }}>{p.name}</div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>No products found.</div>
+        )}
+
+        {selectedGridProduct && (
+          <Card style={{ position: 'sticky', bottom: 0, marginTop: 16, boxShadow: '0 -4px 12px rgba(0,0,0,0.05)', borderRadius: '12px 12px 0 0', border: 'none' }} bodyStyle={{ padding: 16 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Select Variation for {selectedGridProduct.name}</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+              {selectedGridProduct.variants.map((v: any) => {
+                const attrLabel = v.attributes && Object.keys(v.attributes).length > 0
+                  ? Object.entries(v.attributes).map(([key, val]) => `${val}`).join('/')
+                  : v.sku;
+                return (
+                  <Button 
+                    key={v.sku} 
+                    type={selectedVariantSku === v.sku ? 'primary' : 'default'}
+                    onClick={() => setSelectedVariantSku(v.sku)}
+                    style={{ borderRadius: 20 }}
+                  >
+                    {attrLabel} (৳{Math.round(v.selling_price)})
+                  </Button>
+                );
+              })}
+            </div>
+            
+            <Row gutter={16} align="middle">
+              <Col span={8}>
+                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>Quantity</div>
+                <InputNumber min={1} value={addQty} onChange={(val) => setAddQty(val || 1)} style={{ width: '100%' }} />
+              </Col>
+              <Col span={16}>
+                <Button type="primary" onClick={handleAddDraftItem} block size="large" disabled={!selectedVariantSku} style={{ marginTop: 22 }}>
+                  Add to Order
+                </Button>
+              </Col>
+            </Row>
+          </Card>
+        )}
+      </Drawer>
+
+    </Space>
                   {activePhones[order.id] ? (
                     <PhoneOutlined 
                       style={{ color: '#25D366', cursor: 'pointer', fontSize: 16 }} 
@@ -1109,7 +1324,106 @@ export const Orders: React.FC = () => {
             <Button danger icon={<DeleteOutlined />} onClick={() => handleDeleteOrder(selectedOrder.id)}>
               Delete Order
             </Button>
-          </Space>
+      
+      <Drawer
+        title="Product Catalog"
+        placement="left"
+        width={800}
+        onClose={() => setIsAddingProduct(false)}
+        open={isAddingProduct}
+        bodyStyle={{ padding: 16, background: '#f5f5f5' }}
+      >
+        <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#f5f5f5', paddingBottom: 16, borderBottom: '1px solid #e8e8e8', marginBottom: 16 }}>
+          <Input.Search
+            placeholder="Search products..."
+            allowClear
+            size="large"
+            value={catalogSearchText}
+            onChange={(e) => setCatalogSearchText(e.target.value)}
+            onSearch={handleCatalogSearch}
+            enterButton
+          />
+          <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+            <Col span={12}>
+              <Select style={{ width: '100%' }} placeholder="Select Category" value={selectedCategoryId} onChange={(val) => { setSelectedCategoryId(val); setSelectedSubcategoryId(null); }}>
+                {catalogCategories.map(c => <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>)}
+              </Select>
+            </Col>
+            <Col span={12}>
+              <Select style={{ width: '100%' }} placeholder="Select Subcategory" value={selectedSubcategoryId} onChange={fetchCategoryProducts} disabled={!selectedCategoryId}>
+                {catalogCategories.find(c => c.id === selectedCategoryId)?.children?.map((sub: any) => (
+                  <Select.Option key={sub.id} value={sub.id}>{sub.name}</Select.Option>
+                ))}
+              </Select>
+            </Col>
+          </Row>
+        </div>
+
+        {gridProducts.length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 12 }}>
+            {gridProducts.map(p => (
+              <Card 
+                key={p.id} 
+                hoverable 
+                size="small"
+                onClick={() => setSelectedGridProduct(p)}
+                style={{ 
+                  border: selectedGridProduct?.id === p.id ? '2px solid var(--primary-color)' : '1px solid #d9d9d9',
+                  borderRadius: 8,
+                  overflow: 'hidden'
+                }}
+                bodyStyle={{ padding: 8 }}
+              >
+                <img 
+                  src={p.images?.[0]?.url ? (p.images[0].url.startsWith('http') ? p.images[0].url : `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}${p.images[0].url}`) : ''} 
+                  style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: 4 }} 
+                  alt={p.name} 
+                />
+                <div style={{ fontSize: 10, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'center', fontWeight: 600 }}>{p.name}</div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>No products found.</div>
+        )}
+
+        {selectedGridProduct && (
+          <Card style={{ position: 'sticky', bottom: 0, marginTop: 16, boxShadow: '0 -4px 12px rgba(0,0,0,0.05)', borderRadius: '12px 12px 0 0', border: 'none' }} bodyStyle={{ padding: 16 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Select Variation for {selectedGridProduct.name}</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+              {selectedGridProduct.variants.map((v: any) => {
+                const attrLabel = v.attributes && Object.keys(v.attributes).length > 0
+                  ? Object.entries(v.attributes).map(([key, val]) => `${val}`).join('/')
+                  : v.sku;
+                return (
+                  <Button 
+                    key={v.sku} 
+                    type={selectedVariantSku === v.sku ? 'primary' : 'default'}
+                    onClick={() => setSelectedVariantSku(v.sku)}
+                    style={{ borderRadius: 20 }}
+                  >
+                    {attrLabel} (৳{Math.round(v.selling_price)})
+                  </Button>
+                );
+              })}
+            </div>
+            
+            <Row gutter={16} align="middle">
+              <Col span={8}>
+                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>Quantity</div>
+                <InputNumber min={1} value={addQty} onChange={(val) => setAddQty(val || 1)} style={{ width: '100%' }} />
+              </Col>
+              <Col span={16}>
+                <Button type="primary" onClick={handleAddDraftItem} block size="large" disabled={!selectedVariantSku} style={{ marginTop: 22 }}>
+                  Add to Order
+                </Button>
+              </Col>
+            </Row>
+          </Card>
+        )}
+      </Drawer>
+
+    </Space>
         }
         footer={
           <div style={{ textAlign: 'right' }}>
@@ -1272,66 +1586,7 @@ export const Orders: React.FC = () => {
               ]}
             />
 
-            {isAddingProduct ? (
-              <Card size="small" style={{ marginTop: 16, background: '#f9f9f9', borderColor: '#e5e5e5' }}>
-                <Row gutter={[16, 16]}>
-                  <Col span={12}>
-                    <Select style={{ width: '100%' }} placeholder="Select Category" value={selectedCategoryId} onChange={(val) => { setSelectedCategoryId(val); setSelectedSubcategoryId(null); }}>
-                      {catalogCategories.map(c => <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>)}
-                    </Select>
-                  </Col>
-                  <Col span={12}>
-                    <Select style={{ width: '100%' }} placeholder="Select Subcategory" value={selectedSubcategoryId} onChange={fetchCategoryProducts} disabled={!selectedCategoryId}>
-                      {catalogCategories.find(c => c.id === selectedCategoryId)?.children?.map((sub: any) => (
-                        <Select.Option key={sub.id} value={sub.id}>{sub.name}</Select.Option>
-                      ))}
-                    </Select>
-                  </Col>
-                </Row>
-                {gridProducts.length > 0 && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginTop: 16, paddingBottom: 8, maxHeight: 400, overflowY: 'auto', paddingRight: 4 }}>
-                    {gridProducts.map(p => (
-                      <Card 
-                        key={p.id} 
-                        hoverable 
-                        size="small"
-                        onClick={() => setSelectedGridProduct(p)}
-                        style={{ minWidth: 100, border: selectedGridProduct?.id === p.id ? '2px solid var(--primary-color)' : '1px solid #d9d9d9' }}
-                      >
-                        <img src={p.images?.[0]?.url ? (p.images[0].url.startsWith('http') ? p.images[0].url : `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}${p.images[0].url}`) : ''} style={{ width: '100%', height: 60, objectFit: 'cover' }} alt="prod" />
-                        <div style={{ fontSize: 10, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-                {selectedGridProduct && (
-                  <Row gutter={16} align="bottom" style={{ marginTop: 16 }}>
-                    <Col span={12}>
-                      <Select style={{ width: '100%' }} placeholder="Select Variant" value={selectedVariantSku} onChange={setSelectedVariantSku}>
-                        {selectedGridProduct.variants.map((v: any) => {
-                          const attrLabel = v.attributes && Object.keys(v.attributes).length > 0
-                            ? Object.entries(v.attributes).map(([key, val]) => `${key}: ${val}`).join(', ')
-                            : v.sku;
-                          return (
-                            <Select.Option key={v.sku} value={v.sku}>
-                              {attrLabel} - ৳{Math.round(v.selling_price)}
-                            </Select.Option>
-                          );
-                        })}
-                      </Select>
-                    </Col>
-                    <Col span={6}>
-                      <InputNumber min={1} value={addQty} onChange={(val) => setAddQty(val || 1)} style={{ width: '100%' }} />
-                    </Col>
-                    <Col span={6}>
-                      <Button type="primary" onClick={handleAddDraftItem} block disabled={!selectedVariantSku}>Add to Order</Button>
-                    </Col>
-                  </Row>
-                )}
-                <Button type="text" danger block style={{ marginTop: 8 }} onClick={() => setIsAddingProduct(false)}>Cancel</Button>
-              </Card>
-            ) : (
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: 16, marginTop: 16 }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 16, marginTop: 16 }}>
                 <Button type="dashed" icon={<PlusOutlined />} onClick={handleOpenAddProduct}>
                   Add New Product
                 </Button>
@@ -1339,7 +1594,6 @@ export const Orders: React.FC = () => {
                   Process Return Request
                 </Button>
               </div>
-            )}
 
             <Card size="small" style={{ marginTop: 16, borderColor: '#e5e5e5' }}>
               <Row gutter={16}>
@@ -1440,7 +1694,106 @@ export const Orders: React.FC = () => {
               ))}
             </Timeline>
 
-          </Space>
+      
+      <Drawer
+        title="Product Catalog"
+        placement="left"
+        width={800}
+        onClose={() => setIsAddingProduct(false)}
+        open={isAddingProduct}
+        bodyStyle={{ padding: 16, background: '#f5f5f5' }}
+      >
+        <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#f5f5f5', paddingBottom: 16, borderBottom: '1px solid #e8e8e8', marginBottom: 16 }}>
+          <Input.Search
+            placeholder="Search products..."
+            allowClear
+            size="large"
+            value={catalogSearchText}
+            onChange={(e) => setCatalogSearchText(e.target.value)}
+            onSearch={handleCatalogSearch}
+            enterButton
+          />
+          <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+            <Col span={12}>
+              <Select style={{ width: '100%' }} placeholder="Select Category" value={selectedCategoryId} onChange={(val) => { setSelectedCategoryId(val); setSelectedSubcategoryId(null); }}>
+                {catalogCategories.map(c => <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>)}
+              </Select>
+            </Col>
+            <Col span={12}>
+              <Select style={{ width: '100%' }} placeholder="Select Subcategory" value={selectedSubcategoryId} onChange={fetchCategoryProducts} disabled={!selectedCategoryId}>
+                {catalogCategories.find(c => c.id === selectedCategoryId)?.children?.map((sub: any) => (
+                  <Select.Option key={sub.id} value={sub.id}>{sub.name}</Select.Option>
+                ))}
+              </Select>
+            </Col>
+          </Row>
+        </div>
+
+        {gridProducts.length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 12 }}>
+            {gridProducts.map(p => (
+              <Card 
+                key={p.id} 
+                hoverable 
+                size="small"
+                onClick={() => setSelectedGridProduct(p)}
+                style={{ 
+                  border: selectedGridProduct?.id === p.id ? '2px solid var(--primary-color)' : '1px solid #d9d9d9',
+                  borderRadius: 8,
+                  overflow: 'hidden'
+                }}
+                bodyStyle={{ padding: 8 }}
+              >
+                <img 
+                  src={p.images?.[0]?.url ? (p.images[0].url.startsWith('http') ? p.images[0].url : `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}${p.images[0].url}`) : ''} 
+                  style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: 4 }} 
+                  alt={p.name} 
+                />
+                <div style={{ fontSize: 10, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'center', fontWeight: 600 }}>{p.name}</div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>No products found.</div>
+        )}
+
+        {selectedGridProduct && (
+          <Card style={{ position: 'sticky', bottom: 0, marginTop: 16, boxShadow: '0 -4px 12px rgba(0,0,0,0.05)', borderRadius: '12px 12px 0 0', border: 'none' }} bodyStyle={{ padding: 16 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Select Variation for {selectedGridProduct.name}</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+              {selectedGridProduct.variants.map((v: any) => {
+                const attrLabel = v.attributes && Object.keys(v.attributes).length > 0
+                  ? Object.entries(v.attributes).map(([key, val]) => `${val}`).join('/')
+                  : v.sku;
+                return (
+                  <Button 
+                    key={v.sku} 
+                    type={selectedVariantSku === v.sku ? 'primary' : 'default'}
+                    onClick={() => setSelectedVariantSku(v.sku)}
+                    style={{ borderRadius: 20 }}
+                  >
+                    {attrLabel} (৳{Math.round(v.selling_price)})
+                  </Button>
+                );
+              })}
+            </div>
+            
+            <Row gutter={16} align="middle">
+              <Col span={8}>
+                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>Quantity</div>
+                <InputNumber min={1} value={addQty} onChange={(val) => setAddQty(val || 1)} style={{ width: '100%' }} />
+              </Col>
+              <Col span={16}>
+                <Button type="primary" onClick={handleAddDraftItem} block size="large" disabled={!selectedVariantSku} style={{ marginTop: 22 }}>
+                  Add to Order
+                </Button>
+              </Col>
+            </Row>
+          </Card>
+        )}
+      </Drawer>
+
+    </Space>
         )}
       </Drawer>
 
@@ -1571,6 +1924,105 @@ export const Orders: React.FC = () => {
           </Form.Item>
         </Form>
       </Modal>
+
+
+      <Drawer
+        title="Product Catalog"
+        placement="left"
+        width={800}
+        onClose={() => setIsAddingProduct(false)}
+        open={isAddingProduct}
+        bodyStyle={{ padding: 16, background: '#f5f5f5' }}
+      >
+        <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#f5f5f5', paddingBottom: 16, borderBottom: '1px solid #e8e8e8', marginBottom: 16 }}>
+          <Input.Search
+            placeholder="Search products..."
+            allowClear
+            size="large"
+            value={catalogSearchText}
+            onChange={(e) => setCatalogSearchText(e.target.value)}
+            onSearch={handleCatalogSearch}
+            enterButton
+          />
+          <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+            <Col span={12}>
+              <Select style={{ width: '100%' }} placeholder="Select Category" value={selectedCategoryId} onChange={(val) => { setSelectedCategoryId(val); setSelectedSubcategoryId(null); }}>
+                {catalogCategories.map(c => <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>)}
+              </Select>
+            </Col>
+            <Col span={12}>
+              <Select style={{ width: '100%' }} placeholder="Select Subcategory" value={selectedSubcategoryId} onChange={fetchCategoryProducts} disabled={!selectedCategoryId}>
+                {catalogCategories.find(c => c.id === selectedCategoryId)?.children?.map((sub: any) => (
+                  <Select.Option key={sub.id} value={sub.id}>{sub.name}</Select.Option>
+                ))}
+              </Select>
+            </Col>
+          </Row>
+        </div>
+
+        {gridProducts.length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 12 }}>
+            {gridProducts.map(p => (
+              <Card 
+                key={p.id} 
+                hoverable 
+                size="small"
+                onClick={() => setSelectedGridProduct(p)}
+                style={{ 
+                  border: selectedGridProduct?.id === p.id ? '2px solid var(--primary-color)' : '1px solid #d9d9d9',
+                  borderRadius: 8,
+                  overflow: 'hidden'
+                }}
+                bodyStyle={{ padding: 8 }}
+              >
+                <img 
+                  src={p.images?.[0]?.url ? (p.images[0].url.startsWith('http') ? p.images[0].url : `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}${p.images[0].url}`) : ''} 
+                  style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: 4 }} 
+                  alt={p.name} 
+                />
+                <div style={{ fontSize: 10, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'center', fontWeight: 600 }}>{p.name}</div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>No products found.</div>
+        )}
+
+        {selectedGridProduct && (
+          <Card style={{ position: 'sticky', bottom: 0, marginTop: 16, boxShadow: '0 -4px 12px rgba(0,0,0,0.05)', borderRadius: '12px 12px 0 0', border: 'none' }} bodyStyle={{ padding: 16 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Select Variation for {selectedGridProduct.name}</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+              {selectedGridProduct.variants.map((v: any) => {
+                const attrLabel = v.attributes && Object.keys(v.attributes).length > 0
+                  ? Object.entries(v.attributes).map(([key, val]) => `${val}`).join('/')
+                  : v.sku;
+                return (
+                  <Button 
+                    key={v.sku} 
+                    type={selectedVariantSku === v.sku ? 'primary' : 'default'}
+                    onClick={() => setSelectedVariantSku(v.sku)}
+                    style={{ borderRadius: 20 }}
+                  >
+                    {attrLabel} (৳{Math.round(v.selling_price)})
+                  </Button>
+                );
+              })}
+            </div>
+            
+            <Row gutter={16} align="middle">
+              <Col span={8}>
+                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>Quantity</div>
+                <InputNumber min={1} value={addQty} onChange={(val) => setAddQty(val || 1)} style={{ width: '100%' }} />
+              </Col>
+              <Col span={16}>
+                <Button type="primary" onClick={handleAddDraftItem} block size="large" disabled={!selectedVariantSku} style={{ marginTop: 22 }}>
+                  Add to Order
+                </Button>
+              </Col>
+            </Row>
+          </Card>
+        )}
+      </Drawer>
 
     </Space>
   );
