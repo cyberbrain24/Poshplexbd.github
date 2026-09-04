@@ -1111,6 +1111,13 @@ export const Orders: React.FC = () => {
             </Button>
           </Space>
         }
+        footer={
+          <div style={{ textAlign: 'right' }}>
+            <Button type="primary" size="large" icon={<SaveOutlined />} block onClick={handleSaveDrawerEdits} loading={isSavingDraft}>
+              Save Order Changes
+            </Button>
+          </div>
+        }
       >
         {selectedOrder && (
           <Space direction="vertical" size="large" style={{ width: "100%" }}>
@@ -1176,11 +1183,32 @@ export const Orders: React.FC = () => {
                 </Col>
                 <Col span={8}>
                   <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>District</div>
-                  <Input value={selectedOrder.shipping_district} onChange={e => setSelectedOrder({...selectedOrder, shipping_district: e.target.value})} style={{ marginTop: 4 }} />
+                  <Select
+                    showSearch
+                    value={selectedOrder.shipping_district}
+                    onChange={(val) => {
+                      const d = locationRates.find(l => l.name === val);
+                      setSelectedOrder({...selectedOrder, shipping_district: val, shipping_thana: d?.thanas?.[0] || '', shipping_cost: d?.shipping_cost || selectedOrder.shipping_cost});
+                    }}
+                    style={{ width: '100%', marginTop: 4 }}
+                  >
+                    {locationRates.map((d: any) => (
+                      <Select.Option key={d.name} value={d.name}>{d.name}</Select.Option>
+                    ))}
+                  </Select>
                 </Col>
                 <Col span={8}>
                   <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Thana</div>
-                  <Input value={selectedOrder.shipping_thana} onChange={e => setSelectedOrder({...selectedOrder, shipping_thana: e.target.value})} style={{ marginTop: 4 }} />
+                  <Select
+                    showSearch
+                    value={selectedOrder.shipping_thana}
+                    onChange={(val) => setSelectedOrder({...selectedOrder, shipping_thana: val})}
+                    style={{ width: '100%', marginTop: 4 }}
+                  >
+                    {locationRates.find((d: any) => d.name === selectedOrder.shipping_district)?.thanas?.map((t: string) => (
+                      <Select.Option key={t} value={t}>{t}</Select.Option>
+                    ))}
+                  </Select>
                 </Col>
                 <Col span={8}>
                   <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Postal Code</div>
@@ -1378,10 +1406,6 @@ export const Orders: React.FC = () => {
                   </div>
                 );
               })()}
-
-              <Button type="primary" size="large" icon={<SaveOutlined />} block style={{ marginTop: 16 }} onClick={handleSaveDrawerEdits} loading={isSavingDraft}>
-                Save Order Changes
-              </Button>
             </Card>
 
             <Divider>Financial ledger allocations</Divider>
