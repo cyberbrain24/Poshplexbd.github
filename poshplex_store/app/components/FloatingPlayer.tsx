@@ -142,10 +142,7 @@ export const FloatingPlayer: React.FC = () => {
           }
           @media (max-width: 768px) {
             .floating-audio-player {
-              top: auto !important;
-              left: auto !important;
-              bottom: 84px !important;
-              right: 16px !important;
+              display: none !important;
             }
           }
           @keyframes spin {
