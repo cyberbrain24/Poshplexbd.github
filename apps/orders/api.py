@@ -466,6 +466,17 @@ def resolve_or_create_customer(user, data: OrderCreateInputSchema, user_id_overr
         profile.gender = data.customer_gender
     if data.customer_birthdate:
         profile.birthdate = data.customer_birthdate
+        
+    if data.shipping_district:
+        from apps.orders.models import District, Thana
+        dist = District.objects.filter(name__iexact=data.shipping_district).first()
+        if dist:
+            profile.district = dist
+            if data.shipping_thana:
+                thana = Thana.objects.filter(district=dist, name__iexact=data.shipping_thana).first()
+                if thana:
+                    profile.thana = thana
+
     profile.save()
     
     return u_id, final_phone
@@ -693,13 +704,18 @@ def update_order_endpoint(request, order_id: int, data: OrderCreateInputSchema):
                     crm.address = data.shipping_address
                     crm_updated = True
                     
-                if data.shipping_district and crm.district_id != data.shipping_district:
-                    crm.district_id = data.shipping_district
-                    crm_updated = True
+                if data.shipping_district:
+                    from apps.orders.models import District, Thana
+                    dist = District.objects.filter(name__iexact=data.shipping_district).first()
+                    if dist and crm.district_id != dist.id:
+                        crm.district_id = dist.id
+                        crm_updated = True
                     
-                if data.shipping_thana and crm.thana_id != data.shipping_thana:
-                    crm.thana_id = data.shipping_thana
-                    crm_updated = True
+                    if dist and data.shipping_thana:
+                        thana = Thana.objects.filter(district=dist, name__iexact=data.shipping_thana).first()
+                        if thana and crm.thana_id != thana.id:
+                            crm.thana_id = thana.id
+                            crm_updated = True
                     
                 if crm_updated:
                     crm.save()
