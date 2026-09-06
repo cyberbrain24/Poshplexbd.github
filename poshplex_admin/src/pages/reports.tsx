@@ -215,6 +215,10 @@ export const ReportsPage: React.FC = () => {
                     <Text type="secondary">Products:</Text>
                     <Text strong>{stats.product_qty}</Text>
                   </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <Text type="secondary">Percentage Rate:</Text>
+                    <Text strong>{filteredSnapshot.orders_qty > 0 ? ((stats.orders_qty / filteredSnapshot.orders_qty) * 100).toFixed(1) + '%' : '0%'}</Text>
+                  </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid var(--border-glass)' }}>
                     <Text type="secondary">Value:</Text>
                     <Text strong style={{ color: 'var(--accent-purple)' }}>৳{Math.round(stats.total_amount)}</Text>
