@@ -35,48 +35,6 @@ export const ReportsPage: React.FC = () => {
       setSavingExpense(false);
     }
   };
-
-
-  useEffect(() => {
-    fetchReport();
-  }, [filterType, dateRange]);
-
-  useEffect(() => {
-    if (data?.status_report) {
-      setActiveStatuses(Object.keys(data.status_report));
-    }
-  }, [data]);
-
-  const filteredSnapshot = React.useMemo(() => {
-    if (!data?.status_report) return { orders_qty: 0, product_qty: 0, total_amount: 0, avg_order: 0, product_costing: 0 };
-    let orders = 0;
-    let products = 0;
-    let amount = 0;
-    let costing = 0;
-    activeStatuses.forEach(key => {
-      const s = data.status_report[key];
-      if (s) {
-        orders += s.orders_qty || 0;
-        products += s.product_qty || 0;
-        amount += s.total_amount || 0;
-        costing += s.product_costing || 0;
-      }
-    });
-    return {
-      orders_qty: orders,
-      product_qty: products,
-      total_amount: amount,
-      avg_order: orders > 0 ? amount / orders : 0,
-      product_costing: costing
-    };
-  }, [data, activeStatuses]);
-
-  useEffect(() => {
-    if (data?.snapshot?.fixed_expense !== undefined) {
-      setFixedExpenseInput(data.snapshot.fixed_expense);
-    }
-  }, [data?.snapshot?.fixed_expense]);
-
   const fetchReport = async () => {
     setLoading(true);
     let fromDate = null;
@@ -118,6 +76,46 @@ export const ReportsPage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchReport();
+  }, [filterType, dateRange]);
+
+  useEffect(() => {
+    if (data?.status_report) {
+      setActiveStatuses(Object.keys(data.status_report));
+    }
+  }, [data]);
+
+  const filteredSnapshot = React.useMemo(() => {
+    if (!data?.status_report) return { orders_qty: 0, product_qty: 0, total_amount: 0, avg_order: 0, product_costing: 0 };
+    let orders = 0;
+    let products = 0;
+    let amount = 0;
+    let costing = 0;
+    activeStatuses.forEach(key => {
+      const s = data.status_report[key];
+      if (s) {
+        orders += s.orders_qty || 0;
+        products += s.product_qty || 0;
+        amount += s.total_amount || 0;
+        costing += s.product_costing || 0;
+      }
+    });
+    return {
+      orders_qty: orders,
+      product_qty: products,
+      total_amount: amount,
+      avg_order: orders > 0 ? amount / orders : 0,
+      product_costing: costing
+    };
+  }, [data, activeStatuses]);
+
+  useEffect(() => {
+    if (data?.snapshot?.fixed_expense !== undefined) {
+      setFixedExpenseInput(data.snapshot.fixed_expense);
+    }
+  }, [data?.snapshot?.fixed_expense]);
 
   const getFilterTitle = () => {
     switch (filterType) {
@@ -207,6 +205,37 @@ export const ReportsPage: React.FC = () => {
               <Text type="secondary">Avg Order Value</Text>
               <div style={{ fontSize: 24, fontWeight: 'bold', color: 'var(--accent-cyan)' }}>
                 ৳{Math.round(filteredSnapshot.avg_order)}
+              </div>
+            </Card>
+          </Col>
+        </Row>
+        <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
+          <Col xs={12} sm={12} md={8}>
+            <Card bordered={false} style={{ background: "var(--bg-secondary)", borderRadius: 8, border: "1px solid var(--border-glass)" }}>
+              <Text type="secondary">Product Costing</Text>
+              <div style={{ fontSize: 24, fontWeight: 'bold', color: '#faad14' }}>
+                ৳{Math.round(filteredSnapshot.product_costing || 0)}
+              </div>
+            </Card>
+          </Col>
+          <Col xs={12} sm={12} md={8}>
+            <Card bordered={false} style={{ background: "var(--bg-secondary)", borderRadius: 8, border: "1px solid var(--border-glass)" }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text type="secondary">Total Profit</Text>
+                {!isEditingExpense ? (
+                  <Button type="link" size="small" onClick={() => setIsEditingExpense(true)}>Edit Expense</Button>
+                ) : (
+                  <Space>
+                    <InputNumber size="small" value={fixedExpenseInput} onChange={(val) => setFixedExpenseInput(val || 0)} />
+                    <Button type="primary" size="small" loading={savingExpense} onClick={handleSaveFixedExpense}>Save</Button>
+                  </Space>
+                )}
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 'bold', color: '#52c41a' }}>
+                ৳{Math.round(filteredSnapshot.total_amount - (filteredSnapshot.product_costing || 0) - (data?.snapshot?.fixed_expense || 0))}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+                After Fixed Exp: ৳{Math.round(data?.snapshot?.fixed_expense || 0)}
               </div>
             </Card>
           </Col>
