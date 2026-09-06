@@ -1,13 +1,18 @@
-from ninja import Router
-from django.db.models import Sum
+from ninja import Router, Schema
+from django.db.models import Sum, Subquery, OuterRef, F, DecimalField, ExpressionWrapper
 from typing import Optional
 from apps.core.api import BearerAuth, enforce_permission
-from apps.orders.models import Order
+from apps.orders.models import Order, OrderItem
+from apps.catalog.models import ProductVariant
+from apps.core.models import SiteSetting
 from django.utils.dateparse import parse_datetime, parse_date
 from django.utils import timezone
 from datetime import datetime, time
 
 router = Router(auth=BearerAuth())
+
+class FixedExpenseInputSchema(Schema):
+    amount: float
 
 @router.get("/sales")
 def get_sales_report(request, date_from: Optional[str] = None, date_to: Optional[str] = None):
@@ -38,11 +43,19 @@ def get_sales_report(request, date_from: Optional[str] = None, date_to: Optional
     total_products = qs.aggregate(Sum('items__quantity'))['items__quantity__sum'] or 0
     avg_order = (total_amount / total_orders) if total_orders > 0 else 0
 
+    # Calculate global fixed expense
+    setting, _ = SiteSetting.objects.get_or_create(
+        key="reports_fixed_expense",
+        defaults={"value": {"amount": 0}, "description": "Global fixed expense for profit calculation"}
+    )
+    fixed_expense = float(setting.value.get("amount", 0))
+
     snapshot = {
         "orders_qty": total_orders,
         "product_qty": total_products,
         "total_amount": float(total_amount),
         "avg_order": float(avg_order),
+        "fixed_expense": fixed_expense,
     }
 
     status_keys = ["placed", "review", "pending", "hold", "approval_pending", "delivered", "returned", "cancelled"]
@@ -54,13 +67,37 @@ def get_sales_report(request, date_from: Optional[str] = None, date_to: Optional
         sprod = sqs.aggregate(Sum('items__quantity'))['items__quantity__sum'] or 0
         samt = sqs.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
         
+        # Calculate product costing for this specific status
+        scost = OrderItem.objects.filter(order__in=sqs).annotate(
+            unit_cost=Subquery(
+                ProductVariant.objects.filter(sku=OuterRef('sku')).values('purchase_price')[:1],
+                output_field=DecimalField()
+            )
+        ).aggregate(
+            total_cost=Sum(
+                ExpressionWrapper(F('quantity') * F('unit_cost'), output_field=DecimalField())
+            )
+        )['total_cost'] or 0
+        
         status_report[st] = {
             "orders_qty": sqty,
             "product_qty": sprod,
             "total_amount": float(samt),
+            "product_costing": float(scost),
         }
 
     return {
         "snapshot": snapshot,
         "status_report": status_report
     }
+
+@router.post("/settings/fixed-expense")
+def update_fixed_expense(request, payload: FixedExpenseInputSchema):
+    enforce_permission(request, "report", "view")
+    setting, _ = SiteSetting.objects.get_or_create(
+        key="reports_fixed_expense",
+        defaults={"value": {"amount": 0}, "description": "Global fixed expense for profit calculation"}
+    )
+    setting.value = {"amount": payload.amount}
+    setting.save()
+    return {"success": True, "amount": payload.amount}

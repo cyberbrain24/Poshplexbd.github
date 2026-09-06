@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Card, Row, Col, Typography, Spin, message, DatePicker, Select, Space, Divider, Tag, Checkbox } from "antd";
+import { Card, Row, Col, Typography, Spin, message, DatePicker, Select, Space, Divider, Tag, Checkbox, InputNumber, Button } from "antd";
 import { BarChartOutlined, LineChartOutlined, ClockCircleOutlined, SyncOutlined, StopOutlined, CarOutlined, UndoOutlined, PauseCircleOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
@@ -17,6 +17,25 @@ export const ReportsPage: React.FC = () => {
   const [filterType, setFilterType] = useState<string>("today");
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
   const [activeStatuses, setActiveStatuses] = useState<string[]>([]);
+  const [fixedExpenseInput, setFixedExpenseInput] = useState<number>(0);
+  const [isEditingExpense, setIsEditingExpense] = useState(false);
+  const [savingExpense, setSavingExpense] = useState(false);
+
+  const handleSaveFixedExpense = async () => {
+    setSavingExpense(true);
+    try {
+      const token = localStorage.getItem("poshplex_access_token");
+      await axios.post(`${API_URL}/report/settings/fixed-expense`, { amount: fixedExpenseInput }, { headers: { Authorization: `Bearer ${token}` } });
+      message.success("Fixed expense updated!");
+      setIsEditingExpense(false);
+      fetchReport();
+    } catch(err) {
+      message.error("Failed to update expense");
+    } finally {
+      setSavingExpense(false);
+    }
+  };
+
 
   useEffect(() => {
     fetchReport();
@@ -29,25 +48,34 @@ export const ReportsPage: React.FC = () => {
   }, [data]);
 
   const filteredSnapshot = React.useMemo(() => {
-    if (!data?.status_report) return { orders_qty: 0, product_qty: 0, total_amount: 0, avg_order: 0 };
+    if (!data?.status_report) return { orders_qty: 0, product_qty: 0, total_amount: 0, avg_order: 0, product_costing: 0 };
     let orders = 0;
     let products = 0;
     let amount = 0;
+    let costing = 0;
     activeStatuses.forEach(key => {
       const s = data.status_report[key];
       if (s) {
         orders += s.orders_qty || 0;
         products += s.product_qty || 0;
         amount += s.total_amount || 0;
+        costing += s.product_costing || 0;
       }
     });
     return {
       orders_qty: orders,
       product_qty: products,
       total_amount: amount,
-      avg_order: orders > 0 ? amount / orders : 0
+      avg_order: orders > 0 ? amount / orders : 0,
+      product_costing: costing
     };
   }, [data, activeStatuses]);
+
+  useEffect(() => {
+    if (data?.snapshot?.fixed_expense !== undefined) {
+      setFixedExpenseInput(data.snapshot.fixed_expense);
+    }
+  }, [data?.snapshot?.fixed_expense]);
 
   const fetchReport = async () => {
     setLoading(true);
