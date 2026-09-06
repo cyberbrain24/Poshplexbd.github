@@ -163,6 +163,25 @@ def list_products(
     limit: int = 10
 ):
     """List products with advanced filtering, debounced search, and pagination."""
+    
+    # If is_active is not specified, default it to True for public storefront requests.
+    # Admin requests (which provide a Bearer token) will bypass this and see all products.
+    if is_active is None:
+        auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+        is_admin = False
+        if auth_header.startswith('Bearer '):
+            token = auth_header.split(' ')[1]
+            try:
+                from apps.core.api import decode_jwt_token
+                payload = decode_jwt_token(token)
+                if payload.get('type') == 'access':
+                    is_admin = True
+            except Exception:
+                pass
+        
+        if not is_admin:
+            is_active = True
+
     # Generate cache key based on query parameters
     from django.core.cache import cache
     
