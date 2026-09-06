@@ -17,7 +17,7 @@ export const RolesPage: React.FC = () => {
   const { data: canCreate } = useCan({ resource: "core", action: "create" });
   const { data: canDelete } = useCan({ resource: "core", action: "delete" });
 
-  const modules = ["core", "catalog", "orders", "crm", "finance", "marketing", "media", "music", "tasks"];
+  const modules = ["core", "catalog", "orders", "crm", "finance", "marketing", "media", "music", "tasks", "report"];
 
   const fetchRoles = async () => {
     setLoading(true);
