@@ -1139,7 +1139,7 @@ export const Orders: React.FC = () => {
           </div>
         ) : null}
       >
-        <div style={{ display: 'flex', height: '100%', width: '100vw', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', height: '100%', width: isAddingProduct ? '100vw' : '100%', overflow: 'hidden' }}>
           {isAddingProduct && (
             <div style={{ flex: 1, background: '#141414', color: '#fff', display: 'flex', flexDirection: 'column', height: '100%', borderRight: '1px solid #333' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid #333', background: '#1f1f1f' }}>
