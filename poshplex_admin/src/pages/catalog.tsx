@@ -105,10 +105,7 @@ export const Catalog: React.FC = () => {
 
   // Variant Builder
   const [productType, setProductType] = useState<"simple" | "variable">("simple");
-  const [variantBuilderOptions, setVariantBuilderOptions] = useState<Record<string, string[]>>({
-    color: [],
-    size: []
-  });
+  const [variantBuilderOptions, setVariantBuilderOptions] = useState<Record<string, string[]>>({});
   const [variantsList, setVariantsList] = useState<any[]>([]);
   const [bulkPurchasePrice, setBulkPurchasePrice] = useState<number | null>(null);
   const [bulkSellingPrice, setBulkSellingPrice] = useState<number | null>(null);
@@ -386,6 +383,7 @@ export const Catalog: React.FC = () => {
   const openEditModal = (product: any) => {
     setEditingProduct(product);
     setProductType(product.product_type);
+    setVariantBuilderOptions({});
     
     // Set variant values list
     setVariantsList(product.variants || []);
@@ -458,6 +456,7 @@ export const Catalog: React.FC = () => {
     setVariantsList([]);
     setFileList([]);
     setMainImageUid(null);
+    setVariantBuilderOptions({});
     productForm.resetFields();
     productForm.setFieldsValue({ is_active: true, is_featured: false, product_type: "simple", image_filenames: "" });
     setIsProductModalOpen(true);
@@ -597,55 +596,63 @@ export const Catalog: React.FC = () => {
 
   // Variant generator builder helper
   const handleBulkGenerateVariants = () => {
-    const colors = variantBuilderOptions.color;
-    const sizes = variantBuilderOptions.size;
-    if (colors.length === 0 && sizes.length === 0) {
-      message.warning("Select color or size options first.");
+    const activeOptions = Object.entries(variantBuilderOptions).filter(([k, v]) => v && v.length > 0);
+    
+    if (activeOptions.length === 0) {
+      message.warning("Select at least one option first.");
       return;
     }
     
+    // Generate Cartesian product
+    const cartesian = (arrays: any[]) => arrays.reduce((a, b) => a.flatMap((d: any) => b.map((e: any) => [d, e].flat())));
+    
+    const optionArrays = activeOptions.map(([code, values]) => values.map(v => ({ code, val: v })));
+    
+    let combinations: any[] = [];
+    if (optionArrays.length === 1) {
+       combinations = optionArrays[0].map(item => [item]);
+    } else {
+       combinations = cartesian(optionArrays);
+    }
+    
     const newVariants: any[] = [];
-    const colorVals = colors.length > 0 ? colors : [""];
-    const sizeVals = sizes.length > 0 ? sizes : [""];
-
-    colorVals.forEach((color) => {
-      sizeVals.forEach((size) => {
-        const attrs: any = {};
-        const parts: string[] = [];
-        if (color) {
-          attrs["color"] = color;
-          parts.push(color.toUpperCase());
-        }
-        if (size) {
-          attrs["size"] = size;
-          parts.push(size.toUpperCase());
-        }
-        
-        let baseSku = productForm.getFieldValue("sku");
-        if (!baseSku) {
-          const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-          const namePrefix = (productForm.getFieldValue("name") || "PROD").substring(0, 6).toUpperCase().replace(/[^A-Z0-9]/g, "");
-          baseSku = `${namePrefix}-${randomSuffix}`;
-          productForm.setFieldsValue({ sku: baseSku });
-        }
-        
-        const genSku = `${baseSku}-${parts.join("-")}`;
-        
-        // Prevent duplicate mapping combo
-        const exists = variantsList.some(v => 
-          Object.entries(attrs).every(([k, val]) => v.attributes[k] === val)
-        );
-        
-        if (!exists) {
-          newVariants.push({
-            sku: genSku,
-            purchase_price: 0,
-            selling_price: productForm.getFieldValue("base_price") || 0,
-            is_active: true,
-            attributes: attrs
-          });
-        }
+    
+    combinations.forEach((combo) => {
+      const attrs: any = {};
+      const parts: string[] = [];
+      
+      combo.forEach((item: any) => {
+         attrs[item.code] = item.val;
+         parts.push(String(item.val).toUpperCase());
       });
+      
+      let baseSku = productForm.getFieldValue("sku");
+      if (!baseSku) {
+        const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+        const namePrefix = (productForm.getFieldValue("name") || "PROD").substring(0, 6).toUpperCase().replace(/[^A-Z0-9]/g, "");
+        baseSku = `${namePrefix}-${randomSuffix}`;
+        productForm.setFieldsValue({ sku: baseSku });
+      }
+      
+      const genSku = `${baseSku}-${parts.join("-")}`;
+      
+      // Prevent duplicate mapping combo
+      const exists = variantsList.some(v => {
+        const vKeys = Object.keys(v.attributes);
+        const aKeys = Object.keys(attrs);
+        if (vKeys.length !== aKeys.length) return false;
+        return aKeys.every(k => v.attributes[k] === attrs[k]);
+      });
+      
+      if (!exists) {
+        newVariants.push({
+          sku: genSku,
+          purchase_price: 0,
+          selling_price: productForm.getFieldValue("base_price") || 0,
+          is_active: true,
+          attributes: attrs
+        });
+      }
     });
 
     setVariantsList([...variantsList, ...newVariants]);
@@ -671,7 +678,19 @@ export const Catalog: React.FC = () => {
       attributeForm.resetFields();
       loadMetadata();
     } catch (err: any) {
-      message.error(err.response?.data?.message || "Failed to save attribute.");
+      const data = err.response?.data;
+      let errMsg = "Failed to save attribute.";
+      if (data) {
+        if (data.message) errMsg = data.message;
+        else if (Array.isArray(data.detail)) {
+          errMsg = data.detail.map((d: any) => `${d.loc.join('.')}: ${d.msg}`).join(', ');
+        } else if (typeof data.detail === 'string') {
+          errMsg = data.detail;
+        } else {
+          errMsg = JSON.stringify(data);
+        }
+      }
+      message.error(errMsg);
     }
   };
 
@@ -2002,35 +2021,23 @@ export const Catalog: React.FC = () => {
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                   <Row gutter={16} align="bottom">
-                    <Col span={8}>
-                      <Form.Item label="Option Colors (Select or Type)">
-                        <Select
-                          mode="tags"
-                          placeholder="e.g. Black, White"
-                          onChange={(val) => setVariantBuilderOptions({ ...variantBuilderOptions, color: val })}
-                          value={variantBuilderOptions.color}
-                        >
-                          {colorAttr?.choices?.map((c: string) => (
-                            <Select.Option key={c} value={c}>{c}</Select.Option>
-                          ))}
-                        </Select>
-                      </Form.Item>
-                    </Col>
-                    <Col span={8}>
-                      <Form.Item label="Option Sizes (Select or Type)">
-                        <Select
-                          mode="tags"
-                          placeholder="e.g. S, M, L, XL"
-                          onChange={(val) => setVariantBuilderOptions({ ...variantBuilderOptions, size: val })}
-                          value={variantBuilderOptions.size}
-                        >
-                          {sizeAttr?.choices?.map((c: string) => (
-                            <Select.Option key={c} value={c}>{c}</Select.Option>
-                          ))}
-                        </Select>
-                      </Form.Item>
-                    </Col>
-                    <Col span={8}>
+                    {attributes.map((attr: any) => (
+                      <Col span={8} key={attr.code}>
+                        <Form.Item label={`Option ${attr.name} (Select or Type)`}>
+                          <Select
+                            mode="tags"
+                            placeholder={`e.g. Select ${attr.name}`}
+                            onChange={(val) => setVariantBuilderOptions({ ...variantBuilderOptions, [attr.code]: val })}
+                            value={variantBuilderOptions[attr.code] || []}
+                          >
+                            {attr.choices?.map((c: string) => (
+                              <Select.Option key={c} value={c}>{c}</Select.Option>
+                            ))}
+                          </Select>
+                        </Form.Item>
+                      </Col>
+                    ))}
+                    <Col span={24} style={{ marginTop: 16 }}>
                       <Button type="primary" block onClick={handleBulkGenerateVariants} style={{ height: 38, borderRadius: 0 }}>
                         Auto-Generate Combinations
                       </Button>

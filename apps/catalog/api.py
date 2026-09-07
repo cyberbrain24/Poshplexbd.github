@@ -791,6 +791,33 @@ def create_attribute(request, data: ProductAttributeCreateSchema):
     )
     return attr
 
+@router.put("/attributes/{attribute_id}", response=ProductAttributeSchema, auth=BearerAuth())
+def update_attribute(request, attribute_id: int, data: ProductAttributeCreateSchema):
+    """Update an existing product attribute (Admin only)."""
+    enforce_permission(request, "catalog", "edit_catalog")
+    attr = get_object_or_404(ProductAttribute, id=attribute_id)
+    if ProductAttribute.objects.filter(code=data.code).exclude(id=attribute_id).exists():
+        raise HttpError(400, f"Attribute with code '{data.code}' already exists.")
+        
+    attr.name = data.name
+    attr.code = data.code
+    attr.type = data.type
+    attr.choices = data.choices or []
+    attr.listing_order = data.listing_order
+    attr.save()
+    return attr
+
+@router.delete("/attributes/{attribute_id}", auth=BearerAuth())
+def delete_attribute(request, attribute_id: int):
+    """Delete a product attribute (Admin only)."""
+    enforce_permission(request, "catalog", "edit_catalog")
+    attr = get_object_or_404(ProductAttribute, id=attribute_id)
+    try:
+        attr.delete()
+        return {"success": True}
+    except ValidationError as ve:
+        raise HttpError(400, ve.messages[0] if hasattr(ve, 'messages') else str(ve))
+
 @router.get("/attributes", response=List[ProductAttributeSchema])
 def list_attributes(request):
     """List all custom attributes configurations."""
