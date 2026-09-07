@@ -41,11 +41,13 @@ type AccordionSection = "description" | "sizeGuide" | "care" | "reviews";
 export default function ProductDetailClient({ 
   product, 
   initialReviews = [], 
-  initialRelatedProducts = [] 
+  initialRelatedProducts = [],
+  initialAttributes = []
 }: { 
   product: any, 
   initialReviews?: any[], 
-  initialRelatedProducts?: any[] 
+  initialRelatedProducts?: any[],
+  initialAttributes?: any[]
 }) {
   const router = useRouter();
   const { addToCart } = useCart();
@@ -437,7 +439,7 @@ export default function ProductDetailClient({
 
           <div className="product-divider" style={{ borderTop: "1px solid #eee", paddingTop: 20, marginBottom: 20 }} />
 
-          {/* ── Color & Size selectors side-by-side ── */}
+          {/* ── Dynamic Attribute selectors side-by-side ── */}
           {Object.keys(attributeGroups).length > 0 && (
             <div className="product-selectors-container">
               {Object.entries(attributeGroups)
@@ -449,10 +451,13 @@ export default function ProductDetailClient({
                 })
                 .map(([key, valueSet]) => {
                   const isColor = key.toLowerCase() === "color" || key.toLowerCase() === "colour";
+                  const attrDef = initialAttributes.find((a: any) => a.code === key);
+                  const displayLabel = attrDef ? attrDef.name : (key.charAt(0).toUpperCase() + key.slice(1));
+                  
                   return (
                     <div key={key}>
-                      <p style={{ fontSize: 12, fontWeight: 500, color: "#2f2f2f", marginBottom: 10, letterSpacing: "0.2px" }}>
-                        Choose {key.charAt(0).toUpperCase() + key.slice(1)}
+                      <p style={{ fontSize: 12, fontWeight: 500, color: "#2f2f2f", marginBottom: 10, letterSpacing: "0.2px", textTransform: "uppercase" }}>
+                        Choose {displayLabel}
                       </p>
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }} className="selectors-flex">
                         {Array.from(valueSet).map((val) => {
@@ -753,10 +758,10 @@ export default function ProductDetailClient({
           padding: 0 40px 80px;
         }
         .product-selectors-container {
-          display: flex;
-          gap: 32px;
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 24px 32px;
           margin-bottom: 24px;
-          flex-wrap: wrap;
         }
         .product-action-buttons-wrapper {
           display: flex;

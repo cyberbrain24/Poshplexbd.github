@@ -48,6 +48,19 @@ async function getRelatedProducts(product: any) {
   return [];
 }
 
+async function getAttributes() {
+  try {
+    const API_URL = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const res = await fetch(`${API_URL}/api/v1/catalog/attributes`, { next: { revalidate: 60 } });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.error("Failed to fetch attributes:", err);
+  }
+  return [];
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const product = await getProduct(params.slug);
   if (!product) return { title: "Product Not Found | Poshplex Streetwear" };
@@ -84,10 +97,11 @@ export default async function ProductPage({ params }: Props) {
   }
 
   // Fetch reviews and related products in parallel on the server
-  const [reviews, relatedProducts] = await Promise.all([
+  const [reviews, relatedProducts, attributes] = await Promise.all([
     getReviews(params.slug),
-    getRelatedProducts(product)
+    getRelatedProducts(product),
+    getAttributes()
   ]);
 
-  return <ProductDetailClient product={product} initialReviews={reviews} initialRelatedProducts={relatedProducts} />;
+  return <ProductDetailClient product={product} initialReviews={reviews} initialRelatedProducts={relatedProducts} initialAttributes={attributes} />;
 }
