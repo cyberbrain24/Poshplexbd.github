@@ -1450,10 +1450,17 @@ export const Orders: React.FC = () => {
                       ? Object.entries(rec.attributes).map(([k, v]) => `${k}: ${v}`).join(', ') 
                       : '';
                     return (
-                      <div>
-                        <div style={{ fontWeight: 500 }}>{rec.product_name || 'Unknown Product'}</div>
-                        <div style={{ fontSize: '0.85em', color: '#666' }}>{text}</div>
-                        {attrs && <div style={{ fontSize: '0.85em', color: '#888' }}>( {attrs} )</div>}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        {rec.image && (
+                          <div style={{ width: 44, height: 44, borderRadius: 4, overflow: 'hidden', flexShrink: 0, border: '1px solid rgba(255,255,255,0.1)' }}>
+                            <img src={rec.image} alt={rec.product_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          </div>
+                        )}
+                        <div>
+                          <div style={{ fontWeight: 500 }}>{rec.product_name || 'Unknown Product'}</div>
+                          <div style={{ fontSize: '0.85em', color: '#666' }}>{text}</div>
+                          {attrs && <div style={{ fontSize: '0.85em', color: '#888' }}>( {attrs} )</div>}
+                        </div>
                       </div>
                     );
                   }
