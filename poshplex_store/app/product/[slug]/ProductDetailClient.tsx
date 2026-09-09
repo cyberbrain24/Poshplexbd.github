@@ -423,123 +423,131 @@ export default function ProductDetailClient({
             </p>
           )}
 
-          {/* Short description */}
-          {product.short_description && (
-            <p style={{ fontSize: 13, color: "#666", marginBottom: 20, lineHeight: 1.6, fontStyle: "italic" }}>
-              {product.short_description}
-            </p>
-          )}
+          {/* Short description moved below */}
 
           <div className="product-divider" style={{ borderTop: "1px solid #eee", paddingTop: 20, marginBottom: 20 }} />
 
-          {/* ── Dynamic Attribute selectors side-by-side ── */}
+          {/* ── Dynamic Attribute selectors grouped in boxes ── */}
           {Object.keys(attributeGroups).length > 0 && (
-            <div className="product-selectors-grid">
-              {Object.entries(attributeGroups)
-                .sort(([a], [b]) => {
+            <div className="product-selectors-container" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {(() => {
+                const sorted = Object.entries(attributeGroups).sort(([a], [b]) => {
                   const wA = getAttributeWeight(a);
                   const wB = getAttributeWeight(b);
                   if (wA !== wB) return wA - wB;
                   return a.localeCompare(b);
-                })
-                .map(([key, valueSet]) => {
-                  const attrDef = initialAttributes.find((a: any) => a.code === key);
-                  const displayStyle = attrDef?.display_style || "text";
-                  const choiceMetadata = attrDef?.choice_metadata || {};
-                  const displayLabel = attrDef ? attrDef.name : (key.charAt(0).toUpperCase() + key.slice(1));
-                  
-                  return (
-                    <div key={key} className="selector-group">
-                      <p className="selector-label">
-                        {displayLabel}
-                      </p>
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }} className="selectors-flex">
-                        {Array.from(valueSet).map((val) => {
-                          const isSelected = selectedAttributes[key] === val;
-                          
-                          if (displayStyle === "color") {
-                            const hexColor = choiceMetadata[val] || toHex(val);
-                            return (
-                              <button
-                                key={val}
-                                title={val}
-                                onClick={() => selectAttr(key, val)}
-                                style={{
-                                  width: 24, height: 24, borderRadius: "50%",
-                                  background: hexColor,
-                                  border: "1px solid rgba(0,0,0,0.2)",
-                                  outline: isSelected ? "2px solid #111" : "none",
-                                  outlineOffset: 2,
-                                  cursor: "pointer",
-                                  transition: "all 0.15s",
-                                }}
-                              />
-                            );
-                          }
-                          
-                          if (displayStyle === "image") {
-                            const imgUrl = choiceMetadata[val];
-                            return (
-                              <button
-                                key={val}
-                                title={val}
-                                onClick={() => selectAttr(key, val)}
-                                style={{
-                                  width: 40, height: 40, borderRadius: 2,
-                                  backgroundImage: imgUrl ? `url(${imgUrl})` : 'none',
-                                  backgroundColor: imgUrl ? 'transparent' : '#eee',
-                                  backgroundSize: 'cover',
-                                  backgroundPosition: 'center',
-                                  border: isSelected ? "2px solid #111" : "1px solid #ddd",
-                                  cursor: "pointer",
-                                  transition: "border 0.15s",
-                                }}
-                              />
-                            );
-                          }
+                });
 
-                          return (
-                            <button
-                              key={val}
-                              onClick={() => selectAttr(key, val)}
-                              style={{
-                                padding: "4px 10px",
-                                border: isSelected ? "1.5px solid #111" : "1.5px solid #ddd",
-                                background: isSelected ? "#111" : "#fff",
-                                color: isSelected ? "#fff" : "#111",
-                                fontSize: 12, fontWeight: 500,
-                                cursor: "pointer", borderRadius: 2,
-                                transition: "all 0.15s",
-                                minWidth: 32,
-                              }}
-                            >
-                              {val}
-                            </button>
-                          );
-                        })}
-                      </div>
+                const chunks = [];
+                for (let i = 0; i < sorted.length; i += 2) {
+                  chunks.push(sorted.slice(i, i + 2));
+                }
+
+                return chunks.map((chunk, chunkIdx) => (
+                  <div key={chunkIdx} style={{ border: "1px solid #eaeaea", borderRadius: 6, padding: "16px 16px 4px 16px", background: "#fafafa" }}>
+                    <div className="product-selectors-grid">
+                      {chunk.map(([key, valueSet]) => {
+                        const attrDef = initialAttributes.find((a: any) => a.code === key);
+                        const displayStyle = attrDef?.display_style || "text";
+                        const choiceMetadata = attrDef?.choice_metadata || {};
+                        const displayLabel = attrDef ? attrDef.name : (key.charAt(0).toUpperCase() + key.slice(1));
+                        
+                        return (
+                          <div key={key} className="selector-group" style={{ marginBottom: 12 }}>
+                            <p className="selector-label">
+                              {displayLabel}
+                            </p>
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }} className="selectors-flex">
+                              {Array.from(valueSet).map((val) => {
+                                const isSelected = selectedAttributes[key] === val;
+                                
+                                if (displayStyle === "color") {
+                                  const hexColor = choiceMetadata[val] || toHex(val);
+                                  return (
+                                    <button
+                                      key={val}
+                                      title={val}
+                                      onClick={() => selectAttr(key, val)}
+                                      style={{
+                                        width: 24, height: 24, borderRadius: "50%",
+                                        background: hexColor,
+                                        border: "1px solid rgba(0,0,0,0.2)",
+                                        outline: isSelected ? "2px solid #111" : "none",
+                                        outlineOffset: 2,
+                                        cursor: "pointer",
+                                        transition: "all 0.15s",
+                                      }}
+                                    />
+                                  );
+                                }
+                                
+                                if (displayStyle === "image") {
+                                  const imgUrl = choiceMetadata[val];
+                                  return (
+                                    <button
+                                      key={val}
+                                      title={val}
+                                      onClick={() => selectAttr(key, val)}
+                                      style={{
+                                        width: 40, height: 40, borderRadius: 2,
+                                        backgroundImage: imgUrl ? `url(${imgUrl})` : 'none',
+                                        backgroundColor: imgUrl ? 'transparent' : '#eee',
+                                        backgroundSize: 'cover',
+                                        backgroundPosition: 'center',
+                                        border: isSelected ? "2px solid #111" : "1px solid #ddd",
+                                        cursor: "pointer",
+                                        transition: "border 0.15s",
+                                      }}
+                                    />
+                                  );
+                                }
+
+                                return (
+                                  <button
+                                    key={val}
+                                    onClick={() => selectAttr(key, val)}
+                                    style={{
+                                      padding: "4px 10px",
+                                      border: isSelected ? "1.5px solid #111" : "1.5px solid #ddd",
+                                      background: isSelected ? "#111" : "#fff",
+                                      color: isSelected ? "#fff" : "#111",
+                                      fontSize: 12, fontWeight: 500,
+                                      cursor: "pointer", borderRadius: 2,
+                                      transition: "all 0.15s",
+                                      minWidth: 32,
+                                    }}
+                                  >
+                                    {val}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
+                  </div>
+                ));
+              })()}
             </div>
           )}
 
           {/* Quantity stepper */}
           <div className="product-qty-container selector-group" style={{ marginBottom: 24, marginTop: 16 }}>
-            <p className="selector-label">Quantity</p>
-            <div style={{ display: "flex", alignItems: "center", border: "1px solid #ddd", borderRadius: 2, width: "fit-content" }}>
+            <p className="selector-label">QTY</p>
+            <div style={{ display: "flex", alignItems: "center", border: "1px solid #e5e5e5", borderRadius: 4, width: "fit-content", background: "#fff", overflow: "hidden" }}>
               <button
                 onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                style={{ width: 30, height: 30, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#111" }}
+                style={{ width: 28, height: 28, background: "#fafafa", border: "none", borderRight: "1px solid #e5e5e5", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#555" }}
               >
-                <Minus size={12} />
+                <Minus size={11} />
               </button>
-              <span style={{ width: 30, textAlign: "center", fontSize: 13, fontWeight: 500, color: "#111" }}>{quantity}</span>
+              <span style={{ width: 32, textAlign: "center", fontSize: 12, fontWeight: 600, color: "#111" }}>{quantity}</span>
               <button
                 onClick={() => setQuantity(q => q + 1)}
-                style={{ width: 30, height: 30, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#111" }}
+                style={{ width: 28, height: 28, background: "#fafafa", border: "none", borderLeft: "1px solid #e5e5e5", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#555" }}
               >
-                <Plus size={12} />
+                <Plus size={11} />
               </button>
             </div>
           </div>
@@ -620,6 +628,13 @@ export default function ProductDetailClient({
           )}
 
           <div style={{ borderTop: "1px solid #eee", marginTop: 8 }} />
+
+          {/* Short description */}
+          {product.short_description && (
+            <p style={{ fontSize: 13, color: "#666", marginBottom: 16, lineHeight: 1.6, fontStyle: "italic" }}>
+              {product.short_description}
+            </p>
+          )}
 
           {/* ── Accordions ── */}
           {([
@@ -911,10 +926,15 @@ export default function ProductDetailClient({
             right: 0 !important;
             background: #fff !important;
             border-top: 1px solid #eee !important;
-            padding: 10px 16px !important;
+            padding: 8px 16px !important;
             margin-bottom: 0 !important;
             z-index: 90 !important;
             box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08) !important;
+          }
+          .product-action-buttons-wrapper button {
+            height: 40px !important;
+            font-size: 11px !important;
+            letter-spacing: 0.5px !important;
           }
         }
 

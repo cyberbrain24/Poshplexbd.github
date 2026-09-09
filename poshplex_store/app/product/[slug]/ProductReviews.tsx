@@ -127,13 +127,13 @@ export default function ProductReviews({
         <button
           onClick={() => setShowReviewForm(f => !f)}
           style={{
-            width: "100%", padding: "13px 0", background: "#6b7280", color: "#fff",
-            border: "none", fontSize: 13, fontWeight: 500, cursor: "pointer",
+            width: "100%", padding: "10px 0", background: "#f0f0f3", color: "#2f2f2f",
+            border: "1px solid #ddd", fontSize: 12, fontWeight: 600, cursor: "pointer",
             marginBottom: 16, borderRadius: 2, letterSpacing: "0.3px",
-            transition: "background 0.2s",
+            transition: "background 0.2s", textTransform: "uppercase"
           }}
           onMouseEnter={e => (e.currentTarget.style.background = "#e4e4e4")}
-          onMouseLeave={e => (e.currentTarget.style.background = "#f0f0f0")}
+          onMouseLeave={e => (e.currentTarget.style.background = "#f0f0f3")}
         >
           {hasReviewed ? "Edit your pending review" : "Review product"}
         </button>
