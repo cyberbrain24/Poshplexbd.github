@@ -54,14 +54,18 @@ class ProductAttributeSchema(Schema):
     name: str
     code: str
     type: str
+    display_style: str
     choices: List[str]
+    choice_metadata: Dict[str, Any]
     listing_order: int
 
 class ProductAttributeCreateSchema(Schema):
     name: str
     code: str
     type: str
+    display_style: Optional[str] = "text"
     choices: Optional[List[str]] = []
+    choice_metadata: Optional[Dict[str, Any]] = {}
     listing_order: int = 0
 
 # Variant schemas
@@ -786,7 +790,9 @@ def create_attribute(request, data: ProductAttributeCreateSchema):
         name=data.name,
         code=data.code,
         type=data.type,
+        display_style=data.display_style or 'text',
         choices=data.choices or [],
+        choice_metadata=data.choice_metadata or {},
         listing_order=data.listing_order
     )
     return attr
@@ -802,7 +808,9 @@ def update_attribute(request, attribute_id: int, data: ProductAttributeCreateSch
     attr.name = data.name
     attr.code = data.code
     attr.type = data.type
+    attr.display_style = data.display_style or 'text'
     attr.choices = data.choices or []
+    attr.choice_metadata = data.choice_metadata or {}
     attr.listing_order = data.listing_order
     attr.save()
     return attr
@@ -987,7 +995,9 @@ def update_attribute(request, attr_id: int, data: ProductAttributeCreateSchema):
     attr.name = data.name
     attr.code = data.code
     attr.type = data.type
+    attr.display_style = data.display_style or 'text'
     attr.choices = data.choices or []
+    attr.choice_metadata = data.choice_metadata or {}
     attr.listing_order = data.listing_order
     attr.save()
     return {"success": True}

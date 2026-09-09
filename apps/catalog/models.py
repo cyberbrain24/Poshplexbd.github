@@ -122,7 +122,14 @@ class ProductAttribute(models.Model):
     name = models.CharField(max_length=100)
     code = models.CharField(max_length=50, unique=True, help_text="e.g. 'color' or 'fabric_weight'")
     type = models.CharField(max_length=20, choices=TYPE_CHOICES)
+    display_style = models.CharField(
+        max_length=20, 
+        default='text', 
+        choices=[('text', 'Text'), ('color', 'Color Swatch'), ('image', 'Image Swatch')],
+        help_text="How this attribute should be displayed on the frontend"
+    )
     choices = models.JSONField(default=list, blank=True, help_text="List of choices if type is 'select'")
+    choice_metadata = models.JSONField(default=dict, blank=True, help_text="Metadata for choices, e.g., mapping choice 'Red' to '#FF0000' or an image URL")
     listing_order = models.IntegerField(default=0, help_text="Used for manual display ordering (lower numbers appear first).")
 
     class Meta:

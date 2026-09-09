@@ -398,14 +398,7 @@ export default function ProductDetailClient({
           }}
         >
 
-          {/* Category breadcrumb — small blue text */}
-          {(product.category?.name || product.categories?.[0]?.name) && (
-            <p style={{ fontSize: 13, color: "#2563eb", marginBottom: 6, fontWeight: 400 }}>
-              <Link href={`/catalog/${encodeURIComponent(product.category?.slug || product.categories?.[0]?.slug || "")}`} style={{ color: "#2563eb", textDecoration: "none" }}>
-                {product.category?.name || product.categories?.[0]?.name}
-              </Link>
-            </p>
-          )}
+          {/* Category breadcrumb removed as requested */}
 
           {/* Product name + heart on same row */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
@@ -441,7 +434,7 @@ export default function ProductDetailClient({
 
           {/* ── Dynamic Attribute selectors side-by-side ── */}
           {Object.keys(attributeGroups).length > 0 && (
-            <div className="product-selectors-container">
+            <div className="product-selectors-grid">
               {Object.entries(attributeGroups)
                 .sort(([a], [b]) => {
                   const wA = getAttributeWeight(a);
@@ -450,49 +443,74 @@ export default function ProductDetailClient({
                   return a.localeCompare(b);
                 })
                 .map(([key, valueSet]) => {
-                  const isColor = key.toLowerCase() === "color" || key.toLowerCase() === "colour";
                   const attrDef = initialAttributes.find((a: any) => a.code === key);
+                  const displayStyle = attrDef?.display_style || "text";
+                  const choiceMetadata = attrDef?.choice_metadata || {};
                   const displayLabel = attrDef ? attrDef.name : (key.charAt(0).toUpperCase() + key.slice(1));
                   
                   return (
-                    <div key={key}>
-                      <p style={{ fontSize: 12, fontWeight: 500, color: "#2f2f2f", marginBottom: 10, letterSpacing: "0.2px", textTransform: "uppercase" }}>
-                        Choose {displayLabel}
+                    <div key={key} className="selector-group">
+                      <p className="selector-label">
+                        {displayLabel}
                       </p>
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }} className="selectors-flex">
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }} className="selectors-flex">
                         {Array.from(valueSet).map((val) => {
                           const isSelected = selectedAttributes[key] === val;
-                          if (isColor) {
+                          
+                          if (displayStyle === "color") {
+                            const hexColor = choiceMetadata[val] || toHex(val);
                             return (
                               <button
                                 key={val}
                                 title={val}
                                 onClick={() => selectAttr(key, val)}
                                 style={{
-                                  width: 28, height: 28, borderRadius: "50%",
-                                  background: toHex(val),
+                                  width: 24, height: 24, borderRadius: "50%",
+                                  background: hexColor,
                                   border: "1px solid rgba(0,0,0,0.2)",
                                   outline: isSelected ? "2px solid #111" : "none",
                                   outlineOffset: 2,
                                   cursor: "pointer",
-                                  transition: "outline 0.15s",
+                                  transition: "all 0.15s",
                                 }}
                               />
                             );
                           }
+                          
+                          if (displayStyle === "image") {
+                            const imgUrl = choiceMetadata[val];
+                            return (
+                              <button
+                                key={val}
+                                title={val}
+                                onClick={() => selectAttr(key, val)}
+                                style={{
+                                  width: 40, height: 40, borderRadius: 2,
+                                  backgroundImage: imgUrl ? `url(${imgUrl})` : 'none',
+                                  backgroundColor: imgUrl ? 'transparent' : '#eee',
+                                  backgroundSize: 'cover',
+                                  backgroundPosition: 'center',
+                                  border: isSelected ? "2px solid #111" : "1px solid #ddd",
+                                  cursor: "pointer",
+                                  transition: "border 0.15s",
+                                }}
+                              />
+                            );
+                          }
+
                           return (
                             <button
                               key={val}
                               onClick={() => selectAttr(key, val)}
                               style={{
-                                padding: "6px 14px",
+                                padding: "4px 10px",
                                 border: isSelected ? "1.5px solid #111" : "1.5px solid #ddd",
                                 background: isSelected ? "#111" : "#fff",
                                 color: isSelected ? "#fff" : "#111",
-                                fontSize: 13, fontWeight: 400,
+                                fontSize: 12, fontWeight: 500,
                                 cursor: "pointer", borderRadius: 2,
                                 transition: "all 0.15s",
-                                minWidth: 38,
+                                minWidth: 32,
                               }}
                             >
                               {val}
@@ -507,21 +525,21 @@ export default function ProductDetailClient({
           )}
 
           {/* Quantity stepper */}
-          <div className="product-qty-container" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-            <span style={{ fontSize: 13, color: "#111", fontWeight: 400, minWidth: 60 }}>Quantity</span>
-            <div style={{ display: "flex", alignItems: "center", border: "1px solid #ddd", borderRadius: 2 }}>
+          <div className="product-qty-container selector-group" style={{ marginBottom: 24, marginTop: 16 }}>
+            <p className="selector-label">Quantity</p>
+            <div style={{ display: "flex", alignItems: "center", border: "1px solid #ddd", borderRadius: 2, width: "fit-content" }}>
               <button
                 onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                style={{ width: 36, height: 36, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#111" }}
+                style={{ width: 30, height: 30, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#111" }}
               >
-                <Minus size={14} />
+                <Minus size={12} />
               </button>
-              <span style={{ width: 36, textAlign: "center", fontSize: 14, fontWeight: 500, color: "#111" }}>{quantity}</span>
+              <span style={{ width: 30, textAlign: "center", fontSize: 13, fontWeight: 500, color: "#111" }}>{quantity}</span>
               <button
                 onClick={() => setQuantity(q => q + 1)}
-                style={{ width: 36, height: 36, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#111" }}
+                style={{ width: 30, height: 30, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#111" }}
               >
-                <Plus size={14} />
+                <Plus size={12} />
               </button>
             </div>
           </div>

@@ -6,7 +6,7 @@ import {
 import {
   PlusOutlined, FolderOpenOutlined, TagsOutlined, UploadOutlined, BuildOutlined,
   EditOutlined, DeleteOutlined, CopyOutlined, EyeOutlined, CheckCircleOutlined, CloseCircleOutlined,
-  DownloadOutlined
+  DownloadOutlined, MinusCircleOutlined
 } from "@ant-design/icons";
 import axios from "axios";
 import type { UploadFile } from "antd/es/upload/interface";
@@ -240,9 +240,17 @@ export const Catalog: React.FC = () => {
 
   const openEditAttribute = (attr: any) => {
     setEditingAttribute(attr);
+    let choices_list: any[] = [];
+    if (attr.choices && Array.isArray(attr.choices)) {
+      choices_list = attr.choices.map((c: string) => ({
+        value: c,
+        meta: attr.choice_metadata ? attr.choice_metadata[c] || "" : ""
+      }));
+    }
     attributeForm.setFieldsValue({
       ...attr,
-      choices: attr.choices ? attr.choices.join(",") : ""
+      choices: attr.choices ? attr.choices.join(",") : "",
+      choices_list
     });
     setIsAttributeModalOpen(true);
   };
@@ -663,11 +671,32 @@ export const Catalog: React.FC = () => {
   const handleAttributeSubmit = async (values: any) => {
     try {
       const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      let finalChoices: string[] = [];
+      let finalChoiceMetadata: Record<string, string> = {};
+      
+      if (values.choices_list && Array.isArray(values.choices_list)) {
+        values.choices_list.forEach((c: any) => {
+          if (c && c.value) {
+            const valStr = c.value.trim();
+            finalChoices.push(valStr);
+            if (c.meta) {
+               finalChoiceMetadata[valStr] = c.meta.trim();
+            }
+          }
+        });
+      } else if (values.choices && typeof values.choices === 'string') {
+        finalChoices = values.choices.split(",").map((s: string) => s.trim()).filter((s: string) => s);
+      } else if (values.choices && Array.isArray(values.choices)) {
+        finalChoices = values.choices;
+      }
+
       const payload = {
         ...values,
         code: values.code.toLowerCase().trim(),
-        choices: typeof values.choices === 'string' ? values.choices.split(",") : values.choices
+        choices: finalChoices,
+        choice_metadata: finalChoiceMetadata
       };
+      delete payload.choices_list;
       if (editingAttribute) {
         await axios.put(`${API_URL}/attributes/${editingAttribute.id}`, payload, { headers: { Authorization: `Bearer ${token}` } });
       } else {
@@ -1370,7 +1399,7 @@ export const Catalog: React.FC = () => {
               columns={[
                 { title: "Label", dataIndex: "name", key: "name" },
                 { title: "Code", dataIndex: "code", key: "code", render: (code: string) => <code>{code}</code> },
-                { title: "Type", dataIndex: "type", key: "type", render: (t) => <Tag color="blue">{t?.toUpperCase()}</Tag> },
+                { title: "Type", dataIndex: "type", key: "type", render: (t, r: any) => <Space><Tag color="blue">{t?.toUpperCase()}</Tag>{r.display_style && r.display_style !== 'text' && <Tag color="cyan">{r.display_style.toUpperCase()}</Tag>}</Space> },
                 { title: "Choices", dataIndex: "choices", key: "choices", render: (choices: string[]) => choices?.join(", ") || "-" },
                 {
                   title: "Actions",
@@ -2309,8 +2338,76 @@ export const Catalog: React.FC = () => {
               <Select.Option value="select">Dropdown List (Choices)</Select.Option>
             </Select>
           </Form.Item>
-          <Form.Item name="choices" label="Dropdown Choices (Comma separated list)">
-            <Input placeholder="e.g. 100% Cotton, 80/20 Cotton Poly" style={{ borderRadius: 0 }} />
+          
+          <Form.Item noStyle shouldUpdate={(prevValues, currentValues) => prevValues.type !== currentValues.type}>
+            {({ getFieldValue }) => {
+              const type = getFieldValue('type');
+              if (type !== 'select') return null;
+              
+              return (
+                <Form.Item name="display_style" label="Display Style" rules={[{ required: true }]} initialValue="text">
+                  <Select placeholder="Select display style on storefront">
+                    <Select.Option value="text">Text Button</Select.Option>
+                    <Select.Option value="color">Color Swatch</Select.Option>
+                    <Select.Option value="image">Image Swatch</Select.Option>
+                  </Select>
+                </Form.Item>
+              );
+            }}
+          </Form.Item>
+
+          <Form.Item noStyle shouldUpdate={(prevValues, currentValues) => prevValues.type !== currentValues.type || prevValues.display_style !== currentValues.display_style}>
+            {({ getFieldValue }) => {
+              const type = getFieldValue('type');
+              const display_style = getFieldValue('display_style') || 'text';
+              if (type !== 'select') return null;
+
+              if (display_style === 'color' || display_style === 'image') {
+                return (
+                  <div style={{ marginBottom: 24 }}>
+                    <div style={{ marginBottom: 8 }}>Dynamic Swatches (Text and {display_style === 'color' ? 'Hex Code' : 'Image URL'})</div>
+                    <Form.List name="choices_list">
+                      {(fields, { add, remove }) => (
+                        <>
+                          {fields.map(({ key, name, ...restField }) => (
+                            <Space key={key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
+                              <Form.Item
+                                {...restField}
+                                name={[name, 'value']}
+                                rules={[{ required: true, message: 'Missing choice text' }]}
+                                style={{ marginBottom: 0 }}
+                              >
+                                <Input placeholder="Choice (e.g. Red)" />
+                              </Form.Item>
+                              <Form.Item
+                                {...restField}
+                                name={[name, 'meta']}
+                                rules={[{ required: true, message: `Missing ${display_style === 'color' ? 'Hex' : 'URL'}` }]}
+                                style={{ marginBottom: 0 }}
+                              >
+                                <Input placeholder={display_style === 'color' ? "#FF0000" : "https://..."} />
+                              </Form.Item>
+                              <MinusCircleOutlined onClick={() => remove(name)} style={{ color: 'red' }} />
+                            </Space>
+                          ))}
+                          <Form.Item style={{ marginTop: 8, marginBottom: 0 }}>
+                            <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                              Add Swatch Choice
+                            </Button>
+                          </Form.Item>
+                        </>
+                      )}
+                    </Form.List>
+                  </div>
+                );
+              }
+
+              return (
+                <Form.Item name="choices" label="Dropdown Choices (Comma separated list)">
+                  <Input placeholder="e.g. 100% Cotton, 80/20 Cotton Poly" style={{ borderRadius: 0 }} />
+                </Form.Item>
+              );
+            }}
           </Form.Item>
           <Form.Item name="listing_order" label="Listing Order" initialValue={0}>
             <InputNumber style={{ width: '100%', borderRadius: 0 }} />
