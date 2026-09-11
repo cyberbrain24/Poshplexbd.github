@@ -1952,6 +1952,7 @@ export const Catalog: React.FC = () => {
               <DndContext sensors={[sensor]} onDragEnd={onDragEnd}>
                 <SortableContext items={fileList.map((i) => i.uid)} strategy={horizontalListSortingStrategy}>
                   <Upload
+                    multiple={true}
                     listType="picture-card"
                     fileList={fileList}
                     beforeUpload={() => false}
