@@ -2057,7 +2057,17 @@ export const Catalog: React.FC = () => {
                           <Select
                             mode="tags"
                             placeholder={`e.g. Select ${attr.name}`}
-                            onChange={(val) => setVariantBuilderOptions({ ...variantBuilderOptions, [attr.code]: val })}
+                            onChange={(val) => {
+                              const sortedVal = [...val].sort((a, b) => {
+                                const idxA = attr.choices?.indexOf(a) ?? -1;
+                                const idxB = attr.choices?.indexOf(b) ?? -1;
+                                if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                                if (idxA !== -1) return -1;
+                                if (idxB !== -1) return 1;
+                                return String(a).localeCompare(String(b));
+                              });
+                              setVariantBuilderOptions({ ...variantBuilderOptions, [attr.code]: sortedVal });
+                            }}
                             value={variantBuilderOptions[attr.code] || []}
                           >
                             {attr.choices?.map((c: string) => (

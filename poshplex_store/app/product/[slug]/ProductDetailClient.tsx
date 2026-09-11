@@ -462,7 +462,15 @@ export default function ProductDetailClient({
                               {displayLabel}
                             </p>
                             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }} className="selectors-flex">
-                              {Array.from(valueSet).map((val) => {
+                              {Array.from(valueSet).sort((a, b) => {
+                                if (!attrDef || !attrDef.choices) return 0;
+                                const idxA = attrDef.choices.indexOf(a);
+                                const idxB = attrDef.choices.indexOf(b);
+                                if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                                if (idxA !== -1) return -1;
+                                if (idxB !== -1) return 1;
+                                return String(a).localeCompare(String(b));
+                              }).map((val) => {
                                 const isSelected = selectedAttributes[key] === val;
                                 
                                 if (displayStyle === "color") {
