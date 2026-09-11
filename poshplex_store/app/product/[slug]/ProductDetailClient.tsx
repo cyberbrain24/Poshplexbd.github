@@ -27,11 +27,15 @@ const COLOR_HEX: Record<string, string> = {
 const toHex = (name: string) =>
   COLOR_HEX[name.toLowerCase()] || "#555555";
 
-const getAttributeWeight = (k: string) => {
+const getAttributeWeight = (k: string, initialAttributes?: any[]) => {
+  const attr = initialAttributes?.find((a: any) => a.code === k);
+  if (attr && typeof attr.listing_order === 'number') {
+    return attr.listing_order;
+  }
   const lower = k.toLowerCase();
-  if (lower === 'color' || lower === 'colour') return 1;
-  if (lower === 'size') return 2;
-  return 3;
+  if (lower.includes('color') || lower.includes('colour')) return 990;
+  if (lower.includes('size')) return 991;
+  return 999;
 };
 
 /* ─── accordion ─────────────────────────────────────── */
@@ -432,8 +436,8 @@ export default function ProductDetailClient({
             <div className="product-selectors-container" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {(() => {
                 const sorted = Object.entries(attributeGroups).sort(([a], [b]) => {
-                  const wA = getAttributeWeight(a);
-                  const wB = getAttributeWeight(b);
+                  const wA = getAttributeWeight(a, initialAttributes);
+                  const wB = getAttributeWeight(b, initialAttributes);
                   if (wA !== wB) return wA - wB;
                   return a.localeCompare(b);
                 });
@@ -623,7 +627,7 @@ export default function ProductDetailClient({
           {/* Helper prompt */}
           {!allSelected && Object.keys(attributeGroups).length > 0 && (
             <p style={{ fontSize: 12, color: "#888", textAlign: "center", marginBottom: 16 }}>
-              Please select {Object.keys(attributeGroups).sort((a, b) => getAttributeWeight(a) - getAttributeWeight(b)).join(" and ")} to view purchase actions
+              Please select {Object.keys(attributeGroups).sort((a, b) => getAttributeWeight(a, initialAttributes) - getAttributeWeight(b, initialAttributes)).join(" and ")} to view purchase actions
             </p>
           )}
 

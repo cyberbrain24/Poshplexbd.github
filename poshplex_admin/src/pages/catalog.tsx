@@ -2196,9 +2196,12 @@ export const Catalog: React.FC = () => {
                           <Space>
                             {Object.entries(record.attributes)
                               .sort(([a], [b]) => {
-                                const wA = a.toLowerCase() === 'color' ? 1 : (a.toLowerCase() === 'size' ? 2 : 3);
-                                const wB = b.toLowerCase() === 'color' ? 1 : (b.toLowerCase() === 'size' ? 2 : 3);
-                                return wA - wB;
+                                const attrA = attributes.find(attr => attr.code === a);
+                                const attrB = attributes.find(attr => attr.code === b);
+                                const wA = attrA?.listing_order ?? 999;
+                                const wB = attrB?.listing_order ?? 999;
+                                if (wA !== wB) return wA - wB;
+                                return a.localeCompare(b);
                               })
                               .map(([k, v]) => (
                                 <Tag key={k} color="blue">{k.toUpperCase()}: {String(v)}</Tag>
