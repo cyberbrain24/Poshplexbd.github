@@ -692,27 +692,57 @@ export default function ProductDetailClient({
 
                     {/* Size Guide table */}
                     {key === "sizeGuide" && product.size_guide && (
-                      <div style={{ width: "100%", overflowX: "auto" }}>
-                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                          <thead>
-                            <tr>
-                              {product.size_guide.headers.map((h: string) => (
-                                <th key={h} style={{ borderBottom: "1px solid #eee", padding: "8px 0", textAlign: "left", fontWeight: 600, color: "#111", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                                  {h}
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {product.size_guide.rows.map((row: string[], idx: number) => (
-                              <tr key={idx} style={{ borderBottom: "1px solid #f5f5f5" }}>
-                                {row.map((col: string, ci: number) => (
-                                  <td key={ci} style={{ padding: "10px 0", color: "#444", fontSize: 13 }}>{col}</td>
+                      <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 32 }}>
+                        {(product.size_guide.tables && product.size_guide.tables.length > 0) ? (
+                          product.size_guide.tables.map((table: any, tIdx: number) => (
+                            <div key={tIdx} style={{ width: "100%", overflowX: "auto" }}>
+                              {table.name && <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, textTransform: "uppercase", color: "#111" }}>{table.name}</h4>}
+                              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                                <thead>
+                                  <tr>
+                                    {table.headers.map((h: string) => (
+                                      <th key={h} style={{ borderBottom: "1px solid #eee", padding: "8px 0", textAlign: "left", fontWeight: 600, color: "#111", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                                        {h}
+                                      </th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {table.rows.map((row: string[], idx: number) => (
+                                    <tr key={idx} style={{ borderBottom: "1px solid #f5f5f5" }}>
+                                      {row.map((col: string, ci: number) => (
+                                        <td key={ci} style={{ padding: "10px 0", color: "#444", fontSize: 13 }}>{col}</td>
+                                      ))}
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          ))
+                        ) : (
+                          <div style={{ width: "100%", overflowX: "auto" }}>
+                            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                              <thead>
+                                <tr>
+                                  {product.size_guide.headers.map((h: string) => (
+                                    <th key={h} style={{ borderBottom: "1px solid #eee", padding: "8px 0", textAlign: "left", fontWeight: 600, color: "#111", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                                      {h}
+                                    </th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {product.size_guide.rows.map((row: string[], idx: number) => (
+                                  <tr key={idx} style={{ borderBottom: "1px solid #f5f5f5" }}>
+                                    {row.map((col: string, ci: number) => (
+                                      <td key={ci} style={{ padding: "10px 0", color: "#444", fontSize: 13 }}>{col}</td>
+                                    ))}
+                                  </tr>
                                 ))}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
                       </div>
                     )}
 

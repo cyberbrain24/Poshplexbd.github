@@ -224,10 +224,23 @@ export const Catalog: React.FC = () => {
 
   const openEditSize = (size: any) => {
     setEditingSize(size);
+    let tables = [];
+    if (size.tables && size.tables.length > 0) {
+      tables = size.tables.map((t: any) => ({
+        name: t.name,
+        headers: t.headers ? t.headers.join(",") : "",
+        rows: t.rows ? t.rows.map((r: any) => r.join(",")).join("\n") : ""
+      }));
+    } else {
+      tables = [{
+        name: "Size Guide",
+        headers: size.headers ? size.headers.join(",") : "",
+        rows: size.rows ? size.rows.map((r: any) => r.join(",")).join("\n") : ""
+      }];
+    }
     sizeForm.setFieldsValue({
       name: size.name,
-      headers: size.headers ? size.headers.join(",") : "",
-      rows: size.rows ? size.rows.map((r: any) => r.join(",")).join("\n") : ""
+      tables
     });
     setIsSizeModalOpen(true);
   };
@@ -799,7 +812,22 @@ export const Catalog: React.FC = () => {
     }
   };
   const handleBrandSubmit = (values: any) => handleGenericSubmit("/brands", values, setIsBrandModalOpen, brandForm, editingBrand);
-  const handleSizeSubmit = (values: any) => handleGenericSubmit("/templates/size", { ...values, headers: typeof values.headers === 'string' ? values.headers.split(",") : values.headers, rows: typeof values.rows === 'string' ? values.rows.split("\n").map((r: string) => r.split(",")) : values.rows }, setIsSizeModalOpen, sizeForm, editingSize);
+  const handleSizeSubmit = (values: any) => {
+    const tables = values.tables?.map((t: any) => ({
+      name: t.name || "Size Guide",
+      headers: typeof t.headers === 'string' ? t.headers.split(",").map((s: string) => s.trim()) : t.headers,
+      rows: typeof t.rows === 'string' ? t.rows.split("\n").filter((r: string) => r.trim() !== "").map((r: string) => r.split(",").map((s: string) => s.trim())) : t.rows
+    })) || [];
+    
+    const payload = {
+      name: values.name,
+      headers: tables[0]?.headers || [],
+      rows: tables[0]?.rows || [],
+      tables
+    };
+    
+    handleGenericSubmit("/templates/size", payload, setIsSizeModalOpen, sizeForm, editingSize);
+  };
   const handleCareSubmit = (values: any) => handleGenericSubmit("/templates/care", values, setIsCareModalOpen, careForm, editingCare);
 
   // Client-side sample CSV generation and download
@@ -2470,8 +2498,25 @@ export const Catalog: React.FC = () => {
       <Modal title="Size Guide Template" open={isSizeModalOpen} onCancel={() => setIsSizeModalOpen(false)} onOk={() => sizeForm.submit()}>
         <Form form={sizeForm} onFinish={handleSizeSubmit} layout="vertical">
           <Form.Item name="name" label="Template Name" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="headers" label="Columns (comma separated)" rules={[{ required: true }]}><Input placeholder="Size,Chest,Length" /></Form.Item>
-          <Form.Item name="rows" label="Rows (CSV format, one per line)" rules={[{ required: true }]}><Input.TextArea rows={4} placeholder={"S,38,28\nM,40,29"} /></Form.Item>
+          <Form.List name="tables" initialValue={[{ name: "Size Guide", headers: "", rows: "" }]}>
+            {(fields, { add, remove }) => (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {fields.map(({ key, name, ...restField }) => (
+                  <div key={key} style={{ border: '1px solid #eee', padding: 16, borderRadius: 8, position: 'relative', background: '#fafafa' }}>
+                    {fields.length > 1 && (
+                      <Button type="text" danger icon={<DeleteOutlined />} onClick={() => remove(name)} style={{ position: 'absolute', top: 8, right: 8 }} />
+                    )}
+                    <Form.Item {...restField} name={[name, 'name']} label="Table Name (e.g. Tees Size)" rules={[{ required: true }]}><Input /></Form.Item>
+                    <Form.Item {...restField} name={[name, 'headers']} label="Columns (comma separated)" rules={[{ required: true }]}><Input placeholder="Size,Chest,Length" /></Form.Item>
+                    <Form.Item {...restField} name={[name, 'rows']} label="Rows (CSV format, one per line)" rules={[{ required: true }]}><Input.TextArea rows={4} placeholder={"S,38,28\nM,40,29"} /></Form.Item>
+                  </div>
+                ))}
+                <Button type="dashed" onClick={() => add({ name: "", headers: "", rows: "" })} block icon={<PlusOutlined />}>
+                  Add Another Size Guide Table
+                </Button>
+              </div>
+            )}
+          </Form.List>
         </Form>
       </Modal>
 

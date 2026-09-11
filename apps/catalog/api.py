@@ -38,11 +38,17 @@ class BrandInputSchema(Schema):
     slug: str
     listing_order: int = 0
 
+class SizeGuideTableSchema(Schema):
+    name: str = "Size Guide"
+    headers: List[str]
+    rows: List[List[str]]
+
 class SizeGuideTemplateSchema(Schema):
     id: int
     name: str
     headers: List[str]
     rows: List[List[str]]
+    tables: Optional[List[SizeGuideTableSchema]] = None
 
 class CareInstructionsTemplateSchema(Schema):
     id: int
@@ -936,13 +942,19 @@ def delete_brand(request, brand_id: int):
 
 class SizeGuideInputSchema(Schema):
     name: str
-    headers: List[str]
-    rows: List[List[str]]
+    headers: Optional[List[str]] = None
+    rows: Optional[List[List[str]]] = None
+    tables: Optional[List[SizeGuideTableSchema]] = None
 
 @router.post("/templates/size", auth=BearerAuth())
 def create_size_template(request, data: SizeGuideInputSchema):
     enforce_permission(request, "catalog", "edit_catalog")
-    tpl = SizeGuideTemplate.objects.create(name=data.name, headers=data.headers, rows=data.rows)
+    tpl = SizeGuideTemplate.objects.create(
+        name=data.name,
+        headers=data.headers or [],
+        rows=data.rows or [],
+        tables=[t.dict() for t in data.tables] if data.tables else []
+    )
     return {"id": tpl.id}
 
 @router.put("/templates/size/{tpl_id}", auth=BearerAuth())
@@ -950,8 +962,12 @@ def update_size_template(request, tpl_id: int, data: SizeGuideInputSchema):
     enforce_permission(request, "catalog", "edit_catalog")
     tpl = get_object_or_404(SizeGuideTemplate, id=tpl_id)
     tpl.name = data.name
-    tpl.headers = data.headers
-    tpl.rows = data.rows
+    if data.headers is not None:
+        tpl.headers = data.headers
+    if data.rows is not None:
+        tpl.rows = data.rows
+    if data.tables is not None:
+        tpl.tables = [t.dict() for t in data.tables]
     tpl.save()
     return {"success": True}
 

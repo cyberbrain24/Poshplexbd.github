@@ -149,6 +149,7 @@ class SizeGuideTemplate(models.Model):
     name = models.CharField(max_length=100)
     headers = models.JSONField(default=list, help_text="e.g. ['Size', 'Chest', 'Length']")
     rows = models.JSONField(default=list, help_text="e.g. [['S', '44', '26'], ['M', '46', '27']]")
+    tables = models.JSONField(default=list, blank=True, help_text="List of tables e.g. [{'name': 'Tees', 'headers': [...], 'rows': [...]}]")
 
     def __str__(self):
         return self.name
