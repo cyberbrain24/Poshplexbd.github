@@ -54,7 +54,8 @@ def get_product_details(slug: str = None, product: Product = None) -> dict:
     if product.size_guide_template:
         size_guide = {
             "headers": product.size_guide_template.headers,
-            "rows": product.size_guide_template.rows
+            "rows": product.size_guide_template.rows,
+            "tables": product.size_guide_template.tables
         }
     elif hasattr(product, 'size_guide') and product.size_guide: # Fallback if direct guide dict
         size_guide = product.size_guide
