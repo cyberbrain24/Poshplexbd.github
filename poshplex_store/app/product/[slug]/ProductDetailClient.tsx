@@ -692,16 +692,16 @@ export default function ProductDetailClient({
 
                     {/* Size Guide table */}
                     {key === "sizeGuide" && product.size_guide && (
-                      <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 32 }}>
+                      <div className="size-guide-container" style={{ width: "100%", display: "flex", flexDirection: "column", gap: 16 }}>
                         {(product.size_guide.tables && product.size_guide.tables.length > 0) ? (
                           product.size_guide.tables.map((table: any, tIdx: number) => (
                             <div key={tIdx} style={{ width: "100%", overflowX: "auto" }}>
-                              {table.name && <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, textTransform: "uppercase", color: "#111" }}>{table.name}</h4>}
-                              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                              {table.name && <h4 style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, textTransform: "uppercase", color: "#111" }}>{table.name}</h4>}
+                              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                                 <thead>
                                   <tr>
                                     {table.headers.map((h: string) => (
-                                      <th key={h} style={{ borderBottom: "1px solid #eee", padding: "8px 0", textAlign: "left", fontWeight: 600, color: "#111", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                                      <th key={h} style={{ borderBottom: "1px solid #eee", padding: "6px 4px 6px 0", textAlign: "left", fontWeight: 600, color: "#111", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap" }}>
                                         {h}
                                       </th>
                                     ))}
@@ -711,7 +711,7 @@ export default function ProductDetailClient({
                                   {table.rows.map((row: string[], idx: number) => (
                                     <tr key={idx} style={{ borderBottom: "1px solid #f5f5f5" }}>
                                       {row.map((col: string, ci: number) => (
-                                        <td key={ci} style={{ padding: "10px 0", color: "#444", fontSize: 13 }}>{col}</td>
+                                        <td key={ci} style={{ padding: "6px 4px 6px 0", color: "#444", fontSize: 12, whiteSpace: "nowrap" }}>{col}</td>
                                       ))}
                                     </tr>
                                   ))}
@@ -721,11 +721,11 @@ export default function ProductDetailClient({
                           ))
                         ) : (
                           <div style={{ width: "100%", overflowX: "auto" }}>
-                            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                               <thead>
                                 <tr>
                                   {product.size_guide.headers.map((h: string) => (
-                                    <th key={h} style={{ borderBottom: "1px solid #eee", padding: "8px 0", textAlign: "left", fontWeight: 600, color: "#111", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                                    <th key={h} style={{ borderBottom: "1px solid #eee", padding: "6px 4px 6px 0", textAlign: "left", fontWeight: 600, color: "#111", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap" }}>
                                       {h}
                                     </th>
                                   ))}
@@ -735,7 +735,7 @@ export default function ProductDetailClient({
                                 {product.size_guide.rows.map((row: string[], idx: number) => (
                                   <tr key={idx} style={{ borderBottom: "1px solid #f5f5f5" }}>
                                     {row.map((col: string, ci: number) => (
-                                      <td key={ci} style={{ padding: "10px 0", color: "#444", fontSize: 13 }}>{col}</td>
+                                      <td key={ci} style={{ padding: "6px 4px 6px 0", color: "#444", fontSize: 12, whiteSpace: "nowrap" }}>{col}</td>
                                     ))}
                                   </tr>
                                 ))}
