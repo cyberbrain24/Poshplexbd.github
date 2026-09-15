@@ -382,7 +382,7 @@ export const Fulfillment: React.FC = () => {
                         </div>
                         <div style={{ fontSize: 12, fontWeight: 500 }}>x{item.quantity}</div>
                         <div style={{ fontSize: 12, color: '#666', fontWeight: 600 }}>
-                          {item.attributes?.size || ''} {item.attributes?.color ? ` • ${item.attributes.color}` : ''}
+                          {item.attributes ? Object.values(item.attributes).filter(Boolean).join(' • ') : ''}
                         </div>
                       </div>
                     ))}
