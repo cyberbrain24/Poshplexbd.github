@@ -205,13 +205,6 @@ def list_products(
     
     # 1. Search filter (by name or variant SKU) with Fuzzy Match
     if search:
-        exact_qs = qs.filter(
-            Q(name__icontains=search) | 
-            Q(sku__icontains=search) | 
-            Q(variants__sku__icontains=search)
-        )
-        exact_match_ids = list(exact_qs.values_list('id', flat=True))
-        
         # Fuzzy matches fallback using RediSearch (Sub-Millisecond Search)
         fuzzy_match_ids = []
         try:
@@ -222,8 +215,30 @@ def list_products(
         except Exception as e:
             import logging
             logger = logging.getLogger(__name__)
-            logger.warning(f"RediSearch not available or failed: {e}. Falling back to Django ORM exact search.")
+            logger.warning(f"RediSearch not available or failed: {e}. Falling back to Django ORM multi-word search.")
             
+        if not fuzzy_match_ids:
+            import operator
+            from functools import reduce
+            
+            search_terms = search.strip().split()
+            term_queries = []
+            for term in search_terms:
+                term_queries.append(
+                    Q(name__icontains=term) | 
+                    Q(sku__icontains=term) | 
+                    Q(variants__sku__icontains=term)
+                )
+            
+            if term_queries:
+                exact_qs = qs.filter(reduce(operator.and_, term_queries))
+            else:
+                exact_qs = qs.none()
+                
+            exact_match_ids = list(exact_qs.values_list('id', flat=True))
+        else:
+            exact_match_ids = []
+
         matched_ids = set(exact_match_ids + fuzzy_match_ids)
         qs = qs.filter(id__in=matched_ids).distinct()
         
