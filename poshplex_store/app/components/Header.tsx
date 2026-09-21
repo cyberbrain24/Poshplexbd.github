@@ -493,9 +493,8 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
               {cat.children && cat.children.length > 0 && (
                 <div 
                   style={{ 
-                    display: "flex", 
-                    flexWrap: "wrap",
-                    justifyContent: "flex-end",
+                    display: "grid", 
+                    gridTemplateColumns: "repeat(5, 1fr)",
                     gap: "16px 8px", 
                     paddingBottom: 8
                   }} 
@@ -512,7 +511,7 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
                         alignItems: "center", 
                         gap: 6, 
                         textDecoration: "none",
-                        width: "calc(20% - 6.4px)" 
+                        width: "100%" 
                       }}
                     >
                       <div style={{
