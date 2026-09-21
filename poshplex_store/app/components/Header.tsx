@@ -96,6 +96,18 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
     };
   }, []);
 
+  // Prevent body scroll when menu is open
+  useEffect(() => {
+    if (isOpen && typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
   // Close category mobile menu when clicking outside
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
@@ -448,14 +460,14 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
             zIndex: 99,
             display: "flex",
             flexDirection: "column",
-            gap: 20,
+            gap: 12,
             animation: "slideIn 0.3s ease",
-            padding: "24px 20px",
+            padding: "16px 20px",
             overflowY: "auto"
           }}
         >
           {categories.map((cat: any) => (
-            <div key={cat.id} style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%" }}>
+            <div key={cat.id} style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
               {/* Category Main Header Link */}
               <Link 
                 href={`/catalog/${cat.slug}`} 
@@ -463,12 +475,12 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
                 style={{ 
                   color: "#ffffff", 
                   textDecoration: "none", 
-                  fontSize: 15, 
+                  fontSize: 12, 
                   fontWeight: 800, 
                   letterSpacing: "1.5px", 
                   textTransform: "uppercase",
                   borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-                  paddingBottom: 6,
+                  paddingBottom: 4,
                   textAlign: "right",
                   display: "block",
                   width: "100%"
@@ -500,7 +512,7 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
                         alignItems: "center", 
                         gap: 6, 
                         textDecoration: "none",
-                        width: "calc(20% - 6.4px)" 
+                        width: "calc(25% - 6px)" 
                       }}
                     >
                       <div style={{
@@ -516,20 +528,24 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
                         position: "relative"
                       }}>
                         {child.image ? (
-                          <Image unoptimized={true} src={child.image} alt={child.name} fill sizes="(max-width: 768px) 20vw, 72px" style={{ objectFit: "cover" }} />
+                          <Image unoptimized={true} src={child.image} alt={child.name} fill sizes="(max-width: 768px) 25vw, 72px" style={{ objectFit: "cover" }} />
                         ) : (
                           <span style={{ color: "#666", fontSize: 8, textTransform: "uppercase", fontWeight: 700 }}>Street</span>
                         )}
                       </div>
                       <span style={{ 
                         color: "#ccc", 
-                        fontSize: 9, 
+                        fontSize: 8, 
                         fontWeight: 700, 
                         textTransform: "uppercase", 
                         textAlign: "center",
-                        whiteSpace: "nowrap",
+                        whiteSpace: "normal",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
+                        lineHeight: 1.2,
                         width: "100%" 
                       }}>
                         {child.name}
@@ -618,7 +634,7 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
           }
           .mobile-menu-overlay {
             top: 74px !important;
-            height: calc(100vh - 74px) !important;
+            height: calc(100vh - 74px - 52px) !important;
           }
         }
       ` }} />

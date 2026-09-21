@@ -152,7 +152,7 @@ export default async function Home() {
                   }}
                 >
                   {cat.image ? (
-                    <Image src={cat.image} alt="" fill sizes="(max-width: 768px) 33vw, 160px" priority unoptimized style={{ objectFit: "cover" }} />
+                    <Image src={cat.image} alt="" fill sizes="(max-width: 768px) 25vw, 160px" priority unoptimized style={{ objectFit: "cover" }} />
                   ) : (
                     <span style={{ color: "#777", fontSize: 10, textTransform: "uppercase" }}>No Image</span>
                   )}
@@ -190,7 +190,7 @@ export default async function Home() {
           @media (max-width: 768px) {
             .home-categories-grid {
               display: grid;
-              grid-template-columns: repeat(3, 1fr);
+              grid-template-columns: repeat(4, 1fr);
               gap: 12px;
             }
             .category-image-wrapper {
