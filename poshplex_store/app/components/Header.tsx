@@ -512,7 +512,7 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
                         alignItems: "center", 
                         gap: 6, 
                         textDecoration: "none",
-                        width: "calc(25% - 6px)" 
+                        width: "calc(20% - 6.4px)" 
                       }}
                     >
                       <div style={{
