@@ -1137,7 +1137,7 @@ def get_product_reviews(request, slug: str):
             "customer_phone": getattr(r.user, 'crm_profile', None) and r.user.crm_profile.phone or None,
             "rating": r.rating,
             "comment": r.comment,
-            "images": r.images,
+            "images": r.images or [],
             "is_approved": r.is_approved,
             "is_featured": r.is_featured,
             "listing_order": r.listing_order,
@@ -1376,7 +1376,58 @@ def admin_reviews_analytics(request):
         "top_products": top_products
     }
 
-@router.post("/admin/reviews/{review_id}/moderate", response=ReviewResponseSchema, auth=BearerAuth())
+class AdminReviewCreateSchema(Schema):
+    customer_phone: str
+    product_id: int
+    rating: int
+    comment: str
+    listing_order: int = 0
+    images: Optional[List[str]] = []
+
+@router.post("/admin/reviews/create", response=ReviewResponseSchema, auth=BearerAuth())
+def admin_create_review(request, data: AdminReviewCreateSchema):
+    """Create a new review on behalf of a user (Admin only)."""
+    enforce_permission(request, "catalog", "edit_catalog")
+    
+    from django.db import IntegrityError
+    from apps.crm.models import CustomerProfile
+    
+    profile = get_object_or_404(CustomerProfile, phone=data.customer_phone)
+    user = profile.user
+    product = get_object_or_404(Product, id=data.product_id)
+    
+    try:
+        review = Review.objects.create(
+            product=product,
+            user=user,
+            rating=data.rating,
+            comment=data.comment,
+            images=data.images or [],
+            is_approved=True,  # Auto-approve admin created reviews
+            listing_order=data.listing_order
+        )
+    except IntegrityError:
+        raise HttpError(400, "This customer has already reviewed this product. Please edit the existing review or select a different customer.")
+    
+    return {
+        "id": review.id,
+        "product_id": review.product.id,
+        "product_name": review.product.name,
+        "product_slug": review.product.slug,
+        "username": review.user.first_name or review.user.username,
+        "user_id": review.user.id,
+        "customer_phone": profile.phone,
+        "rating": review.rating,
+        "comment": review.comment,
+        "images": review.images or [],
+        "is_approved": review.is_approved,
+        "is_featured": review.is_featured,
+        "listing_order": review.listing_order,
+        "created_at": review.created_at.isoformat(),
+        "updated_at": review.updated_at.isoformat()
+    }
+
+@router.post("/admin/reviews/{int:review_id}/moderate", response=ReviewResponseSchema, auth=BearerAuth())
 def admin_moderate_review(request, review_id: int, data: ReviewModerationSchema):
     """Approve/unapprove, feature/unfeature, or edit review details (Admin only)."""
     enforce_permission(request, "catalog", "edit_catalog")
@@ -1424,7 +1475,7 @@ def admin_moderate_review(request, review_id: int, data: ReviewModerationSchema)
         "customer_phone": getattr(review.user, 'crm_profile', None) and review.user.crm_profile.phone or None,
         "rating": review.rating,
         "comment": review.comment,
-        "images": review.images,
+        "images": review.images or [],
         "is_approved": review.is_approved,
         "is_featured": review.is_featured,
         "listing_order": review.listing_order,
@@ -1432,61 +1483,10 @@ def admin_moderate_review(request, review_id: int, data: ReviewModerationSchema)
         "updated_at": review.updated_at.isoformat()
     }
 
-@router.delete("/admin/reviews/{review_id}", auth=BearerAuth())
+@router.delete("/admin/reviews/{int:review_id}", auth=BearerAuth())
 def admin_delete_review(request, review_id: int):
     """Delete any review (Admin only)."""
     enforce_permission(request, "catalog", "edit_catalog")
     review = get_object_or_404(Review, id=review_id)
     review.delete()
     return {"success": True}
-
-class AdminReviewCreateSchema(Schema):
-    customer_phone: str
-    product_id: int
-    rating: int
-    comment: str
-    listing_order: int = 0
-    images: Optional[List[str]] = []
-
-@router.post("/admin/reviews/create", response=ReviewResponseSchema, auth=BearerAuth())
-def admin_create_review(request, data: AdminReviewCreateSchema):
-    """Create a new review on behalf of a user (Admin only)."""
-    enforce_permission(request, "catalog", "edit_catalog")
-    
-    from django.db import IntegrityError
-    from apps.crm.models import CustomerProfile
-    
-    profile = get_object_or_404(CustomerProfile, phone=data.customer_phone)
-    user = profile.user
-    product = get_object_or_404(Product, id=data.product_id)
-    
-    try:
-        review = Review.objects.create(
-            product=product,
-            user=user,
-            rating=data.rating,
-            comment=data.comment,
-            images=data.images,
-            is_approved=True,  # Auto-approve admin created reviews
-            listing_order=data.listing_order
-        )
-    except IntegrityError:
-        raise HttpError(400, "This customer has already reviewed this product. Please edit the existing review or select a different customer.")
-    
-    return {
-        "id": review.id,
-        "product_id": review.product.id,
-        "product_name": review.product.name,
-        "product_slug": review.product.slug,
-        "username": review.user.first_name or review.user.username,
-        "user_id": review.user.id,
-        "customer_phone": profile.phone,
-        "rating": review.rating,
-        "comment": review.comment,
-        "images": review.images,
-        "is_approved": review.is_approved,
-        "is_featured": review.is_featured,
-        "listing_order": review.listing_order,
-        "created_at": review.created_at.isoformat(),
-        "updated_at": review.updated_at.isoformat()
-    }

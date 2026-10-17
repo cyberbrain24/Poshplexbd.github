@@ -27,6 +27,28 @@ export default function ProductReviews({
   const [showReviewForm, setShowReviewForm] = useState(false);
 
   useEffect(() => {
+    setReviews(initialReviews);
+  }, [initialReviews]);
+
+  useEffect(() => {
+    const fetchFreshReviews = async () => {
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://poshplexbd.com";
+        const res = await fetch(`${API_URL}/api/v1/catalog/products/${product.slug}/reviews`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            setReviews(data);
+          }
+        }
+      } catch { }
+    };
+    if (product?.slug) {
+      fetchFreshReviews();
+    }
+  }, [product?.slug]);
+
+  useEffect(() => {
     const checkMyReview = async () => {
       const token = localStorage.getItem("poshplex_access_token");
       if (!token) return;
@@ -205,6 +227,19 @@ export default function ProductReviews({
                     onClick={() => setLightboxUrl(thumb)}
                   >
                     <Image src={thumb} alt="Review" fill sizes="(max-width: 768px) 50vw, 20vw" style={{ objectFit: "cover" }} />
+                  </div>
+                )}
+                {rev.images && rev.images.length > 1 && (
+                  <div style={{ display: "flex", gap: 4, padding: "8px 12px 0 12px", flexWrap: "wrap" }}>
+                    {rev.images.map((imgUrl: string, idx: number) => (
+                      <div
+                        key={idx}
+                        style={{ position: "relative", width: 28, height: 28, cursor: "zoom-in", borderRadius: 2, overflow: "hidden", border: "1px solid var(--border-glass)" }}
+                        onClick={() => setLightboxUrl(imgUrl)}
+                      >
+                        <Image src={imgUrl} alt="Thumbnail" fill sizes="28px" style={{ objectFit: "cover" }} />
+                      </div>
+                    ))}
                   </div>
                 )}
                 <div style={{ padding: "12px", display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>

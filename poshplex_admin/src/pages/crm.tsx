@@ -212,10 +212,13 @@ const Reviews: React.FC = () => {
       setIsCreateModalOpen(false);
       fetchReviews();
     } catch (err: any) {
-      if (err?.response?.status === 400) {
-        message.error(err.response.data.detail || "Failed to create review.");
-      } else if (err?.response?.status !== 403) {
-        message.error("Failed to create review.");
+      if (err?.response?.status !== 403) {
+        const errorDetail =
+          err?.response?.data?.detail ||
+          err?.response?.data?.message ||
+          (typeof err?.response?.data === "string" ? err.response.data : "") ||
+          "Failed to create review.";
+        message.error(errorDetail);
       }
     }
   };
