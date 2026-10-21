@@ -558,10 +558,10 @@ export default function BuyMoreAndSave({
 
                 <div style={{ textAlign: "right", flexShrink: 0, paddingLeft: 8 }}>
                   <div className="bms-price-main">
-                    Tk {tier.items_count === 2 ? discountedUnit : totalEstimatedBundle}
+                    Tk {discountedUnit}
                   </div>
                   <div className="bms-price-strike">
-                    Tk {tier.items_count === 2 ? Math.round(currentProductOrigPrice) : totalEstimatedOriginal}
+                    Tk {Math.round(currentProductOrigPrice)}
                   </div>
                 </div>
               </div>
