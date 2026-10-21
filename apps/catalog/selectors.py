@@ -13,7 +13,10 @@ def list_products_by_category(category_slug: str) -> list:
 def get_product_details(slug: str = None, product: Product = None) -> dict:
     """Retrieve full product information with nested variants, brands, templates, and gallery."""
     if not product:
-        product = get_object_or_404(Product.objects.prefetch_related('variants', 'images', 'categories'), slug=slug)
+        product = get_object_or_404(
+            Product.objects.select_related('brand', 'category', 'size_guide_template', 'care_instructions_template').prefetch_related('variants', 'images', 'categories'),
+            slug=slug
+        )
     
     variants_data = []
     for variant in product.variants.all():
@@ -51,12 +54,33 @@ def get_product_details(slug: str = None, product: Product = None) -> dict:
     
     # Resolve Size Guide
     size_guide = None
-    if product.size_guide_template:
+    tpl = getattr(product, 'size_guide_template', None)
+    if not tpl and getattr(product, 'size_guide_template_id', None):
+        try:
+            from apps.catalog.models import SizeGuideTemplate
+            tpl = SizeGuideTemplate.objects.filter(id=product.size_guide_template_id).first()
+        except Exception:
+            tpl = None
+
+    if tpl:
+        raw_tables = getattr(tpl, 'tables', None) or []
+        # If raw_tables is empty, build a table from headers and rows
+        if not raw_tables and tpl.headers and tpl.rows:
+            raw_tables = [{
+                "name": tpl.name or "Size Guide",
+                "headers": tpl.headers,
+                "rows": tpl.rows
+            }]
+        
+        headers = tpl.headers or (raw_tables[0].get('headers', []) if raw_tables else [])
+        rows = tpl.rows or (raw_tables[0].get('rows', []) if raw_tables else [])
+
         size_guide = {
-            "name": product.size_guide_template.name,
-            "headers": product.size_guide_template.headers,
-            "rows": product.size_guide_template.rows,
-            "tables": product.size_guide_template.tables
+            "id": tpl.id,
+            "name": tpl.name,
+            "headers": headers,
+            "rows": rows,
+            "tables": raw_tables
         }
     elif hasattr(product, 'size_guide') and product.size_guide: # Fallback if direct guide dict
         size_guide = product.size_guide
