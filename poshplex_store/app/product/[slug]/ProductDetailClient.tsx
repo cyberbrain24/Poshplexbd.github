@@ -7,11 +7,13 @@ import { useRouter } from "next/navigation";
 
 const ProductReviews = dynamic(() => import('./ProductReviews'), { loading: () => <p style={{fontSize: 13, textAlign: 'center', padding: '20px 0', color: '#888'}}>Loading reviews...</p>, ssr: false });
 import Link from "next/link";
-import { Heart, Star, ChevronDown, ChevronUp, Minus, Plus, Camera, X, Send, ChevronLeft, ChevronRight } from "lucide-react";
+import { Heart, Star, ChevronDown, ChevronUp, Minus, Plus, Camera, X, Send, ChevronLeft, ChevronRight, Ruler } from "lucide-react";
 import { toast } from 'react-hot-toast';
 import { fetchWithAuth } from "../../utils/fetchWithAuth";
 import { useCart } from "../../../context/CartContext";
 import ProductCard from "../../components/ProductCard";
+import BuyMoreAndSave from "./BuyMoreAndSave";
+import SizeChartModal from "./SizeChartModal";
 import * as fpixel from "../../../lib/fpixel";
 
 const formatBDT = (n: string | number) => `৳${Math.round(Number(n))}`;
@@ -61,6 +63,21 @@ export default function ProductDetailClient({
   const [quantity, setQuantity] = useState(1);
   const [wishlisted, setWishlisted] = useState(false);
   const [activeImageIdx, setActiveImageIdx] = useState(0);
+
+  /* size chart modal state */
+  const [showSizeChartModal, setShowSizeChartModal] = useState(false);
+
+  /* bundle offer state */
+  const [bundleData, setBundleData] = useState<any>({
+    isBundle: false,
+    tier: null,
+    items: [],
+    isComplete: true,
+    totalPrice: 0,
+    originalTotal: 0,
+    savings: 0,
+    freeDelivery: false
+  });
 
   useEffect(() => {
     if (product) {
@@ -201,6 +218,49 @@ export default function ProductDetailClient({
 
   /* ── add to cart ── */
   const handleAddToCart = () => {
+    if (product.is_sold_out) {
+      toast.error("This product is currently sold out and cannot be ordered.");
+      return;
+    }
+
+    if (bundleData.isBundle) {
+      if (!bundleData.isComplete) {
+        if (bundleData.isSlot0SizeMissing) {
+          toast.error(`Please select a size for ${product.name} first.`);
+          const el = document.querySelector(".bms-active-slots-box") || document.querySelector(".product-selectors-container");
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+        } else {
+          toast.error(`Please select all products to complete your ${bundleData.tier.name} bundle.`);
+        }
+        return;
+      }
+      // Add all bundle items to cart with their discounted unit prices
+      bundleData.items.forEach((item: any, idx: number) => {
+        const itemSku = item.variant?.sku || item.product?.sku || `PROD-${item.product.id}-${idx}`;
+        const itemImg = item.image || item.product.images?.[0]?.url || "";
+        const itemAttrs = {
+          ...(item.variant?.attributes || {}),
+          "Bundle": `${bundleData.tier.name} (${bundleData.tier.discount_percentage}% OFF)`
+        };
+        addToCart({
+          sku: itemSku,
+          name: item.product.name,
+          price: item.discountedPrice,
+          quantity: 1,
+          image: itemImg,
+          attributes: itemAttrs,
+        });
+      });
+
+      if (bundleData.freeDelivery) {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("poshplex_bundle_free_shipping", "true");
+        }
+      }
+      toast.success(`${bundleData.tier.name} bundle added to cart!`);
+      return;
+    }
+
     const hasAttributes = Object.keys(attributeGroups).length > 0;
     if (hasAttributes && (!allSelected || !matchedVariant)) return;
 
@@ -420,6 +480,28 @@ export default function ProductDetailClient({
             </div>
           </div>
 
+          {/* Sold out note in red text */}
+          {product.is_sold_out && (
+            <div style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 7,
+              color: "#dc2626",
+              fontWeight: 800,
+              fontSize: 12,
+              letterSpacing: "1px",
+              textTransform: "uppercase",
+              background: "#fef2f2",
+              border: "1px solid #fee2e2",
+              padding: "5px 12px",
+              borderRadius: 3,
+              marginBottom: 10
+            }}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#dc2626", display: "inline-block" }}></span>
+              SOLD OUT
+            </div>
+          )}
+
           {/* GSM / Composition specs */}
           {product.gsm && (
             <p style={{ fontSize: 13, color: "#888", marginBottom: 12, fontWeight: 400 }}>
@@ -448,7 +530,7 @@ export default function ProductDetailClient({
                 }
 
                 return chunks.map((chunk, chunkIdx) => (
-                  <div key={chunkIdx} style={{ border: "1px solid #eaeaea", borderRadius: 6, padding: "16px 16px 4px 16px", background: "#fafafa" }}>
+                  <div key={chunkIdx} style={{ border: "1px solid #e2e8f0", borderRadius: 8, padding: "16px 16px 6px 16px", background: "#f8fafc" }}>
                     <div className="product-selectors-grid">
                       {chunk.map(([key, valueSet]) => {
                         const attrDef = initialAttributes.find((a: any) => a.code === key);
@@ -458,7 +540,7 @@ export default function ProductDetailClient({
                         
                         return (
                           <div key={key} className="selector-group" style={{ marginBottom: 12 }}>
-                            <p className="selector-label">
+                            <p className="selector-label" style={{ color: "#334155", fontWeight: 700, fontSize: 11.5 }}>
                               {displayLabel}
                             </p>
                             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }} className="selectors-flex">
@@ -483,8 +565,8 @@ export default function ProductDetailClient({
                                       style={{
                                         width: 24, height: 24, borderRadius: "50%",
                                         background: hexColor,
-                                        border: "1px solid rgba(0,0,0,0.2)",
-                                        outline: isSelected ? "2px solid #111" : "none",
+                                        border: "1px solid rgba(0,0,0,0.15)",
+                                        outline: isSelected ? "2px solid #334155" : "none",
                                         outlineOffset: 2,
                                         cursor: "pointer",
                                         transition: "all 0.15s",
@@ -501,12 +583,12 @@ export default function ProductDetailClient({
                                       title={val}
                                       onClick={() => selectAttr(key, val)}
                                       style={{
-                                        width: 40, height: 40, borderRadius: 2,
+                                        width: 40, height: 40, borderRadius: 4,
                                         backgroundImage: imgUrl ? `url(${imgUrl})` : 'none',
                                         backgroundColor: imgUrl ? 'transparent' : '#eee',
                                         backgroundSize: 'cover',
                                         backgroundPosition: 'center',
-                                        border: isSelected ? "2px solid #111" : "1px solid #ddd",
+                                        border: isSelected ? "2px solid #334155" : "1px solid #cbd5e1",
                                         cursor: "pointer",
                                         transition: "border 0.15s",
                                       }}
@@ -519,14 +601,15 @@ export default function ProductDetailClient({
                                     key={val}
                                     onClick={() => selectAttr(key, val)}
                                     style={{
-                                      padding: "4px 10px",
-                                      border: isSelected ? "1.5px solid #111" : "1.5px solid #ddd",
-                                      background: isSelected ? "#111" : "#fff",
-                                      color: isSelected ? "#fff" : "#111",
-                                      fontSize: 12, fontWeight: 500,
-                                      cursor: "pointer", borderRadius: 2,
+                                      padding: "5px 12px",
+                                      border: isSelected ? "1.5px solid #334155" : "1px solid #cbd5e1",
+                                      background: isSelected ? "#334155" : "#ffffff",
+                                      color: isSelected ? "#ffffff" : "#475569",
+                                      fontSize: 12, fontWeight: isSelected ? 700 : 500,
+                                      cursor: "pointer", borderRadius: 4,
                                       transition: "all 0.15s",
                                       minWidth: 32,
+                                      boxShadow: isSelected ? "0 1px 3px rgba(51,65,85,0.15)" : "none"
                                     }}
                                   >
                                     {val}
@@ -544,29 +627,201 @@ export default function ProductDetailClient({
             </div>
           )}
 
-          {/* Quantity stepper */}
-          <div className="product-qty-container selector-group" style={{ marginBottom: 24, marginTop: 16 }}>
-            <p className="selector-label">QTY</p>
-            <div style={{ display: "flex", alignItems: "center", border: "1px solid #e5e5e5", borderRadius: 4, width: "fit-content", background: "#fff", overflow: "hidden" }}>
-              <button
-                onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                style={{ width: 28, height: 28, background: "#fafafa", border: "none", borderRight: "1px solid #e5e5e5", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#555" }}
-              >
-                <Minus size={11} />
-              </button>
-              <span style={{ width: 32, textAlign: "center", fontSize: 12, fontWeight: 600, color: "#111" }}>{quantity}</span>
-              <button
-                onClick={() => setQuantity(q => q + 1)}
-                style={{ width: 28, height: 28, background: "#fafafa", border: "none", borderLeft: "1px solid #e5e5e5", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#555" }}
-              >
-                <Plus size={11} />
-              </button>
-            </div>
+          {/* ── Size Chart Button (Below Variation Selection Section) ── */}
+          <div className="product-size-chart-row" style={{ marginTop: 10, marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+            <button
+              type="button"
+              id="size-chart-trigger-btn"
+              onClick={() => setShowSizeChartModal(true)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 7,
+                backgroundColor: "#ffffff",
+                border: "1px solid #cbd5e1",
+                borderRadius: "6px",
+                padding: "7px 14px",
+                fontSize: "12px",
+                fontWeight: 700,
+                color: "#334155",
+                cursor: "pointer",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+                transition: "all 0.15s ease",
+                boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "#f8fafc";
+                e.currentTarget.style.borderColor = "#94a3b8";
+                e.currentTarget.style.color = "#0f172a";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "#ffffff";
+                e.currentTarget.style.borderColor = "#cbd5e1";
+                e.currentTarget.style.color = "#334155";
+              }}
+            >
+              <Ruler size={14} strokeWidth={2.2} />
+              <span>Size Chart</span>
+            </button>
+            <span style={{ fontSize: 11.5, color: "#64748b", fontWeight: 500 }}>
+              Need fit advice? Check measurements
+            </span>
           </div>
+
+          {/* Buy More & Save Combo Offer Bundle Selector */}
+          <BuyMoreAndSave
+            currentProduct={product}
+            currentVariant={matchedVariant}
+            selectedAttributes={selectedAttributes}
+            onSelectAttribute={(key, val) => selectAttr(key, val)}
+            initialAttributes={initialAttributes}
+            onBundleChange={(bInfo) => setBundleData(bInfo)}
+          />
+
+          {/* Quantity stepper (Only for single product mode) */}
+          {!bundleData.isBundle && (
+            <div className="product-qty-container selector-group" style={{ marginBottom: 24, marginTop: 16 }}>
+              <p className="selector-label">QTY</p>
+              <div style={{ display: "flex", alignItems: "center", border: "1px solid #e5e5e5", borderRadius: 4, width: "fit-content", background: "#fff", overflow: "hidden" }}>
+                <button
+                  onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                  style={{ width: 28, height: 28, background: "#fafafa", border: "none", borderRight: "1px solid #e5e5e5", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#555" }}
+                >
+                  <Minus size={11} />
+                </button>
+                <span style={{ width: 32, textAlign: "center", fontSize: 12, fontWeight: 600, color: "#111" }}>{quantity}</span>
+                <button
+                  onClick={() => setQuantity(q => q + 1)}
+                  style={{ width: 28, height: 28, background: "#fafafa", border: "none", borderLeft: "1px solid #e5e5e5", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#555" }}
+                >
+                  <Plus size={11} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Bundle Savings Note above action buttons */}
+          {bundleData.isBundle && bundleData.isComplete && bundleData.savings > 0 && (
+            <div style={{
+              marginBottom: 10,
+              padding: "9px 13px",
+              backgroundColor: "#f0fdf4",
+              border: "1.5px solid #86efac",
+              borderRadius: 6,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 8,
+              boxShadow: "0 1px 3px rgba(22, 163, 74, 0.08)"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                <span style={{ fontSize: 16 }}>🎉</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#15803d" }}>
+                  {bundleData.tier.name} Bundle Unlocked! You are saving Tk {Math.round(bundleData.savings)}
+                </span>
+              </div>
+              <span style={{
+                backgroundColor: "#16a34a",
+                color: "#ffffff",
+                fontSize: 10.5,
+                fontWeight: 800,
+                padding: "2.5px 7px",
+                borderRadius: 4
+              }}>
+                SAVE Tk {Math.round(bundleData.savings)}
+              </span>
+            </div>
+          )}
 
           {/* State-dependent Action buttons */}
           <div className="product-action-buttons-wrapper">
-            {allSelected ? (
+            {product.is_sold_out ? (
+              <button
+                disabled
+                style={{
+                  width: "100%",
+                  height: 48,
+                  fontSize: 13,
+                  fontWeight: 800,
+                  textTransform: "uppercase",
+                  letterSpacing: "1px",
+                  background: "#fef2f2",
+                  color: "#dc2626",
+                  border: "2px solid #ef4444",
+                  cursor: "not-allowed",
+                  borderRadius: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                }}
+              >
+                SOLD OUT
+              </button>
+            ) : bundleData.isBundle ? (
+              bundleData.isComplete ? (
+                <>
+                  <button
+                    onClick={handleAddToCart}
+                    style={{
+                      flex: 1, height: 48, fontSize: 13, fontWeight: 700,
+                      textTransform: "uppercase", letterSpacing: "1px",
+                      background: "#1e293b", color: "#fff", border: "none",
+                      cursor: "pointer", transition: "background 0.2s", borderRadius: 6,
+                    }}
+                    onMouseEnter={e => (e.target as HTMLButtonElement).style.background = "#334155"}
+                    onMouseLeave={e => (e.target as HTMLButtonElement).style.background = "#1e293b"}
+                  >
+                    Add Bundle to Cart (Tk {Math.round(bundleData.totalPrice)})
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleAddToCart();
+                      router.push("/checkout");
+                    }}
+                    style={{
+                      flex: 1, height: 48, fontSize: 13, fontWeight: 700,
+                      textTransform: "uppercase", letterSpacing: "1px",
+                      background: "#fff", color: "#1e293b", border: "1.5px solid #334155",
+                      cursor: "pointer", transition: "all 0.2s", borderRadius: 6,
+                    }}
+                    onMouseEnter={e => {
+                      (e.target as HTMLButtonElement).style.background = "#1e293b";
+                      (e.target as HTMLButtonElement).style.color = "#fff";
+                    }}
+                    onMouseLeave={e => {
+                      (e.target as HTMLButtonElement).style.background = "#fff";
+                      (e.target as HTMLButtonElement).style.color = "#1e293b";
+                    }}
+                  >
+                    Buy Bundle Now
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => {
+                    if (bundleData.isSlot0SizeMissing) {
+                      toast.error(`Please select options for ${product.name} first.`);
+                      const el = document.querySelector(".bms-active-slots-box") || document.querySelector(".product-selectors-container");
+                      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+                    } else {
+                      toast.error("Please click '+ Choose product' to fill all bundle slots.");
+                    }
+                  }}
+                  style={{
+                    width: "100%", height: 48, fontSize: 12, fontWeight: 700,
+                    textTransform: "uppercase", letterSpacing: "0.8px",
+                    background: "#f8fafc", color: "#475569", border: "1.5px dashed #cbd5e1",
+                    cursor: "pointer", borderRadius: 6,
+                  }}
+                >
+                  {bundleData.isSlot0SizeMissing
+                    ? `SELECT OPTIONS FOR ${product.name.toUpperCase()} TO UNLOCK BUNDLE`
+                    : "SELECT ALL PRODUCTS TO UNLOCK BUNDLE DISCOUNT"}
+                </button>
+              )
+            ) : allSelected ? (
               <>
                 <button
                   onClick={handleAddToCart}
@@ -633,7 +888,7 @@ export default function ProductDetailClient({
           </div>
 
           {/* Helper prompt */}
-          {!allSelected && Object.keys(attributeGroups).length > 0 && (
+          {!product.is_sold_out && !allSelected && Object.keys(attributeGroups).length > 0 && (
             <p style={{ fontSize: 12, color: "#888", textAlign: "center", marginBottom: 16 }}>
               Please select {Object.keys(attributeGroups).sort((a, b) => getAttributeWeight(a, initialAttributes) - getAttributeWeight(b, initialAttributes)).join(" and ")} to view purchase actions
             </p>
@@ -651,7 +906,7 @@ export default function ProductDetailClient({
           {/* ── Accordions ── */}
           {([
             { key: "description" as AccordionSection, label: "Description", show: !!product.description },
-            { key: "sizeGuide" as AccordionSection, label: "Size Guide", show: !!product.size_guide },
+            { key: "sizeGuide" as AccordionSection, label: "Size Guide", show: true },
             { key: "care" as AccordionSection, label: "Care & Cleaning", show: !!product.care_instructions },
             { key: "reviews" as AccordionSection, label: `Customer Reviews`, badge: reviewCount, show: true },
           ] as { key: AccordionSection; label: string; badge?: number; show: boolean }[]).map(({ key, label, badge, show }) => {
@@ -691,9 +946,35 @@ export default function ProductDetailClient({
                     )}
 
                     {/* Size Guide table */}
-                    {key === "sizeGuide" && product.size_guide && (
-                      <div className="size-guide-container" style={{ width: "100%", display: "flex", flexDirection: "column", gap: 16 }}>
-                        {(product.size_guide.tables && product.size_guide.tables.length > 0) ? (
+                    {key === "sizeGuide" && (
+                      <div className="size-guide-container" style={{ width: "100%", display: "flex", flexDirection: "column", gap: 14 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                          <span style={{ fontSize: 12, color: "#666", fontWeight: 600 }}>
+                            Relaxed Drop Shoulder Fit (Inches)
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setShowSizeChartModal(true)}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 6,
+                              backgroundColor: "#ffffff",
+                              border: "1px solid #111111",
+                              borderRadius: "4px",
+                              padding: "4px 10px",
+                              fontSize: "11px",
+                              fontWeight: 700,
+                              color: "#111111",
+                              cursor: "pointer",
+                              textTransform: "uppercase"
+                            }}
+                          >
+                            <Ruler size={13} strokeWidth={2.2} /> View Full Chart
+                          </button>
+                        </div>
+
+                        {(product.size_guide?.tables && product.size_guide.tables.length > 0) ? (
                           product.size_guide.tables.map((table: any, tIdx: number) => (
                             <div key={tIdx} style={{ width: "100%", overflowX: "auto" }}>
                               {table.name && <h4 style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, textTransform: "uppercase", color: "#111" }}>{table.name}</h4>}
@@ -724,18 +1005,23 @@ export default function ProductDetailClient({
                             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                               <thead>
                                 <tr>
-                                  {product.size_guide.headers.map((h: string) => (
-                                    <th key={h} style={{ borderBottom: "1px solid #eee", padding: "6px 4px 6px 0", textAlign: "left", fontWeight: 600, color: "#111", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap" }}>
+                                  {(product.size_guide?.headers || ["Size", "Chest", "Length", "Sleeve"]).map((h: string) => (
+                                    <th key={h} style={{ borderBottom: "1px solid #eee", padding: "6px 8px 6px 0", textAlign: "left", fontWeight: 700, color: "#111", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap" }}>
                                       {h}
                                     </th>
                                   ))}
                                 </tr>
                               </thead>
                               <tbody>
-                                {product.size_guide.rows.map((row: string[], idx: number) => (
+                                {(product.size_guide?.rows || [
+                                  ["M", "40\"", "28\"", "8.5\""],
+                                  ["L", "42\"", "29\"", "9\""],
+                                  ["XL", "44\"", "30\"", "9.5\""],
+                                  ["XXL", "46\"", "31\"", "10\""]
+                                ]).map((row: string[], idx: number) => (
                                   <tr key={idx} style={{ borderBottom: "1px solid #f5f5f5" }}>
                                     {row.map((col: string, ci: number) => (
-                                      <td key={ci} style={{ padding: "6px 4px 6px 0", color: "#444", fontSize: 12, whiteSpace: "nowrap" }}>{col}</td>
+                                      <td key={ci} style={{ padding: "7px 8px 7px 0", color: ci === 0 ? "#111" : "#555", fontWeight: ci === 0 ? 700 : 500, fontSize: 12, whiteSpace: "nowrap" }}>{col}</td>
                                     ))}
                                   </tr>
                                 ))}
@@ -802,6 +1088,13 @@ export default function ProductDetailClient({
           </div>
         </div>
       )}
+
+      {/* ── Size Chart Popup Modal ── */}
+      <SizeChartModal
+        isOpen={showSizeChartModal}
+        onClose={() => setShowSizeChartModal(false)}
+        product={product}
+      />
 
       <style dangerouslySetInnerHTML={{
         __html: `

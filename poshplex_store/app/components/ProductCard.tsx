@@ -95,6 +95,11 @@ export default function ProductCard({
               NEW
             </div>
           )}
+          {product.is_sold_out && (
+            <div style={{ position: "absolute", top: 8, right: 8, background: "#dc2626", color: "#fff", fontSize: 8.5, fontWeight: 800, letterSpacing: "1px", padding: "2px 6px", borderRadius: 2, zIndex: 3 }}>
+              SOLD OUT
+            </div>
+          )}
         </div>
         <div style={{ paddingTop: 8, paddingBottom: 4, flex: 1 }}>
           <p style={{ fontSize: 10, color: "#888", marginBottom: 2, letterSpacing: "0.2px", textTransform: "uppercase" }}>
@@ -103,9 +108,16 @@ export default function ProductCard({
           <h3 style={{ fontSize: 11, fontWeight: 600, color: "#111", margin: "0 0 2px", lineHeight: 1.3, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {product.name}
           </h3>
-          <span style={{ fontSize: 11, fontWeight: 700, color: "#111" }}>
-            {displayPrice}
-          </span>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#111" }}>
+              {displayPrice}
+            </span>
+            {product.is_sold_out && (
+              <span style={{ fontSize: 10.5, fontWeight: 800, color: "#dc2626", letterSpacing: "0.5px", textTransform: "uppercase" }}>
+                SOLD OUT
+              </span>
+            )}
+          </div>
         </div>
       </Link>
 

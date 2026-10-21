@@ -338,6 +338,22 @@ export const Catalog: React.FC = () => {
     }
   };
 
+  // Instantly toggle product sold out status
+  const handleToggleSoldOut = async (id: number, isSoldOut: boolean) => {
+    try {
+      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      await axios.patch(`${API_URL}/products/${id}/sold-out`, {
+        is_sold_out: isSoldOut
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      message.success(`Product marked as ${isSoldOut ? "SOLD OUT" : "IN STOCK"}.`);
+      setProducts(prev => prev.map(p => p.id === id ? { ...p, is_sold_out: isSoldOut } : p));
+    } catch (err: any) {
+      message.error(err.response?.data?.message || err.response?.data?.detail || "Failed to update sold out status.");
+    }
+  };
+
   // Bulk status updates
   const handleBulkStatusUpdate = async (active: boolean) => {
     try {
@@ -432,6 +448,7 @@ export const Catalog: React.FC = () => {
       description: product.description,
       is_active: product.is_active,
       is_featured: product.is_featured,
+      is_sold_out: !!product.is_sold_out,
       base_price: product.base_price,
       brand_id: product.brand?.id,
       category_ids: product.categories.map((c: any) => c.id),
@@ -479,7 +496,7 @@ export const Catalog: React.FC = () => {
     setMainImageUid(null);
     setVariantBuilderOptions({});
     productForm.resetFields();
-    productForm.setFieldsValue({ is_active: true, is_featured: false, product_type: "simple", image_filenames: "" });
+    productForm.setFieldsValue({ is_active: true, is_featured: false, is_sold_out: false, product_type: "simple", image_filenames: "" });
     setIsProductModalOpen(true);
   };
 
@@ -1238,14 +1255,29 @@ export const Catalog: React.FC = () => {
       key: "status",
       width: 180,
       render: (record: any) => (
-        <Space>
+        <Space wrap>
           {record.is_active ? (
             <Tag icon={<CheckCircleOutlined />} color="success">ACTIVE</Tag>
           ) : (
             <Tag icon={<CloseCircleOutlined />} color="default">INACTIVE</Tag>
           )}
           {record.is_featured && <Tag color="warning">FEATURED</Tag>}
+          {record.is_sold_out && <Tag color="error">SOLD OUT</Tag>}
         </Space>
+      )
+    },
+    {
+      title: "Sold Out",
+      key: "is_sold_out",
+      width: 120,
+      render: (record: any) => (
+        <Switch
+          checked={!!record.is_sold_out}
+          checkedChildren="SOLD OUT"
+          unCheckedChildren="AVAILABLE"
+          style={{ backgroundColor: record.is_sold_out ? "#dc2626" : undefined }}
+          onChange={(checked) => handleToggleSoldOut(record.id, checked)}
+        />
       )
     },
     {
@@ -1941,7 +1973,7 @@ export const Catalog: React.FC = () => {
                 </Col>
               </Row>
               <Row gutter={16}>
-                <Col span={8}>
+                <Col span={6}>
                   <Form.Item name="product_type" label="Product Option Layout" rules={[{ required: true }]}>
                     <Select onChange={(val) => setProductType(val as any)}>
                       <Select.Option value="simple">Simple (Single Base Pricing)</Select.Option>
@@ -1949,17 +1981,22 @@ export const Catalog: React.FC = () => {
                     </Select>
                   </Form.Item>
                 </Col>
-                <Col span={5}>
+                <Col span={4}>
                   <Form.Item name="is_active" label="Storefront Active" valuePropName="checked">
                     <Switch />
                   </Form.Item>
                 </Col>
-                <Col span={6}>
+                <Col span={5}>
                   <Form.Item name="is_featured" label="Homepage Featured" valuePropName="checked">
                     <Switch />
                   </Form.Item>
                 </Col>
                 <Col span={5}>
+                  <Form.Item name="is_sold_out" label="Sold Out Status" valuePropName="checked">
+                    <Switch checkedChildren="SOLD OUT" unCheckedChildren="AVAILABLE" />
+                  </Form.Item>
+                </Col>
+                <Col span={4}>
                   <Form.Item name="listing_order" label="Listing Order" initialValue={0}>
                     <InputNumber style={{ width: '100%', borderRadius: 0 }} />
                   </Form.Item>

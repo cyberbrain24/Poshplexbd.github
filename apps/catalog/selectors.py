@@ -77,6 +77,7 @@ def get_product_details(slug: str = None, product: Product = None) -> dict:
         "description": product.description or "",
         "is_active": product.is_active,
         "is_featured": product.is_featured,
+        "is_sold_out": getattr(product, 'is_sold_out', False),
         "listing_order": product.listing_order,
         "base_price": float(product.base_price) if product.base_price else None,
         "price": float(product.base_price) if product.base_price else None,

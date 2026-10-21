@@ -104,6 +104,7 @@ class ProductCreateInputSchema(Schema):
     description: Optional[str] = ""
     is_active: Optional[bool] = True
     is_featured: Optional[bool] = False
+    is_sold_out: Optional[bool] = False
     listing_order: int = 0
     base_price: Optional[Decimal] = None
     brand_id: Optional[int] = None
@@ -139,6 +140,7 @@ class ProductDetailResponseSchema(Schema):
     description: str
     is_active: bool
     is_featured: bool
+    is_sold_out: bool = False
     listing_order: int
     base_price: Optional[Decimal]
     price: Optional[Decimal] = None
@@ -341,6 +343,7 @@ def post_product_endpoint(request, data: ProductCreateInputSchema):
                 description=data.description,
                 is_active=data.is_active,
                 is_featured=data.is_featured,
+                is_sold_out=getattr(data, 'is_sold_out', False) or False,
                 listing_order=data.listing_order,
                 base_price=data.base_price,
                 brand_id=data.brand_id,
@@ -494,6 +497,8 @@ def update_product_endpoint(request, slug: str, data: ProductCreateInputSchema):
             product.description = data.description
             product.is_active = data.is_active
             product.is_featured = data.is_featured
+            if hasattr(data, 'is_sold_out') and data.is_sold_out is not None:
+                product.is_sold_out = data.is_sold_out
             product.listing_order = data.listing_order
             product.base_price = data.base_price
             product.brand_id = data.brand_id
@@ -658,6 +663,25 @@ def update_product_endpoint(request, slug: str, data: ProductCreateInputSchema):
         raise HttpError(400, ve.messages[0] if hasattr(ve, 'messages') else str(ve))
     except Exception as e:
         raise HttpError(400, str(e))
+
+class ToggleSoldOutSchema(Schema):
+    is_sold_out: bool
+
+@router.patch("/products/{product_id}/sold-out", auth=BearerAuth())
+def toggle_product_sold_out(request, product_id: int, data: ToggleSoldOutSchema):
+    """Instantly toggle sold out status for a product (Admin only)."""
+    enforce_permission(request, "catalog", "edit_catalog")
+    product = get_object_or_404(Product, id=product_id)
+    product.is_sold_out = data.is_sold_out
+    product.save(update_fields=['is_sold_out', 'updated_at'])
+
+    from django.core.cache import cache
+    if hasattr(cache, 'delete_pattern'):
+        cache.delete_pattern("products_list_*")
+    else:
+        cache.clear()
+
+    return {"success": True, "id": product.id, "is_sold_out": product.is_sold_out}
 
 @router.delete("/products/{slug}", auth=BearerAuth())
 def delete_product_endpoint(request, slug: str):

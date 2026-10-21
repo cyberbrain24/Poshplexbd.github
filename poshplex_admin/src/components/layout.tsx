@@ -60,7 +60,7 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
     { key: "/fulfillment", icon: <CarOutlined />, label: "Fulfillment Queue", module: "orders" },
     { key: "/crm", icon: <TeamOutlined />, label: "CRM Profiles", module: "crm" },
     { key: "/catalog", icon: <AppstoreOutlined />, label: "Catalog Manager", module: "catalog" },
-    { key: "/promo-codes", icon: <GiftOutlined />, label: "Promo Codes", module: "marketing" },
+    { key: "/promo-codes", icon: <GiftOutlined />, label: "Discount Engine", module: "marketing" },
     { key: "/finance", icon: <AuditOutlined />, label: "Financial Ledger", module: "finance" },
     { key: "/locations", icon: <GlobalOutlined />, label: "Locations & Zones", module: "orders" },
     { key: "/tasks", icon: <CheckSquareOutlined />, label: "Task Management", module: "tasks" },

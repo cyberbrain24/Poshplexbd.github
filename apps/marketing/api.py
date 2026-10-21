@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from ninja import Router, Schema
 from ninja.errors import HttpError
-from apps.marketing.models import PromoCode, PromoUsageHistory
+from apps.marketing.models import PromoCode, PromoUsageHistory, ComboOffer
 from apps.core.api import BearerAuth, enforce_permission
 
 router = Router()
@@ -54,6 +54,30 @@ class ValidateCouponResponseSchema(Schema):
     max_discount_amount: Optional[Decimal] = None
     membership_tier: Optional[str] = None
     error_message: Optional[str] = None
+
+class ComboOfferResponseSchema(Schema):
+    id: int
+    name: str
+    slug: str
+    items_count: int
+    discount_percentage: Decimal
+    free_delivery: bool
+    badge: Optional[str] = None
+    subtitle: Optional[str] = None
+    perks: List[str] = []
+    is_active: bool
+    listing_order: int
+
+class ComboOfferInputSchema(Schema):
+    name: str
+    items_count: int = 2
+    discount_percentage: Decimal = Decimal('0.00')
+    free_delivery: bool = False
+    badge: Optional[str] = ""
+    subtitle: Optional[str] = ""
+    perks: Optional[List[str]] = []
+    is_active: Optional[bool] = True
+    listing_order: Optional[int] = 0
 
 # --- Endpoints ---
 
@@ -228,3 +252,70 @@ def validate_promo_endpoint(request, data: PromoValidateRequestSchema):
         "reward_type": promo.reward_type,
         "message": "Valid code"
     }
+
+# --- Combo Offer Endpoints ---
+
+@router.get("/combos", response=List[ComboOfferResponseSchema])
+def list_active_combos(request):
+    """Public endpoint to list active combo offers for storefront product pages."""
+    return ComboOffer.objects.filter(is_active=True).order_by('listing_order', 'items_count')
+
+@router.get("/admin/combos", response=List[ComboOfferResponseSchema], auth=BearerAuth())
+def list_admin_combos(request):
+    """List all combo offers including inactive (Admin only)."""
+    enforce_permission(request, "marketing", "manage_campaigns")
+    return ComboOffer.objects.all().order_by('listing_order', 'items_count')
+
+@router.post("/admin/combos", response=ComboOfferResponseSchema, auth=BearerAuth())
+def create_combo_offer(request, data: ComboOfferInputSchema):
+    """Create a new combo offer tier (Admin only)."""
+    enforce_permission(request, "marketing", "manage_campaigns")
+    try:
+        combo = ComboOffer.objects.create(
+            name=data.name,
+            items_count=data.items_count,
+            discount_percentage=data.discount_percentage,
+            free_delivery=data.free_delivery,
+            badge=data.badge or "",
+            subtitle=data.subtitle or "",
+            perks=data.perks or [],
+            is_active=data.is_active if data.is_active is not None else True,
+            listing_order=data.listing_order or 0
+        )
+        return combo
+    except Exception as e:
+        raise HttpError(400, str(e))
+
+@router.put("/admin/combos/{combo_id}", response=ComboOfferResponseSchema, auth=BearerAuth())
+def update_combo_offer(request, combo_id: int, data: ComboOfferInputSchema):
+    """Update a combo offer tier (Admin only)."""
+    enforce_permission(request, "marketing", "manage_campaigns")
+    combo = get_object_or_404(ComboOffer, id=combo_id)
+    try:
+        combo.name = data.name
+        combo.items_count = data.items_count
+        combo.discount_percentage = data.discount_percentage
+        combo.free_delivery = data.free_delivery
+        combo.badge = data.badge or ""
+        combo.subtitle = data.subtitle or ""
+        combo.perks = data.perks or []
+        if data.is_active is not None:
+            combo.is_active = data.is_active
+        if data.listing_order is not None:
+            combo.listing_order = data.listing_order
+        combo.save()
+        return combo
+    except Exception as e:
+        raise HttpError(400, str(e))
+
+@router.delete("/admin/combos/{combo_id}", auth=BearerAuth())
+def delete_combo_offer(request, combo_id: int):
+    """Delete a combo offer tier (Admin only)."""
+    enforce_permission(request, "marketing", "manage_campaigns")
+    combo = get_object_or_404(ComboOffer, id=combo_id)
+    try:
+        combo.delete()
+        return {"success": True}
+    except Exception as e:
+        raise HttpError(400, str(e))
+

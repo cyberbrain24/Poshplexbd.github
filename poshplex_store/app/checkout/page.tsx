@@ -224,7 +224,8 @@ export default function CheckoutPage() {
           setFormData(prev => {
             const validThana = data.find((t: any) => t.id === prev.thanaId);
             if (validThana) {
-              setShippingCost(Number(validThana.shipping_cost) || 0);
+              const isBundleFree = typeof window !== "undefined" && localStorage.getItem("poshplex_bundle_free_shipping") === "true";
+              setShippingCost(isBundleFree ? 0 : (Number(validThana.shipping_cost) || 0));
               return prev;
             }
             setShippingCost(0);
@@ -362,6 +363,9 @@ export default function CheckoutPage() {
         });
 
         clearCart();
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("poshplex_bundle_free_shipping");
+        }
       } else {
         const errorData = await res.json();
         throw new Error(errorData.detail || "Failed to place order. Please try again.");
