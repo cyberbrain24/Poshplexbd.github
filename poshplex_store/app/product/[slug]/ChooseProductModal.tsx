@@ -137,7 +137,7 @@ export default function ChooseProductModal({
     if (isOpen) {
       if (initialProduct) {
         setSelectedProductId(initialProduct.id);
-        setSizingProduct(initialProduct);
+        setSizingProduct(null);
 
         const initAttrs: { size?: string; color?: string } = {};
         if (initialVariant?.attributes) {
@@ -233,24 +233,11 @@ export default function ChooseProductModal({
   };
 
   // When a product card is clicked in the grid:
-  // If product has variations and is not yet configured, immediately open sizing view so user can choose size & color!
+  // Select product (marked with checkbox) without navigating away to the sizing view
   const handleToggleProduct = (product: any) => {
     if (product.is_sold_out) {
       toast.error("This product is currently sold out.");
       return;
-    }
-
-    const { hasVariants } = getProductVariationRequirements(product);
-
-    // If product requires variations and is not configured yet, open sizing view immediately!
-    if (hasVariants) {
-      const isAlreadyCurrent = selectedProductId === product.id;
-      const isAlreadyConfigured = isAlreadyCurrent && isProductConfigured(product, modalAttributes, selectedVariantId);
-
-      if (!isAlreadyConfigured) {
-        handleOpenSizingView(null, product);
-        return;
-      }
     }
 
     if (selectedProductId === product.id) {
@@ -260,6 +247,8 @@ export default function ChooseProductModal({
       setErrorNotice(null);
     } else {
       setSelectedProductId(product.id);
+      setSelectedVariantId(null);
+      setModalAttributes({});
       setErrorNotice(null);
     }
   };
