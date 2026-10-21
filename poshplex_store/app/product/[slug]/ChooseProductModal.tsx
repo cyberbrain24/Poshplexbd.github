@@ -197,13 +197,62 @@ export default function ChooseProductModal({
     return products.find(p => p.id === selectedProductId) || null;
   }, [products, selectedProductId]);
 
+  // Helper to determine if a product has variations and what they are (case-insensitive substring check)
+  const getProductVariationRequirements = (product: any) => {
+    if (!product) return { hasColor: false, hasSize: false, hasVariants: false, activeVariants: [] };
+    const activeVariants = (product.variants || []).filter((v: any) => v.is_active !== false);
+
+    const hasColor = activeVariants.some((v: any) => 
+      Object.keys(v.attributes || {}).some(k => {
+        const lower = k.toLowerCase();
+        return lower.includes("color") || lower.includes("colour");
+      })
+    );
+
+    const hasSize = activeVariants.some((v: any) => 
+      Object.keys(v.attributes || {}).some(k => {
+        const lower = k.toLowerCase();
+        return lower.includes("size");
+      })
+    );
+
+    const hasVariants = activeVariants.length > 1 || hasColor || hasSize || activeVariants.some((v: any) => Object.keys(v.attributes || {}).length > 0);
+
+    return { hasColor, hasSize, hasVariants, activeVariants };
+  };
+
+  // Helper to check if a product has all required variations chosen
+  const isProductConfigured = (product: any, attrs: { size?: string; color?: string }, variantId: number | null) => {
+    if (!product) return false;
+    const { hasColor, hasSize, hasVariants } = getProductVariationRequirements(product);
+    if (!hasVariants) return true;
+    if (hasColor && !attrs.color) return false;
+    if (hasSize && !attrs.size) return false;
+    if (!variantId) return false;
+    return true;
+  };
+
   // When a product card is clicked in the grid:
-  // DO NOT pre-select variation by default! Customer must pick their size & color!
+  // If product has variations and is not yet configured, immediately open sizing view so user can choose size & color!
   const handleToggleProduct = (product: any) => {
     if (product.is_sold_out) {
       toast.error("This product is currently sold out.");
       return;
     }
+
+    const { hasVariants } = getProductVariationRequirements(product);
+
+    // If product requires variations and is not configured yet, open sizing view immediately!
+    if (hasVariants) {
+      const isAlreadyCurrent = selectedProductId === product.id;
+      const isAlreadyConfigured = isAlreadyCurrent && isProductConfigured(product, modalAttributes, selectedVariantId);
+
+      if (!isAlreadyConfigured) {
+        handleOpenSizingView(null, product);
+        return;
+      }
+    }
+
     if (selectedProductId === product.id) {
       setSelectedProductId(null);
       setSelectedVariantId(null);
@@ -211,8 +260,6 @@ export default function ChooseProductModal({
       setErrorNotice(null);
     } else {
       setSelectedProductId(product.id);
-      setSelectedVariantId(null);
-      setModalAttributes({});
       setErrorNotice(null);
     }
   };
@@ -343,8 +390,10 @@ export default function ChooseProductModal({
   const handleConfirmSizingView = () => {
     if (!sizingProduct) return;
 
-    const needsColor = availableColors.length > 0 && !modalAttributes.color;
-    const needsSize = availableSizes.length > 0 && !modalAttributes.size;
+    const { hasColor, hasSize, activeVariants } = getProductVariationRequirements(sizingProduct);
+
+    const needsColor = hasColor && !modalAttributes.color;
+    const needsSize = hasSize && !modalAttributes.size;
 
     if (needsColor && needsSize) {
       toast.error("Please select a size and color first");
@@ -358,8 +407,6 @@ export default function ChooseProductModal({
       toast.error("Please select a size first");
       return;
     }
-
-    const activeVariants = (sizingProduct.variants || []).filter((v: any) => v.is_active !== false);
 
     // Find the best matched variant based on selected size and color
     const matched = activeVariants.find((v: any) => {
@@ -389,13 +436,7 @@ export default function ChooseProductModal({
 
   // Helper to get variation button info for each product card in the 2-column grid
   const getProductVariationInfo = (product: any, isSelected: boolean) => {
-    const activeVariants = (product.variants || []).filter((v: any) => v.is_active !== false);
-    const hasColor = activeVariants.some((v: any) => 
-      Object.keys(v.attributes || {}).some(k => k.toLowerCase().includes("color") || k.toLowerCase().includes("colour"))
-    );
-    const hasSize = activeVariants.some((v: any) => 
-      Object.keys(v.attributes || {}).some(k => k.toLowerCase().includes("size"))
-    );
+    const { hasColor, hasSize, hasVariants } = getProductVariationRequirements(product);
 
     let defaultTitle = "Select Option";
     if (hasColor && hasSize) {
@@ -414,7 +455,7 @@ export default function ChooseProductModal({
       isCurrent &&
       (!hasSize || chosenSize) &&
       (!hasColor || chosenColor) &&
-      selectedVariantId
+      (!hasVariants || selectedVariantId)
     );
 
     const selectionDetails = [chosenSize, chosenColor].filter(Boolean).join(" • ");
@@ -422,6 +463,7 @@ export default function ChooseProductModal({
     return {
       hasColor,
       hasSize,
+      hasVariants,
       defaultTitle,
       hasConfigured,
       selectionDetails
@@ -435,33 +477,40 @@ export default function ChooseProductModal({
       return;
     }
 
-    const activeVariants = (selectedProduct.variants || []).filter((v: any) => v.is_active !== false);
-    const hasColor = activeVariants.some((v: any) => v.attributes?.color || v.attributes?.Color);
-    const hasSize = activeVariants.some((v: any) => v.attributes?.size || v.attributes?.Size);
+    const { hasColor, hasSize, hasVariants, activeVariants } = getProductVariationRequirements(selectedProduct);
 
-    const needsColor = hasColor && !modalAttributes.color;
-    const needsSize = hasSize && !modalAttributes.size;
+    if (hasVariants) {
+      const needsColor = hasColor && !modalAttributes.color;
+      const needsSize = hasSize && !modalAttributes.size;
 
-    if (needsColor && needsSize) {
-      const msg = "Please select size and color variation first";
-      setErrorNotice(msg);
-      toast.error(msg);
-      handleOpenSizingView(null, selectedProduct);
-      return;
-    }
-    if (needsColor) {
-      const msg = "Please select a color variation first";
-      setErrorNotice(msg);
-      toast.error(msg);
-      handleOpenSizingView(null, selectedProduct);
-      return;
-    }
-    if (needsSize) {
-      const msg = "Please select a size variation first";
-      setErrorNotice(msg);
-      toast.error(msg);
-      handleOpenSizingView(null, selectedProduct);
-      return;
+      if (needsColor && needsSize) {
+        const msg = `Please select size and color for ${selectedProduct.name} first`;
+        setErrorNotice(msg);
+        toast.error(msg);
+        handleOpenSizingView(null, selectedProduct);
+        return;
+      }
+      if (needsColor) {
+        const msg = `Please select a color for ${selectedProduct.name} first`;
+        setErrorNotice(msg);
+        toast.error(msg);
+        handleOpenSizingView(null, selectedProduct);
+        return;
+      }
+      if (needsSize) {
+        const msg = `Please select a size for ${selectedProduct.name} first`;
+        setErrorNotice(msg);
+        toast.error(msg);
+        handleOpenSizingView(null, selectedProduct);
+        return;
+      }
+      if (!selectedVariantId) {
+        const msg = `Please select variations for ${selectedProduct.name} first`;
+        setErrorNotice(msg);
+        toast.error(msg);
+        handleOpenSizingView(null, selectedProduct);
+        return;
+      }
     }
 
     // Variations confirmed!
@@ -1257,7 +1306,9 @@ export default function ChooseProductModal({
                 </span>
                 {selectedProduct && (
                   <span style={{ fontSize: 10.5, fontWeight: 700, color: (modalAttributes.size || modalAttributes.color) ? "#16a34a" : "#e11d48" }}>
-                    {[modalAttributes.size, modalAttributes.color].filter(Boolean).join(" • ") || "No variation selected"}
+                    {[modalAttributes.size, modalAttributes.color].filter(Boolean).join(" • ") || (
+                      getProductVariationRequirements(selectedProduct).hasVariants ? "Variation required" : "Ready"
+                    )}
                   </span>
                 )}
               </div>
@@ -1270,26 +1321,49 @@ export default function ChooseProductModal({
               )}
 
               {/* Prominent Sticky Confirm Product Button */}
-              <button
-                onClick={handleConfirmProduct}
-                disabled={!selectedProductId}
-                style={{
-                  width: "100%",
-                  padding: "12px",
-                  backgroundColor: selectedProductId ? "#111111" : "#cccccc",
-                  color: "#ffffff",
-                  border: "none",
-                  borderRadius: "4px",
-                  fontSize: 12.5,
-                  fontWeight: 800,
-                  textTransform: "uppercase",
-                  cursor: selectedProductId ? "pointer" : "not-allowed",
-                  letterSpacing: "0.5px",
-                  transition: "background 0.15s"
-                }}
-              >
-                Confirm Product
-              </button>
+              {(() => {
+                const isConfigured = selectedProduct
+                  ? isProductConfigured(selectedProduct, modalAttributes, selectedVariantId)
+                  : false;
+                const requiresVariation = selectedProduct
+                  ? getProductVariationRequirements(selectedProduct).hasVariants
+                  : false;
+
+                const btnText = !selectedProductId
+                  ? "Confirm Product"
+                  : requiresVariation && !isConfigured
+                  ? "Select Variation First"
+                  : "Confirm Product";
+
+                const btnBg = !selectedProductId
+                  ? "#cccccc"
+                  : requiresVariation && !isConfigured
+                  ? "#e11d48"
+                  : "#111111";
+
+                return (
+                  <button
+                    onClick={handleConfirmProduct}
+                    disabled={!selectedProductId}
+                    style={{
+                      width: "100%",
+                      padding: "12px",
+                      backgroundColor: btnBg,
+                      color: "#ffffff",
+                      border: "none",
+                      borderRadius: "4px",
+                      fontSize: 12.5,
+                      fontWeight: 800,
+                      textTransform: "uppercase",
+                      cursor: selectedProductId ? "pointer" : "not-allowed",
+                      letterSpacing: "0.5px",
+                      transition: "background 0.15s"
+                    }}
+                  >
+                    {btnText}
+                  </button>
+                );
+              })()}
             </div>
           </div>
         )}
