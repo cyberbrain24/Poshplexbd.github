@@ -53,6 +53,7 @@ def get_product_details(slug: str = None, product: Product = None) -> dict:
     size_guide = None
     if product.size_guide_template:
         size_guide = {
+            "name": product.size_guide_template.name,
             "headers": product.size_guide_template.headers,
             "rows": product.size_guide_template.rows,
             "tables": product.size_guide_template.tables
