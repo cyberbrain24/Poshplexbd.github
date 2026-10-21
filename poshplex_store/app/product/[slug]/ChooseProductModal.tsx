@@ -439,14 +439,41 @@ export default function ChooseProductModal({
   // Active single product image URL
   const currentSizingImgUrl = sizingProductImages[sizingActiveImgIdx]?.url || sizingProductImages[0]?.url;
 
-  // Size guide data resolution
-  const sizeGuideHeaders = sizingProduct?.size_guide?.headers || ["Size", "Chest", "Length", "Sleeve"];
-  const sizeGuideRows = sizingProduct?.size_guide?.rows || [
-    ["M", "40\"", "28\"", "8\""],
-    ["L", "42\"", "29\"", "8.5\""],
-    ["XL", "44\"", "30\"", "9\""],
-    ["XXL", "46\"", "31\"", "9.5\""]
-  ];
+  // Size guide data resolution with multi-table support
+  const sizingProductTables = useMemo(() => {
+    let guide = sizingProduct?.size_guide;
+    if (typeof guide === "string") {
+      try {
+        guide = JSON.parse(guide);
+      } catch {
+        guide = null;
+      }
+    }
+    if (guide?.tables && Array.isArray(guide.tables) && guide.tables.length > 0) {
+      return guide.tables.map((t: any, idx: number) => ({
+        name: t.name || (guide.tables.length > 1 ? `Table ${idx + 1}` : "Size Guide"),
+        headers: Array.isArray(t.headers) ? t.headers : typeof t.headers === "string" ? t.headers.split(",").map((s: string) => s.trim()) : ["Size"],
+        rows: Array.isArray(t.rows) ? t.rows : typeof t.rows === "string" ? t.rows.split("\n").filter((l: string) => l.trim() !== "").map((l: string) => l.split(",").map((s: string) => s.trim())) : []
+      }));
+    }
+    if (guide?.headers && Array.isArray(guide.headers) && guide.headers.length > 0) {
+      return [{
+        name: guide.name || "Size Guide",
+        headers: guide.headers,
+        rows: Array.isArray(guide.rows) ? guide.rows : []
+      }];
+    }
+    return [{
+      name: "Standard Measurements",
+      headers: ["Size", "Chest", "Length", "Sleeve"],
+      rows: [
+        ["M", "40\"", "28\"", "8\""],
+        ["L", "42\"", "29\"", "8.5\""],
+        ["XL", "44\"", "30\"", "9\""],
+        ["XXL", "46\"", "31\"", "9.5\""]
+      ]
+    }];
+  }, [sizingProduct]);
 
   return createPortal(
     <div className="cpm-backdrop">
@@ -677,35 +704,48 @@ export default function ChooseProductModal({
 
               {/* 5. Product Size Chart */}
               <div style={{ borderTop: "1px solid rgba(0,0,0,0.08)", paddingTop: 14, marginTop: 14 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                   <h5 style={{ fontSize: 12, fontWeight: 800, margin: 0, textTransform: "uppercase", color: "#111", letterSpacing: "0.5px" }}>
                     Size Chart (Inches)
                   </h5>
-                  <span style={{ fontSize: 10, color: "#666", fontWeight: 600 }}>Standard Measurements</span>
+                  <span style={{ fontSize: 10, color: "#666", fontWeight: 600 }}>
+                    {sizingProduct?.size_guide?.name || "Product Measurements"}
+                  </span>
                 </div>
-                <div style={{ width: "100%", overflowX: "auto", border: "1px solid rgba(0,0,0,0.12)", borderRadius: 6, backgroundColor: "#fff" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
-                    <thead>
-                      <tr>
-                        {sizeGuideHeaders.map((h: string) => (
-                          <th key={h} style={{ borderBottom: "1px solid rgba(0,0,0,0.1)", padding: "7px 10px", textAlign: "left", fontWeight: 700, color: "#111", background: "#f8f8f8", textTransform: "uppercase", fontSize: 10, letterSpacing: "0.5px" }}>
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sizeGuideRows.map((row: string[], rIdx: number) => (
-                        <tr key={rIdx} style={{ borderBottom: "1px solid rgba(0,0,0,0.06)", backgroundColor: rIdx % 2 === 1 ? "#fafafa" : "#fff" }}>
-                          {row.map((col: string, cIdx: number) => (
-                            <td key={cIdx} style={{ padding: "7px 10px", color: cIdx === 0 ? "#111" : "#555", fontWeight: cIdx === 0 ? 700 : 500 }}>
-                              {col}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {sizingProductTables.map((table: any, tIdx: number) => (
+                    <div key={tIdx}>
+                      {sizingProductTables.length > 1 && (
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "#111", textTransform: "uppercase", marginBottom: 5 }}>
+                          {table.name}
+                        </div>
+                      )}
+                      <div style={{ width: "100%", overflowX: "auto", border: "1px solid rgba(0,0,0,0.12)", borderRadius: 6, backgroundColor: "#fff" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+                          <thead>
+                            <tr>
+                              {table.headers.map((h: string) => (
+                                <th key={h} style={{ borderBottom: "1px solid rgba(0,0,0,0.1)", padding: "7px 10px", textAlign: "left", fontWeight: 700, color: "#111", background: "#f8f8f8", textTransform: "uppercase", fontSize: 10, letterSpacing: "0.5px", whiteSpace: "nowrap" }}>
+                                  {h}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {table.rows.map((row: string[], rIdx: number) => (
+                              <tr key={rIdx} style={{ borderBottom: "1px solid rgba(0,0,0,0.06)", backgroundColor: rIdx % 2 === 1 ? "#fafafa" : "#fff" }}>
+                                {row.map((col: string, cIdx: number) => (
+                                  <td key={cIdx} style={{ padding: "7px 10px", color: cIdx === 0 ? "#111" : "#555", fontWeight: cIdx === 0 ? 700 : 500, whiteSpace: "nowrap" }}>
+                                    {col}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

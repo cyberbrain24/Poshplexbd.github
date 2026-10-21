@@ -950,7 +950,7 @@ export default function ProductDetailClient({
                       <div className="size-guide-container" style={{ width: "100%", display: "flex", flexDirection: "column", gap: 14 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
                           <span style={{ fontSize: 12, color: "#666", fontWeight: 600 }}>
-                            Relaxed Drop Shoulder Fit (Inches)
+                            {product.size_guide?.name || "Size Guide (Inches)"}
                           </span>
                           <button
                             type="button"
