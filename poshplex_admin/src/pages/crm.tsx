@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Table,
   Card,
@@ -28,6 +28,7 @@ import {
   Alert,
   Upload,
   Popconfirm,
+  Spin,
 } from "antd";
 import {
   UserOutlined,
@@ -83,6 +84,41 @@ const Reviews: React.FC = () => {
   const [createImageList, setCreateImageList] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const productSearchTimerRef = useRef<any>(null);
+
+  const fetchProductsForReview = async (searchQuery?: string) => {
+    setLoadingProducts(true);
+    try {
+      const token =
+        localStorage.getItem("poshplex_access_token") ||
+        localStorage.getItem("poshplex_token") ||
+        "admin_imran";
+      const params: any = { limit: 1000 };
+      if (searchQuery && searchQuery.trim()) {
+        params.search = searchQuery.trim();
+      }
+      const res = await axios.get(`${CATALOG_URL}/products`, {
+        params,
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const list = res.data?.results || (Array.isArray(res.data) ? res.data : []);
+      setProducts(list);
+    } catch (err) {
+      console.error("Failed to load products for review dropdown", err);
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
+
+  const handleProductSearch = (query: string) => {
+    if (productSearchTimerRef.current) {
+      clearTimeout(productSearchTimerRef.current);
+    }
+    productSearchTimerRef.current = setTimeout(() => {
+      fetchProductsForReview(query);
+    }, 350);
+  };
 
   const fetchReviews = async () => {
     setLoading(true);
@@ -169,19 +205,22 @@ const Reviews: React.FC = () => {
     setSelectedCreateProductId(null);
     setIsCreateModalOpen(true);
 
-    const token = localStorage.getItem("poshplex_access_token");
+    const token =
+      localStorage.getItem("poshplex_access_token") ||
+      localStorage.getItem("poshplex_token") ||
+      "admin_imran";
+
+    // Decoupled fetches so a failure in customers never blocks products
+    fetchProductsForReview();
+
     try {
-      const [custRes, prodRes] = await Promise.all([
-        axios.get(`${CRM_URL}/customers`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        axios.get(`${CATALOG_URL}/products?limit=100`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-      ]);
-      setCustomers(custRes.data);
-      setProducts(prodRes.data.results || []);
-    } catch (err) {}
+      const custRes = await axios.get(`${CRM_URL}/customers`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setCustomers(Array.isArray(custRes.data) ? custRes.data : []);
+    } catch (err) {
+      console.error("Failed to load customers for review modal", err);
+    }
   };
 
   const handleCreateSubmit = async (values: any) => {
@@ -469,25 +508,67 @@ const Reviews: React.FC = () => {
           <Form.Item
             label="Product"
             name="product_id"
-            rules={[{ required: true }]}
+            rules={[{ required: true, message: "Please select a product" }]}
           >
             <Select
               showSearch
-              placeholder="Select a product"
-              optionFilterProp="children"
+              placeholder="Search by product name, SKU, or category..."
+              loading={loadingProducts}
               filterOption={(input, option: any) => {
-                const text = Array.isArray(option.children) 
-                  ? option.children.join("") 
-                  : (option.children || "");
-                return String(text).toLowerCase().includes(input.toLowerCase());
+                const searchHaystack = String(option?.["data-search"] || option?.title || "").toLowerCase();
+                const terms = input.toLowerCase().trim().split(/\s+/);
+                return terms.every((t) => searchHaystack.includes(t));
               }}
+              onSearch={handleProductSearch}
               onChange={(val) => setSelectedCreateProductId(val)}
+              notFoundContent={loadingProducts ? <Spin size="small" /> : "No products found in catalog"}
+              allowClear
+              optionLabelProp="label"
+              popupMatchSelectWidth={false}
+              style={{ width: "100%" }}
             >
-              {products.map((p) => (
-                <Select.Option key={p.id} value={p.id}>
-                  {p.name}
-                </Select.Option>
-              ))}
+              {products.map((p) => {
+                const catName = p.category?.name || p.categories?.[0]?.name;
+                const thumb = p.images?.find((i: any) => i.is_main)?.url || p.images?.[0]?.url;
+                return (
+                  <Select.Option 
+                    key={p.id} 
+                    value={p.id}
+                    label={`${p.name}${p.sku ? ` (${p.sku})` : ""}`}
+                    data-search={`${p.name} ${p.sku || ""} ${catName || ""} ${p.id}`}
+                    title={`${p.name} ${p.sku || ""}`}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "3px 0" }}>
+                      {thumb ? (
+                        <img 
+                          src={thumb} 
+                          alt={p.name} 
+                          style={{ width: 28, height: 28, objectFit: "cover", borderRadius: 4, flexShrink: 0, border: "1px solid var(--border-glass)" }} 
+                        />
+                      ) : (
+                        <div style={{ width: 28, height: 28, background: "rgba(255,255,255,0.08)", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, color: "var(--text-muted)", flexShrink: 0 }}>
+                          PROD
+                        </div>
+                      )}
+                      <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1, lineHeight: 1.25 }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                          <span style={{ fontWeight: 600, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {p.name}
+                          </span>
+                          {p.is_sold_out && (
+                            <Tag color="error" style={{ fontSize: 9, padding: "0 4px", lineHeight: "16px", margin: 0 }}>SOLD OUT</Tag>
+                          )}
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "var(--text-muted)" }}>
+                          {p.sku && <span>SKU: {p.sku}</span>}
+                          {catName && <span>• {catName}</span>}
+                          {p.base_price && <span>• ৳{Math.round(p.base_price)}</span>}
+                        </div>
+                      </div>
+                    </div>
+                  </Select.Option>
+                );
+              })}
             </Select>
           </Form.Item>
           <Form.Item
