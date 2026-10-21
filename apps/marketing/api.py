@@ -255,15 +255,76 @@ def validate_promo_endpoint(request, data: PromoValidateRequestSchema):
 
 # --- Combo Offer Endpoints ---
 
+def seed_default_combos():
+    """Auto-seeds standard bundle tiers if no combo offers exist in the database."""
+    defaults = [
+        {
+            "name": "Duo",
+            "items_count": 2,
+            "discount_percentage": Decimal('5.00'),
+            "free_delivery": False,
+            "badge": "POPULAR",
+            "subtitle": "Mix & Match Any 2 Products From Our Collection",
+            "perks": ["SAVE 5%", "Mix & Match Any 2 Products"],
+            "is_active": True,
+            "listing_order": 1
+        },
+        {
+            "name": "Trio",
+            "items_count": 3,
+            "discount_percentage": Decimal('10.00'),
+            "free_delivery": True,
+            "badge": "MOST POPULAR",
+            "subtitle": "Mix & Match Any 3 Products From Our Collection",
+            "perks": ["SAVE 10%", "FREE DELIVERY ALL OVER BANGLADESH", "Fan Favorite Bundle"],
+            "is_active": True,
+            "listing_order": 2
+        },
+        {
+            "name": "4 Pack",
+            "items_count": 4,
+            "discount_percentage": Decimal('12.00'),
+            "free_delivery": True,
+            "badge": "BEST VALUE",
+            "subtitle": "Mix & Match Any 4 Products From Our Collection",
+            "perks": ["SAVE 12%", "FREE DELIVERY ALL OVER BANGLADESH", "Best Balance of Value & Variety", "Perfect for Building Your Rotation"],
+            "is_active": True,
+            "listing_order": 3
+        },
+        {
+            "name": "5 Pack",
+            "items_count": 5,
+            "discount_percentage": Decimal('15.00'),
+            "free_delivery": True,
+            "badge": "MAXIMUM VALUE",
+            "subtitle": "Mix & Match Any 5 Products From Our Collection",
+            "perks": ["SAVE 15%", "FREE DELIVERY ALL OVER BANGLADESH", "Lowest Price Per Piece", "Ultimate Stock-Up Bundle"],
+            "is_active": True,
+            "listing_order": 4
+        }
+    ]
+    created = []
+    for d in defaults:
+        obj, _ = ComboOffer.objects.get_or_create(
+            name=d["name"],
+            defaults=d
+        )
+        created.append(obj)
+    return created
+
 @router.get("/combos", response=List[ComboOfferResponseSchema])
 def list_active_combos(request):
     """Public endpoint to list active combo offers for storefront product pages."""
+    if not ComboOffer.objects.exists():
+        seed_default_combos()
     return ComboOffer.objects.filter(is_active=True).order_by('listing_order', 'items_count')
 
 @router.get("/admin/combos", response=List[ComboOfferResponseSchema], auth=BearerAuth())
 def list_admin_combos(request):
     """List all combo offers including inactive (Admin only)."""
     enforce_permission(request, "marketing", "manage_campaigns")
+    if not ComboOffer.objects.exists():
+        seed_default_combos()
     return ComboOffer.objects.all().order_by('listing_order', 'items_count')
 
 @router.post("/admin/combos", response=ComboOfferResponseSchema, auth=BearerAuth())
