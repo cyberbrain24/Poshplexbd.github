@@ -226,9 +226,13 @@ export default function ProductDetailClient({
     if (bundleData.isBundle) {
       if (!bundleData.isComplete) {
         if (bundleData.isSlot0SizeMissing) {
-          toast.error(`Please select a size for ${product.name} first.`);
-          const el = document.querySelector(".bms-active-slots-box") || document.querySelector(".product-selectors-container");
-          if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+          toast.error(`Please select options for ${product.name} first.`);
+          const el = document.getElementById("product-variations-section") || document.querySelector(".product-selectors-container");
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+            el.classList.add("variation-highlight-flash");
+            setTimeout(() => el.classList.remove("variation-highlight-flash"), 1500);
+          }
         } else {
           toast.error(`Please select all products to complete your ${bundleData.tier.name} bundle.`);
         }
@@ -314,7 +318,14 @@ export default function ProductDetailClient({
     : "SELECT OPTIONS";
 
   const handlePlaceholderClick = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    const el = document.getElementById("product-variations-section") || document.querySelector(".product-selectors-container");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("variation-highlight-flash");
+      setTimeout(() => el.classList.remove("variation-highlight-flash"), 1500);
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   return (
@@ -515,7 +526,7 @@ export default function ProductDetailClient({
 
           {/* ── Dynamic Attribute selectors grouped in boxes ── */}
           {Object.keys(attributeGroups).length > 0 && (
-            <div className="product-selectors-container" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div id="product-variations-section" className="product-selectors-container" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {(() => {
                 const sorted = Object.entries(attributeGroups).sort(([a], [b]) => {
                   const wA = getAttributeWeight(a, initialAttributes);
@@ -803,8 +814,12 @@ export default function ProductDetailClient({
                   onClick={() => {
                     if (bundleData.isSlot0SizeMissing) {
                       toast.error(`Please select options for ${product.name} first.`);
-                      const el = document.querySelector(".bms-active-slots-box") || document.querySelector(".product-selectors-container");
-                      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+                      const el = document.getElementById("product-variations-section") || document.querySelector(".product-selectors-container");
+                      if (el) {
+                        el.scrollIntoView({ behavior: "smooth", block: "center" });
+                        el.classList.add("variation-highlight-flash");
+                        setTimeout(() => el.classList.remove("variation-highlight-flash"), 1500);
+                      }
                     } else {
                       toast.error("Please click '+ Choose product' to fill all bundle slots.");
                     }

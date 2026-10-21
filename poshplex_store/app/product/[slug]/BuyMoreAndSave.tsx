@@ -234,6 +234,27 @@ export default function BuyMoreAndSave({
     });
   }, [currentProduct, initialAttributes, selectedAttributes]);
 
+  const isAllCurrentAttributesSelected = useMemo(() => {
+    if (currentProductAttributeGroups.length === 0) return true;
+    return currentProductAttributeGroups.every(g => Boolean(g.selectedValue));
+  }, [currentProductAttributeGroups]);
+
+  const configuredLabels = useMemo(() => {
+    return currentProductAttributeGroups
+      .filter(g => g.selectedValue)
+      .map(g => `${g.label}: ${g.selectedValue}`);
+  }, [currentProductAttributeGroups]);
+
+  const scrollToVariations = () => {
+    if (typeof document === "undefined") return;
+    const el = document.getElementById("product-variations-section") || document.querySelector(".product-selectors-container");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("variation-highlight-flash");
+      setTimeout(() => el.classList.remove("variation-highlight-flash"), 1500);
+    }
+  };
+
   // Calculate items and pricing whenever slots or tier change
   useEffect(() => {
     if (!activeTier) {
@@ -357,8 +378,14 @@ export default function BuyMoreAndSave({
         {/* OPTION 0: SINGLE (0% OFF) */}
         {/* ============================================================ */}
         <div
-          onClick={() => setSelectedTierSlug("single")}
+          onClick={() => {
+            setSelectedTierSlug("single");
+            if (currentProductAttributeGroups.length > 0 && !isAllCurrentAttributesSelected) {
+              scrollToVariations();
+            }
+          }}
           className={`bms-card ${selectedTierSlug === "single" ? "bms-card-active" : "bms-card-inactive"}`}
+          style={{ cursor: "pointer" }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -379,80 +406,78 @@ export default function BuyMoreAndSave({
             </div>
           </div>
 
-          {/* Embedded Variation Selection for Single Option */}
-          {selectedTierSlug === "single" && currentProductAttributeGroups.length > 0 && (
-            <div 
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                marginTop: 10,
-                padding: "8px 12px",
-                border: "1px solid #e2e8f0",
-                borderRadius: 6,
-                backgroundColor: "#f8fafc",
-                display: "flex",
-                flexDirection: "column",
-                gap: 8
-              }}
-            >
-              {currentProductAttributeGroups.map((group) => {
-                const isSelected = Boolean(group.selectedValue);
-                return (
-                  <div
-                    key={group.key}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      flexWrap: "wrap"
-                    }}
-                  >
-                    <span style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color: isSelected ? "#64748b" : "#e11d48",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.3px",
-                      minWidth: 54
-                    }}>
-                      {isSelected ? `${group.label}:` : `SELECT ${group.label}:`}
-                    </span>
-                    <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" }}>
-                      {group.values.map((val: string) => {
-                        const isValActive = group.selectedValue === val;
-                        return (
-                          <button
-                            key={val}
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onSelectAttribute(group.key, val);
-                            }}
-                            style={{
-                              padding: "2.5px 11px",
-                              borderRadius: 999,
-                              border: isValActive ? "1.5px solid #334155" : "1px solid #cbd5e1",
-                              backgroundColor: isValActive ? "#334155" : "#ffffff",
-                              color: isValActive ? "#ffffff" : "#475569",
-                              fontSize: 11,
-                              fontWeight: isValActive ? 700 : 500,
-                              cursor: "pointer",
-                              transition: "all 0.15s ease",
-                              minWidth: 28,
-                              height: 24,
-                              display: "inline-flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              boxShadow: isValActive ? "0 1px 3px rgba(51,65,85,0.15)" : "none"
-                            }}
-                          >
-                            {val}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
+          {/* Clean Variation Note for Single Option (No duplicate buttons) */}
+          {currentProductAttributeGroups.length > 0 && (
+            <div style={{ marginTop: 8, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
+              {isAllCurrentAttributesSelected ? (
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    scrollToVariations();
+                  }}
+                  title="Click to change variation"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 10.5,
+                    fontWeight: 600,
+                    color: "#334155",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: 4,
+                    padding: "3px 8px",
+                    backgroundColor: "#f8fafc",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease"
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "#94a3b8";
+                    e.currentTarget.style.backgroundColor = "#f1f5f9";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "#cbd5e1";
+                    e.currentTarget.style.backgroundColor = "#f8fafc";
+                  }}
+                >
+                  <span style={{ color: "#64748b", fontWeight: 700, textTransform: "uppercase", fontSize: 9.5 }}>Variation:</span>
+                  <span>{configuredLabels.join(" • ")}</span>
+                </div>
+              ) : (
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    scrollToVariations();
+                  }}
+                  title="Click to select variation above"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: "#be123c",
+                    border: "1px dashed #fda4af",
+                    borderRadius: 4,
+                    padding: "3px 8px",
+                    backgroundColor: "#fff1f2",
+                    cursor: "pointer",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.2px",
+                    transition: "all 0.15s ease"
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "#ffe4e6";
+                    e.currentTarget.style.borderColor = "#f43f5e";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "#fff1f2";
+                    e.currentTarget.style.borderColor = "#fda4af";
+                  }}
+                >
+                  <span>Select Variation Options</span>
+                  <span style={{ fontSize: 12, lineHeight: 1 }}>↑</span>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -565,123 +590,104 @@ export default function BuyMoreAndSave({
                     className="bms-active-slots-box"
                   >
                   {/* Slot 0: CURRENT PRODUCT (Default) */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                        <div style={{ position: "relative", width: 38, height: 38, borderRadius: 5, overflow: "hidden", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", flexShrink: 0 }}>
-                          <Image unoptimized src={currentProductImg} alt={currentProduct?.name || "Product"} fill style={{ objectFit: "contain" }} />
-                        </div>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: 11.5, fontWeight: 700, color: "#334155", textTransform: "uppercase", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                            {currentProduct.name}
-                          </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 1 }}>
-                            <span style={{ fontSize: 10, color: "#94a3b8", textDecoration: "line-through" }}>
-                              Tk {Math.round(currentProductOrigPrice)}
-                            </span>
-                            <span style={{ fontSize: 11.5, fontWeight: 700, color: "#1e293b" }}>
-                              Tk {discountedUnit}
-                            </span>
-                          </div>
-                        </div>
+                  <div
+                    onClick={() => {
+                      if (currentProductAttributeGroups.length > 0 && !isAllCurrentAttributesSelected) {
+                        scrollToVariations();
+                      }
+                    }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 10,
+                      cursor: currentProductAttributeGroups.length > 0 && !isAllCurrentAttributesSelected ? "pointer" : "default"
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                      <div style={{ position: "relative", width: 38, height: 38, borderRadius: 5, overflow: "hidden", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", flexShrink: 0 }}>
+                        <Image unoptimized src={currentProductImg} alt={currentProduct?.name || "Product"} fill style={{ objectFit: "contain" }} />
                       </div>
-
-                      <div style={{ flexShrink: 0 }}>
-                        {(() => {
-                          const configuredLabels = currentProductAttributeGroups
-                            .filter(g => g.selectedValue)
-                            .map(g => `${g.label}: ${g.selectedValue}`);
-                          
-                          if (configuredLabels.length > 0) {
-                            return (
-                              <span style={{ fontSize: 10, fontWeight: 600, color: "#334155", border: "1px solid #cbd5e1", borderRadius: 4, padding: "2.5px 7px", backgroundColor: "#f8fafc" }}>
-                                {configuredLabels.join(" • ")}
-                              </span>
-                            );
-                          }
-                          if (currentProductAttributeGroups.length > 0) {
-                            return (
-                              <span style={{ fontSize: 9.5, fontWeight: 700, color: "#be123c", border: "1px dashed #fda4af", borderRadius: 4, padding: "2.5px 7px", backgroundColor: "#fff1f2", textTransform: "uppercase" }}>
-                                Select Options
-                              </span>
-                            );
-                          }
-                          return null;
-                        })()}
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 11.5, fontWeight: 700, color: "#334155", textTransform: "uppercase", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {currentProduct.name}
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 1 }}>
+                          <span style={{ fontSize: 10, color: "#94a3b8", textDecoration: "line-through" }}>
+                            Tk {Math.round(currentProductOrigPrice)}
+                          </span>
+                          <span style={{ fontSize: 11.5, fontWeight: 700, color: "#1e293b" }}>
+                            Tk {discountedUnit}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Quick Inline Variation Selection for Slot 0 */}
-                    {currentProductAttributeGroups.length > 0 && (
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: 6,
-                          paddingTop: 6,
-                          borderTop: "1px dashed #e2e8f0"
-                        }}
-                      >
-                        {currentProductAttributeGroups.map((group) => {
-                          const isSel = Boolean(group.selectedValue);
-                          return (
-                            <div
-                              key={group.key}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 6,
-                                flexWrap: "wrap"
-                              }}
-                            >
-                              <span style={{
-                                fontSize: 9.5,
-                                fontWeight: 700,
-                                color: isSel ? "#64748b" : "#be123c",
-                                textTransform: "uppercase",
-                                letterSpacing: "0.2px",
-                                minWidth: 48
-                              }}>
-                                {isSel ? `${group.label}:` : `Select ${group.label}:`}
-                              </span>
-                              <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
-                                {group.values.map((val: string) => {
-                                  const isValActive = group.selectedValue === val;
-                                  return (
-                                    <button
-                                      key={val}
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        onSelectAttribute(group.key, val);
-                                      }}
-                                      style={{
-                                        padding: "2px 8px",
-                                        borderRadius: 999,
-                                        border: isValActive ? "1.5px solid #334155" : "1px solid #cbd5e1",
-                                        backgroundColor: isValActive ? "#334155" : "#ffffff",
-                                        color: isValActive ? "#ffffff" : "#475569",
-                                        fontSize: 10.5,
-                                        fontWeight: isValActive ? 700 : 500,
-                                        cursor: "pointer",
-                                        minWidth: 26,
-                                        height: 22,
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        transition: "all 0.15s ease"
-                                      }}
-                                    >
-                                      {val}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                    <div style={{ flexShrink: 0 }}>
+                      {isAllCurrentAttributesSelected ? (
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            scrollToVariations();
+                          }}
+                          title="Click to change variation"
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 600,
+                            color: "#334155",
+                            border: "1px solid #cbd5e1",
+                            borderRadius: 4,
+                            padding: "2.5px 7px",
+                            backgroundColor: "#f8fafc",
+                            cursor: "pointer",
+                            transition: "all 0.15s ease"
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = "#94a3b8";
+                            e.currentTarget.style.backgroundColor = "#f1f5f9";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = "#cbd5e1";
+                            e.currentTarget.style.backgroundColor = "#f8fafc";
+                          }}
+                        >
+                          {configuredLabels.join(" • ")}
+                        </span>
+                      ) : currentProductAttributeGroups.length > 0 ? (
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            scrollToVariations();
+                          }}
+                          title="Click to select variation above"
+                          style={{
+                            fontSize: 9.5,
+                            fontWeight: 700,
+                            color: "#be123c",
+                            border: "1px dashed #fda4af",
+                            borderRadius: 4,
+                            padding: "2.5px 7px",
+                            backgroundColor: "#fff1f2",
+                            textTransform: "uppercase",
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 3,
+                            transition: "all 0.15s ease"
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = "#ffe4e6";
+                            e.currentTarget.style.borderColor = "#f43f5e";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = "#fff1f2";
+                            e.currentTarget.style.borderColor = "#fda4af";
+                          }}
+                        >
+                          Select Options ↑
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
 
                   {/* Slots 1 to N-1 */}
