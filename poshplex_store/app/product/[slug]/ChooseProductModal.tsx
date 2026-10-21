@@ -258,6 +258,42 @@ export default function ChooseProductModal({
       : [{ id: 0, url: "https://placehold.co/400x400?text=Product", is_main: true }];
   }, [sizingProduct]);
 
+  // Size guide data resolution with multi-table support
+  const sizingProductTables = useMemo(() => {
+    let guide = sizingProduct?.size_guide;
+    if (typeof guide === "string") {
+      try {
+        guide = JSON.parse(guide);
+      } catch {
+        guide = null;
+      }
+    }
+    if (guide?.tables && Array.isArray(guide.tables) && guide.tables.length > 0) {
+      return guide.tables.map((t: any, idx: number) => ({
+        name: t.name || (guide.tables.length > 1 ? `Table ${idx + 1}` : "Size Guide"),
+        headers: Array.isArray(t.headers) ? t.headers : typeof t.headers === "string" ? t.headers.split(",").map((s: string) => s.trim()) : ["Size"],
+        rows: Array.isArray(t.rows) ? t.rows : typeof t.rows === "string" ? t.rows.split("\n").filter((l: string) => l.trim() !== "").map((l: string) => l.split(",").map((s: string) => s.trim())) : []
+      }));
+    }
+    if (guide?.headers && Array.isArray(guide.headers) && guide.headers.length > 0) {
+      return [{
+        name: guide.name || "Size Guide",
+        headers: guide.headers,
+        rows: Array.isArray(guide.rows) ? guide.rows : []
+      }];
+    }
+    return [{
+      name: "Standard Measurements",
+      headers: ["Size", "Chest", "Length", "Sleeve"],
+      rows: [
+        ["M", "40\"", "28\"", "8\""],
+        ["L", "42\"", "29\"", "8.5\""],
+        ["XL", "44\"", "30\"", "9\""],
+        ["XXL", "46\"", "31\"", "9.5\""]
+      ]
+    }];
+  }, [sizingProduct]);
+
   // Select attribute in modal sizing view (Color or Size)
   const handleSelectModalAttribute = (key: "color" | "size", value: string) => {
     if (!sizingProduct) return;
@@ -438,42 +474,6 @@ export default function ChooseProductModal({
 
   // Active single product image URL
   const currentSizingImgUrl = sizingProductImages[sizingActiveImgIdx]?.url || sizingProductImages[0]?.url;
-
-  // Size guide data resolution with multi-table support
-  const sizingProductTables = useMemo(() => {
-    let guide = sizingProduct?.size_guide;
-    if (typeof guide === "string") {
-      try {
-        guide = JSON.parse(guide);
-      } catch {
-        guide = null;
-      }
-    }
-    if (guide?.tables && Array.isArray(guide.tables) && guide.tables.length > 0) {
-      return guide.tables.map((t: any, idx: number) => ({
-        name: t.name || (guide.tables.length > 1 ? `Table ${idx + 1}` : "Size Guide"),
-        headers: Array.isArray(t.headers) ? t.headers : typeof t.headers === "string" ? t.headers.split(",").map((s: string) => s.trim()) : ["Size"],
-        rows: Array.isArray(t.rows) ? t.rows : typeof t.rows === "string" ? t.rows.split("\n").filter((l: string) => l.trim() !== "").map((l: string) => l.split(",").map((s: string) => s.trim())) : []
-      }));
-    }
-    if (guide?.headers && Array.isArray(guide.headers) && guide.headers.length > 0) {
-      return [{
-        name: guide.name || "Size Guide",
-        headers: guide.headers,
-        rows: Array.isArray(guide.rows) ? guide.rows : []
-      }];
-    }
-    return [{
-      name: "Standard Measurements",
-      headers: ["Size", "Chest", "Length", "Sleeve"],
-      rows: [
-        ["M", "40\"", "28\"", "8\""],
-        ["L", "42\"", "29\"", "8.5\""],
-        ["XL", "44\"", "30\"", "9\""],
-        ["XXL", "46\"", "31\"", "9.5\""]
-      ]
-    }];
-  }, [sizingProduct]);
 
   return createPortal(
     <div className="cpm-backdrop">
