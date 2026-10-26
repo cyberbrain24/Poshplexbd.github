@@ -3,7 +3,8 @@ import {
   Table, Tag, Button, Space, Card, Modal, Form, Input, Switch, message, Upload, InputNumber, Popconfirm
 } from "antd";
 import {
-  PlusOutlined, EditOutlined, DeleteOutlined, PlayCircleOutlined, PauseCircleOutlined, UploadOutlined
+  PlusOutlined, EditOutlined, DeleteOutlined, PlayCircleOutlined, PauseCircleOutlined, UploadOutlined,
+  CustomerServiceOutlined
 } from "@ant-design/icons";
 import axios from "axios";
 
@@ -16,6 +17,10 @@ export const MusicLibrary: React.FC = () => {
   const [selectedTrack, setSelectedTrack] = useState<any>(null);
   const [form] = Form.useForm();
   
+  // Master Storefront Music Feature Toggle State
+  const [isMusicEnabled, setIsMusicEnabled] = useState<boolean>(true);
+  const [togglingMaster, setTogglingMaster] = useState<boolean>(false);
+
   // Custom preview player state
   const [previewingTrackId, setPreviewingTrackId] = useState<number | null>(null);
   const audioPreviewRef = useRef<HTMLAudioElement | null>(null);
@@ -24,7 +29,37 @@ export const MusicLibrary: React.FC = () => {
   const [audioUrl, setAudioUrl] = useState<string>("");
   const [audioUploading, setAudioUploading] = useState(false);
 
-  const token = localStorage.getItem("poshplex_access_token");
+  const token = localStorage.getItem("poshplex_access_token") || localStorage.getItem("token");
+
+  // Load Master Config
+  const fetchConfig = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/admin/config`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data && typeof res.data.is_active === "boolean") {
+        setIsMusicEnabled(res.data.is_active);
+      }
+    } catch (err) {
+      console.warn("Could not fetch music master config:", err);
+    }
+  };
+
+  // Toggle Master Music Feature
+  const handleToggleMaster = async (checked: boolean) => {
+    setTogglingMaster(true);
+    try {
+      await axios.post(`${API_BASE}/admin/config`, { is_active: checked }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setIsMusicEnabled(checked);
+      message.success(checked ? "Storefront Music Feature is now ACTIVE." : "Storefront Music Feature is now INACTIVE / DISABLED.");
+    } catch (err: any) {
+      message.error(err.response?.data?.message || "Failed to toggle storefront music feature.");
+    } finally {
+      setTogglingMaster(false);
+    }
+  };
 
   // Load Tracks
   const fetchTracks = async () => {
@@ -47,6 +82,7 @@ export const MusicLibrary: React.FC = () => {
 
   useEffect(() => {
     fetchTracks();
+    fetchConfig();
     return () => {
       if (audioPreviewRef.current) {
         audioPreviewRef.current.pause();
@@ -195,6 +231,72 @@ export const MusicLibrary: React.FC = () => {
           Add Track to Library
         </Button>
       </div>
+
+      {/* Master Storefront Feature Toggle Banner */}
+      <Card
+        variant="borderless"
+        style={{
+          background: isMusicEnabled 
+            ? "linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(5, 150, 105, 0.03) 100%)" 
+            : "linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(185, 28, 28, 0.03) 100%)",
+          border: isMusicEnabled ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid rgba(239, 68, 68, 0.3)",
+          borderRadius: 12
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
+          <Space align="center" size="middle">
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 10,
+                background: isMusicEnabled ? "#10b981" : "#ef4444",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#ffffff",
+                fontSize: 20,
+                boxShadow: isMusicEnabled ? "0 4px 12px rgba(16, 185, 129, 0.35)" : "0 4px 12px rgba(239, 68, 68, 0.35)",
+                transition: "all 0.3s ease"
+              }}
+            >
+              <CustomerServiceOutlined />
+            </div>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                <span style={{ fontSize: 16, fontWeight: 700, color: "var(--text-main)" }}>
+                  Storefront Ambient Music Feature
+                </span>
+                <Tag color={isMusicEnabled ? "success" : "error"} style={{ fontWeight: 700 }}>
+                  {isMusicEnabled ? "● ACTIVE ON STOREFRONT" : "○ INACTIVE / HIDDEN"}
+                </Tag>
+              </div>
+              <p style={{ margin: 0, color: "var(--text-muted)", fontSize: 13 }}>
+                {isMusicEnabled
+                  ? "Ambient music player is currently active and visible to all storefront visitors."
+                  : "Music player and floating audio button are completely disabled and hidden from the storefront."}
+              </p>
+            </div>
+          </Space>
+
+          <Space align="center" size="middle">
+            <span style={{ fontSize: 13, fontWeight: 600, color: isMusicEnabled ? "#10b981" : "#ef4444" }}>
+              {isMusicEnabled ? "Turn Off Music" : "Turn On Music"}
+            </span>
+            <Switch
+              checked={isMusicEnabled}
+              loading={togglingMaster}
+              onChange={handleToggleMaster}
+              checkedChildren="ON"
+              unCheckedChildren="OFF"
+              style={{
+                backgroundColor: isMusicEnabled ? "#10b981" : "#4b5563",
+                transform: "scale(1.2)"
+              }}
+            />
+          </Space>
+        </div>
+      </Card>
 
       {/* Tracks Grid Table */}
       <Card variant='borderless'>

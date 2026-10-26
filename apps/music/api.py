@@ -2,7 +2,7 @@ from ninja import Router, Schema, File
 from ninja.files import UploadedFile
 from django.shortcuts import get_object_or_404
 from django.core.files.storage import default_storage
-from apps.music.models import Track
+from apps.music.models import Track, MusicConfig
 from apps.core.api import BearerAuth, enforce_permission
 from typing import List, Optional
 import os
@@ -27,6 +27,15 @@ class TrackInputSchema(Schema):
     sort_order: int = 0
 
 
+class MusicConfigSchema(Schema):
+    is_active: bool
+    updated_at: Optional[str] = None
+
+
+class MusicConfigUpdateSchema(Schema):
+    is_active: bool
+
+
 def _serialize_track(t: Track) -> dict:
     """
     Serialize a Track using its smart URL resolution properties.
@@ -43,19 +52,58 @@ def _serialize_track(t: Track) -> dict:
     }
 
 
-# ── Public Storefront Endpoint ──────────────────────────────
+# ── Public Storefront Endpoints ──────────────────────────────
+
+@router.get("/config", response=MusicConfigSchema)
+def get_public_music_config(request):
+    """
+    Public endpoint: check if storefront ambient music player is enabled by admin.
+    """
+    cfg = MusicConfig.get_solo()
+    return {
+        "is_active": cfg.is_active,
+        "updated_at": cfg.updated_at.isoformat() if cfg.updated_at else None
+    }
+
 
 @router.get("/tracks", response=List[TrackSchema])
 def get_active_tracks(request):
     """
     Public endpoint: retrieve all active tracks for the ambient music player.
-    Returns internally hosted URLs when available, external URLs as fallback.
+    Returns empty list if the storefront music feature is deactivated.
     """
+    cfg = MusicConfig.get_solo()
+    if not cfg.is_active:
+        return []
     tracks = Track.objects.filter(is_active=True)
     return [_serialize_track(t) for t in tracks]
 
 
 # ── Admin Endpoints ─────────────────────────────────────────
+
+@router.get("/admin/config", response=MusicConfigSchema, auth=BearerAuth())
+def get_admin_music_config(request):
+    """Admin: get master storefront music player switch."""
+    enforce_permission(request, "music", "view")
+    cfg = MusicConfig.get_solo()
+    return {
+        "is_active": cfg.is_active,
+        "updated_at": cfg.updated_at.isoformat() if cfg.updated_at else None
+    }
+
+
+@router.post("/admin/config", response=MusicConfigSchema, auth=BearerAuth())
+def update_admin_music_config(request, data: MusicConfigUpdateSchema):
+    """Admin: toggle master storefront music player active/inactive state."""
+    enforce_permission(request, "music", "edit_catalog")
+    cfg = MusicConfig.get_solo()
+    cfg.is_active = data.is_active
+    cfg.save()
+    return {
+        "is_active": cfg.is_active,
+        "updated_at": cfg.updated_at.isoformat() if cfg.updated_at else None
+    }
+
 
 @router.get("/admin/tracks", response=List[TrackSchema], auth=BearerAuth())
 def admin_get_tracks(request):

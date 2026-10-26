@@ -11,7 +11,7 @@ export async function generateMetadata({ params }: { params: { category_slug: st
     const catRes = await fetch(`${API_URL}/api/v1/catalog/categories/tree`, { next: { revalidate: 60 } });
     if (catRes.ok) {
       const tree = await catRes.json();
-      let category = null;
+      let category: any = null;
       const findCat = (nodes: any[]) => {
         for (const n of nodes) {
           if (n.slug === slug) category = n;

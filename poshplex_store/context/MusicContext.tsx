@@ -35,6 +35,7 @@ interface MusicContextType {
   toggleMute: () => void;
   toggleMinimize: () => void;
   isVisible: boolean;
+  isMusicActive: boolean;
 }
 
 const MusicContext = createContext<MusicContextType | undefined>(undefined);
@@ -50,6 +51,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isMinimized, setIsMinimized] = useState<boolean>(true);
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
+  const [isMusicActive, setIsMusicActive] = useState<boolean>(true);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const tracksRef = useRef<Track[]>([]);
@@ -70,27 +72,44 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     const fetchTracks = async () => {
-      try {
-        const cached = sessionStorage.getItem("poshplex_music_tracks");
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setTracks(parsed);
-            return;
-          }
-        }
-      } catch { }
-
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 3000);
+      const timeout = setTimeout(() => controller.abort(), 4000);
       try {
         const API = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-        const res = await fetch(`${API}/api/v1/music/tracks`, { signal: controller.signal });
+        
+        // 1. Check master configuration & active tracks concurrently
+        const [configRes, tracksRes] = await Promise.all([
+          fetch(`${API}/api/v1/music/config`, { cache: "no-store", signal: controller.signal }).catch(() => null),
+          fetch(`${API}/api/v1/music/tracks`, { cache: "no-store", signal: controller.signal }).catch(() => null)
+        ]);
         clearTimeout(timeout);
-        if (res.ok) {
-          const data = await res.json();
-          setTracks(data);
-          try { sessionStorage.setItem("poshplex_music_tracks", JSON.stringify(data)); } catch { }
+
+        let activeState = true;
+        if (configRes && configRes.ok) {
+          const cfg = await configRes.json();
+          activeState = Boolean(cfg.is_active);
+          setIsMusicActive(activeState);
+        }
+
+        if (!activeState) {
+          setTracks([]);
+          try { sessionStorage.removeItem("poshplex_music_tracks"); } catch { }
+          if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current = null;
+          }
+          return;
+        }
+
+        if (tracksRes && tracksRes.ok) {
+          const data = await tracksRes.json();
+          if (Array.isArray(data) && data.length > 0) {
+            setTracks(data);
+            try { sessionStorage.setItem("poshplex_music_tracks", JSON.stringify(data)); } catch { }
+          } else {
+            setTracks([]);
+            try { sessionStorage.removeItem("poshplex_music_tracks"); } catch { }
+          }
         }
       } catch {
         clearTimeout(timeout);
@@ -309,7 +328,8 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       changeVolume,
       toggleMute,
       toggleMinimize,
-      isVisible
+      isVisible,
+      isMusicActive
     }}>
       {children}
     </MusicContext.Provider>

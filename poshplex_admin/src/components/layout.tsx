@@ -4,7 +4,8 @@ import {
   DashboardOutlined, ShoppingCartOutlined, AppstoreOutlined, AuditOutlined,
   TeamOutlined, ApiOutlined, FolderOpenOutlined, LogoutOutlined, UserOutlined,
   CarOutlined, GiftOutlined, SoundOutlined, SettingOutlined, PrinterOutlined,
-  MenuOutlined, EllipsisOutlined, PictureOutlined, DesktopOutlined, CheckSquareOutlined, GlobalOutlined, BarChartOutlined
+  MenuOutlined, EllipsisOutlined, PictureOutlined, DesktopOutlined, CheckSquareOutlined, GlobalOutlined, BarChartOutlined,
+  RocketOutlined, ThunderboltOutlined, RobotOutlined, EyeOutlined, SkinOutlined
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useLogout, useGetIdentity } from "@refinedev/core";
@@ -61,16 +62,41 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
     { key: "/crm", icon: <TeamOutlined />, label: "CRM Profiles", module: "crm" },
     { key: "/catalog", icon: <AppstoreOutlined />, label: "Catalog Manager", module: "catalog" },
     { key: "/promo-codes", icon: <GiftOutlined />, label: "Discount Engine", module: "marketing" },
+    { key: "/fit-check", icon: <SkinOutlined />, label: "AI Fit Check Studio", module: "fitcheck" },
+    {
+      key: "sub-meta-engine",
+      icon: <ThunderboltOutlined />,
+      label: "Meta Engine",
+      module: "marketing",
+      children: [
+        { key: "/marketing/dashboard", icon: <DashboardOutlined />, label: "Meta Ads Optimization Engine", module: "marketing" },
+        { key: "/marketing/agent", icon: <RobotOutlined />, label: "AI Agent", module: "marketing" },
+        { key: "/marketing/competitor", icon: <EyeOutlined />, label: "Competitor Spy", module: "marketing" },
+        { key: "/marketing/api-integration", icon: <ApiOutlined />, label: "API Integration", module: "marketing" },
+        { key: "/marketing/campaigns", icon: <RocketOutlined />, label: "Meta Campaigns", module: "marketing" },
+        { key: "/marketing/rules", icon: <CheckSquareOutlined />, label: "Ad Automation Rules", module: "marketing" },
+        { key: "/marketing/accounts", icon: <SettingOutlined />, label: "Meta Ad Accounts", module: "marketing" },
+      ],
+
+    },
     { key: "/finance", icon: <AuditOutlined />, label: "Financial Ledger", module: "finance" },
-    { key: "/locations", icon: <GlobalOutlined />, label: "Locations & Zones", module: "orders" },
     { key: "/tasks", icon: <CheckSquareOutlined />, label: "Task Management", module: "tasks" },
-    { key: "/integrations", icon: <ApiOutlined />, label: "Integration Setup", module: "core" },
-    { key: "/media", icon: <FolderOpenOutlined />, label: "Media Library", module: "media" },
-    { key: "/music", icon: <SoundOutlined />, label: "Music Library", module: "music" },
-    { key: "/settings", icon: <SettingOutlined />, label: "Site Settings", module: "core" },
-    { key: "/system-monitor", icon: <DesktopOutlined />, label: "System Monitor", module: "core" },
-    { key: "/roles", icon: <TeamOutlined />, label: "Roles & Permissions", module: "core" },
-    { key: "/staff", icon: <UserOutlined />, label: "Staff Profiles", module: "core" },
+    {
+      key: "sub-settings",
+      icon: <SettingOutlined />,
+      label: "Settings",
+      module: null,
+      children: [
+        { key: "/settings", icon: <SettingOutlined />, label: "Site Settings", module: "core" },
+        { key: "/locations", icon: <GlobalOutlined />, label: "Locations & Zones", module: "orders" },
+        { key: "/staff", icon: <UserOutlined />, label: "Staff Profiles", module: "core" },
+        { key: "/roles", icon: <TeamOutlined />, label: "Roles & Permissions", module: "core" },
+        { key: "/integrations", icon: <ApiOutlined />, label: "Integration Setup", module: "core" },
+        { key: "/media", icon: <FolderOpenOutlined />, label: "Media Library", module: "media" },
+        { key: "/music", icon: <SoundOutlined />, label: "Music Library", module: "music" },
+        { key: "/system-monitor", icon: <DesktopOutlined />, label: "System Monitor", module: "core" },
+      ],
+    },
   ];
 
   const rawBottomNavItems = [
@@ -81,10 +107,37 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
     { key: "/catalog", icon: <AppstoreOutlined />, label: "Catalog", module: "catalog" },
   ];
 
-  const menuItems = rawMenuItems.filter(item => checkAccess(item.module)).map(item => ({ key: item.key, icon: item.icon, label: item.label }));
+  const formatMenuItem = (item: any): any => {
+    if (!checkAccess(item.module)) return null;
+    if (item.children && Array.isArray(item.children)) {
+      const validChildren = item.children
+        .map((child: any) => formatMenuItem(child))
+        .filter(Boolean);
+      if (validChildren.length === 0) return null;
+      return {
+        key: item.key,
+        icon: item.icon,
+        label: item.label,
+        children: validChildren,
+      };
+    }
+    return {
+      key: item.key,
+      icon: item.icon,
+      label: item.label,
+    };
+  };
+
+  const menuItems = rawMenuItems.map(formatMenuItem).filter(Boolean);
   const bottomNavItems = rawBottomNavItems.filter(item => checkAccess(item.module)).map(item => ({ key: item.key, icon: item.icon, label: item.label }));
 
   const isActive = (key: string) => location.pathname === key;
+  const isMetaActive = location.pathname.startsWith("/marketing");
+  const isSettingsActive = ["/settings", "/locations", "/staff", "/roles", "/integrations", "/media", "/music", "/system-monitor"].includes(location.pathname);
+  const defaultOpenKeys = [
+    ...(isMetaActive ? ["sub-meta-engine"] : []),
+    ...(isSettingsActive ? ["sub-settings"] : []),
+  ];
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
@@ -92,7 +145,18 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
         <div style={{ height: 64, display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid var(--border-glass)" }}>
           <span style={{ fontSize: 18, fontWeight: 800, color: "var(--accent-purple)", letterSpacing: "1px" }}>POSHPLEX ERP</span>
         </div>
-        <Menu mode="inline" selectedKeys={[location.pathname]} onClick={({ key }) => navigate(key)} items={menuItems} style={{ marginTop: 8 }} />
+        <Menu
+          mode="inline"
+          selectedKeys={[location.pathname]}
+          defaultOpenKeys={defaultOpenKeys}
+          onClick={({ key }) => {
+            if (key && key.startsWith("/")) {
+              navigate(key);
+            }
+          }}
+          items={menuItems}
+          style={{ marginTop: 8 }}
+        />
       </Sider>
 
       <Drawer
@@ -113,7 +177,18 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
             </div>
           </div>
         )}
-        <Menu mode="inline" selectedKeys={[location.pathname]} onClick={({ key }) => { navigate(key); setMobileMenuOpen(false); }} items={menuItems} />
+        <Menu
+          mode="inline"
+          selectedKeys={[location.pathname]}
+          defaultOpenKeys={defaultOpenKeys}
+          onClick={({ key }) => {
+            if (key && key.startsWith("/")) {
+              navigate(key);
+              setMobileMenuOpen(false);
+            }
+          }}
+          items={menuItems}
+        />
       </Drawer>
 
       <Layout>

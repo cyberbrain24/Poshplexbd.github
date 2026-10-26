@@ -23,7 +23,8 @@ export const FloatingPlayer: React.FC = () => {
     seek,
     playTrack,
     toggleMinimize,
-    isVisible
+    isVisible,
+    isMusicActive
   } = useMusic();
 
   const [showPlaylist, setShowPlaylist] = useState(false);
@@ -84,7 +85,7 @@ export const FloatingPlayer: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, [isMinimized, isMobile, showPlaylist, toggleMinimize]);
 
-  if (!isReady || !isVisible || !currentTrack) return null;
+  if (!isMusicActive || !isReady || !isVisible || !currentTrack) return null;
 
   if (isMinimized) {
     return (
@@ -136,13 +137,31 @@ export const FloatingPlayer: React.FC = () => {
             .floating-audio-player {
               top: 50% !important;
               left: 30px !important;
+              transform: translateY(-50%) !important;
               bottom: auto !important;
               right: auto !important;
             }
           }
           @media (max-width: 768px) {
-            .floating-audio-player {
-              display: none !important;
+            .floating-audio-player.minimized {
+              display: flex !important;
+              top: 50% !important;
+              transform: translateY(-50%) !important;
+              left: 12px !important;
+              bottom: auto !important;
+              right: auto !important;
+              width: 46px !important;
+              height: 46px !important;
+              box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4) !important;
+            }
+            .floating-audio-player.maximized {
+              top: auto !important;
+              left: 12px !important;
+              right: 12px !important;
+              margin: 0 auto !important;
+              bottom: 74px !important;
+              width: calc(100% - 24px) !important;
+              max-width: 320px !important;
             }
           }
           @keyframes spin {
@@ -379,20 +398,31 @@ export const FloatingPlayer: React.FC = () => {
           .floating-audio-player {
             top: 50% !important;
             left: 30px !important;
+            transform: translateY(-50%) !important;
             bottom: auto !important;
             right: auto !important;
           }
         }
         @media (max-width: 768px) {
-          .floating-audio-player {
-            top: auto !important;
-            left: 0 !important;
-            right: 0 !important;
-            margin: 0 auto !important;
-            bottom: 84px !important;
-          }
           .floating-audio-player.minimized {
-            display: none !important;
+            display: flex !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+            left: 12px !important;
+            bottom: auto !important;
+            right: auto !important;
+            width: 46px !important;
+            height: 46px !important;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4) !important;
+          }
+          .floating-audio-player.maximized {
+            top: auto !important;
+            left: 12px !important;
+            right: 12px !important;
+            margin: 0 auto !important;
+            bottom: 74px !important;
+            width: calc(100% - 24px) !important;
+            max-width: 320px !important;
           }
         }
         @keyframes spin {

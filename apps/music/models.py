@@ -66,3 +66,27 @@ class Track(models.Model):
     def is_internally_hosted(self) -> bool:
         """True when the track is fully migrated to internal storage."""
         return bool(self.audio_file)
+
+
+class MusicConfig(models.Model):
+    """
+    Singleton configuration for the storefront ambient music player.
+    Master switch to activate or deactivate the entire music feature.
+    """
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Master switch to activate or deactivate the entire music feature on the storefront."
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Music Configuration'
+        verbose_name_plural = 'Music Configuration'
+
+    @classmethod
+    def get_solo(cls):
+        config, _ = cls.objects.get_or_create(id=1)
+        return config
+
+    def __str__(self):
+        return f"MusicConfig(is_active={self.is_active})"

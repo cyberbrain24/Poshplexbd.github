@@ -7,13 +7,15 @@ import { useRouter } from "next/navigation";
 
 const ProductReviews = dynamic(() => import('./ProductReviews'), { loading: () => <p style={{fontSize: 13, textAlign: 'center', padding: '20px 0', color: '#888'}}>Loading reviews...</p>, ssr: false });
 import Link from "next/link";
-import { Heart, Star, ChevronDown, ChevronUp, Minus, Plus, Camera, X, Send, ChevronLeft, ChevronRight, Ruler } from "lucide-react";
+import { Heart, Star, ChevronDown, ChevronUp, Minus, Plus, Camera, X, Send, ChevronLeft, ChevronRight, Ruler, Sparkles } from "lucide-react";
 import { toast } from 'react-hot-toast';
 import { fetchWithAuth } from "../../utils/fetchWithAuth";
 import { useCart } from "../../../context/CartContext";
 import ProductCard from "../../components/ProductCard";
 import BuyMoreAndSave from "./BuyMoreAndSave";
 import SizeChartModal from "./SizeChartModal";
+import VirtualTryOnModal from "../../components/VirtualTryOnModal";
+import { useFitCheckConfig } from "../../hooks/useFitCheckConfig";
 import * as fpixel from "../../../lib/fpixel";
 
 const formatBDT = (n: string | number) => `৳${Math.round(Number(n))}`;
@@ -66,6 +68,9 @@ export default function ProductDetailClient({
 
   /* size chart modal state */
   const [showSizeChartModal, setShowSizeChartModal] = useState(false);
+  /* virtual fit check modal state */
+  const [showVirtualFitModal, setShowVirtualFitModal] = useState(false);
+  const { isFitCheckActive } = useFitCheckConfig();
 
   /* bundle offer state */
   const [bundleData, setBundleData] = useState<any>({
@@ -104,6 +109,18 @@ export default function ProductDetailClient({
       }
     }
   }, [product]);
+
+  useEffect(() => {
+    const handleOpenFitCheck = () => {
+      if (isFitCheckActive) {
+        setShowVirtualFitModal(true);
+      }
+    };
+    document.addEventListener("open-ai-fit-check", handleOpenFitCheck);
+    return () => {
+      document.removeEventListener("open-ai-fit-check", handleOpenFitCheck);
+    };
+  }, [isFitCheckActive]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -638,45 +655,86 @@ export default function ProductDetailClient({
             </div>
           )}
 
-          {/* ── Size Chart Button (Below Variation Selection Section) ── */}
+          {/* ── Size Chart & AI Virtual Fit Check Buttons ── */}
           <div className="product-size-chart-row" style={{ marginTop: 10, marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-            <button
-              type="button"
-              id="size-chart-trigger-btn"
-              onClick={() => setShowSizeChartModal(true)}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 7,
-                backgroundColor: "#ffffff",
-                border: "1px solid #cbd5e1",
-                borderRadius: "6px",
-                padding: "7px 14px",
-                fontSize: "12px",
-                fontWeight: 700,
-                color: "#334155",
-                cursor: "pointer",
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-                transition: "all 0.15s ease",
-                boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)"
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "#f8fafc";
-                e.currentTarget.style.borderColor = "#94a3b8";
-                e.currentTarget.style.color = "#0f172a";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "#ffffff";
-                e.currentTarget.style.borderColor = "#cbd5e1";
-                e.currentTarget.style.color = "#334155";
-              }}
-            >
-              <Ruler size={14} strokeWidth={2.2} />
-              <span>Size Chart</span>
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                id="size-chart-trigger-btn"
+                onClick={() => setShowSizeChartModal(true)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 7,
+                  backgroundColor: "#ffffff",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: "6px",
+                  padding: "7px 14px",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  color: "#334155",
+                  cursor: "pointer",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  transition: "all 0.15s ease",
+                  boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)"
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "#f8fafc";
+                  e.currentTarget.style.borderColor = "#94a3b8";
+                  e.currentTarget.style.color = "#0f172a";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "#ffffff";
+                  e.currentTarget.style.borderColor = "#cbd5e1";
+                  e.currentTarget.style.color = "#334155";
+                }}
+              >
+                <Ruler size={14} strokeWidth={2.2} />
+                <span>Size Chart</span>
+              </button>
+
+              {isFitCheckActive && (
+                <button
+                  type="button"
+                  id="ai-virtual-fit-trigger-btn"
+                  onClick={() => setShowVirtualFitModal(true)}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 7,
+                    backgroundColor: "#09090b",
+                    border: "1px solid #8b5cf6",
+                    borderRadius: "6px",
+                    padding: "7px 14px",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    color: "#c084fc",
+                    cursor: "pointer",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    transition: "all 0.15s ease",
+                    boxShadow: "0 2px 8px rgba(139, 92, 246, 0.2)"
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "#18181b";
+                    e.currentTarget.style.borderColor = "#a855f7";
+                    e.currentTarget.style.color = "#ffffff";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "#09090b";
+                    e.currentTarget.style.borderColor = "#8b5cf6";
+                    e.currentTarget.style.color = "#c084fc";
+                  }}
+                >
+                  <Sparkles size={14} color="#a855f7" />
+                  <span>AI FIT CHECK</span>
+                </button>
+              )}
+            </div>
+
             <span style={{ fontSize: 11.5, color: "#64748b", fontWeight: 500 }}>
-              Need fit advice? Check measurements
+              {isFitCheckActive ? "Need fit advice? Test with AI model" : "Need fit advice? Check measurements"}
             </span>
           </div>
 
@@ -1109,6 +1167,23 @@ export default function ProductDetailClient({
         isOpen={showSizeChartModal}
         onClose={() => setShowSizeChartModal(false)}
         product={product}
+      />
+
+      {/* ── AI Virtual Fit Check Modal ── */}
+      <VirtualTryOnModal
+        isOpen={showVirtualFitModal}
+        onClose={() => setShowVirtualFitModal(false)}
+        product={{
+          id: product.id,
+          name: product.name,
+          image_url: images[0]?.url || product.image || (product.images?.[0]?.url ?? ""),
+          price: product.selling_price || product.price || 0
+        }}
+        onAddToCart={() => {
+          // Trigger standard Add To Cart flow
+          const buyBtn = document.getElementById("add-to-cart-btn");
+          if (buyBtn) buyBtn.click();
+        }}
       />
 
       <style dangerouslySetInnerHTML={{

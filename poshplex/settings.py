@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'apps.image_optimizer.apps.ImageOptimizerConfig',
     'apps.monitor.apps.MonitorConfig',
     'apps.tasks.apps.TasksConfig',
+    'apps.fitcheck.apps.FitcheckConfig',
     'django_cleanup.apps.CleanupConfig',
 ]
 

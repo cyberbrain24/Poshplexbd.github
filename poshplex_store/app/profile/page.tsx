@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { User, Package, MapPin, Award, CheckCircle, Clock, Star, Edit, Trash2, ShieldCheck, AlertCircle, X, Lock, Phone, Calendar, Home } from "lucide-react";
+import { User, Package, MapPin, Award, CheckCircle, Clock, Star, Edit, Trash2, ShieldCheck, AlertCircle, X, Lock, Phone, Calendar, Home, Sparkles, Upload, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Select from "react-select";
@@ -13,7 +13,18 @@ export default function ProfilePage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"orders" | "reviews" | "password" | "membership">("orders");
+  const [activeTab, setActiveTab] = useState<"orders" | "reviews" | "password" | "membership" | "character">("orders");
+  
+  // AI Character Profile states
+  const [characterData, setCharacterData] = useState<any>(null);
+  const [charHeight, setCharHeight] = useState(175);
+  const [charBodyStructure, setCharBodyStructure] = useState("athletic");
+  const [charGender, setCharGender] = useState("unisex");
+  const [charFaceUrl, setCharFaceUrl] = useState("");
+  const [charFaceBase64, setCharFaceBase64] = useState("");
+  const [charQuota, setCharQuota] = useState<any>(null);
+  const [charSaving, setCharSaving] = useState(false);
+  const [charMsg, setCharMsg] = useState("");
   
   // Edit review state
   const [editingReview, setEditingReview] = useState<any | null>(null);
@@ -1120,6 +1131,36 @@ export default function ProfilePage() {
               <Award size={22} className="nav-icon" />
               <span className="nav-label">My Membership</span>
             </div>
+
+            <div 
+              className={`nav-grid-item ${activeTab === "character" ? "active" : ""}`}
+              onClick={() => {
+                setActiveTab("character");
+                // Fetch character profile
+                const API_URL = process.env.NEXT_PUBLIC_API_URL 
+                  ? `${process.env.NEXT_PUBLIC_API_URL}/fit-check` 
+                  : "http://localhost:8000/api/v1/fit-check";
+                fetchWithAuth(`${API_URL}/profile`)
+                  .then(r => r.ok ? r.json() : null)
+                  .then(d => {
+                    if (d) {
+                      setCharacterData(d);
+                      setCharHeight(d.height_cm || 175);
+                      setCharBodyStructure(d.body_structure || "athletic");
+                      setCharGender(d.gender_preference || "unisex");
+                      setCharFaceUrl(d.face_image_url || "");
+                    }
+                  }).catch(() => {});
+
+                fetchWithAuth(`${API_URL}/status`)
+                  .then(r => r.ok ? r.json() : null)
+                  .then(q => { if (q) setCharQuota(q); })
+                  .catch(() => {});
+              }}
+            >
+              <Sparkles size={22} className="nav-icon" color="#8b5cf6" />
+              <span className="nav-label">AI Character</span>
+            </div>
           </div>
 
           {/* Content Panel */}
@@ -1352,6 +1393,220 @@ export default function ProfilePage() {
                     {changePwdLoading ? "Updating..." : "Update Password"}
                   </button>
                 </form>
+              </div>
+            )}
+
+            {activeTab === "character" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <h3 style={{ fontSize: 18, fontWeight: 800, color: "var(--text-main)", margin: 0 }}>
+                      AI Character Model & Metrics
+                    </h3>
+                    <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>
+                      Your persistent 3D/AI representation used for 1-click virtual try-ons across the store.
+                    </p>
+                  </div>
+                  {charQuota && (
+                    <div style={{
+                      padding: "6px 14px",
+                      borderRadius: 20,
+                      backgroundColor: "rgba(139, 92, 246, 0.15)",
+                      border: "1px solid rgba(139, 92, 246, 0.4)",
+                      color: "#c084fc",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6
+                    }}>
+                      <Zap size={14} />
+                      <span>{charQuota.remaining_today} / {charQuota.daily_limit} checks left today</span>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-glass)", borderRadius: 16, padding: 24 }}>
+                  {charMsg && (
+                    <div style={{
+                      padding: "10px 16px",
+                      borderRadius: 8,
+                      marginBottom: 16,
+                      backgroundColor: charMsg.includes("success") ? "rgba(16, 185, 129, 0.15)" : "rgba(239, 68, 68, 0.15)",
+                      color: charMsg.includes("success") ? "#10b981" : "#ef4444",
+                      fontSize: 13,
+                      fontWeight: 600
+                    }}>
+                      {charMsg}
+                    </div>
+                  )}
+
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    setCharSaving(true);
+                    setCharMsg("");
+                    try {
+                      const API_URL = process.env.NEXT_PUBLIC_API_URL 
+                        ? `${process.env.NEXT_PUBLIC_API_URL}/fit-check` 
+                        : "http://localhost:8000/api/v1/fit-check";
+                      const payload: any = {
+                        height_cm: charHeight,
+                        body_structure: charBodyStructure,
+                        gender_preference: charGender
+                      };
+                      if (charFaceBase64) {
+                        payload.face_image_base64 = charFaceBase64;
+                      }
+                      const res = await fetchWithAuth(`${API_URL}/profile`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                      });
+                      if (res.ok) {
+                        const updated = await res.json();
+                        setCharacterData(updated);
+                        setCharFaceUrl(updated.face_image_url || "");
+                        setCharFaceBase64("");
+                        setCharMsg("AI Character Profile updated successfully!");
+                      } else {
+                        setCharMsg("Failed to update character profile.");
+                      }
+                    } catch (err) {
+                      setCharMsg("Network error saving profile.");
+                    } finally {
+                      setCharSaving(false);
+                    }
+                  }}>
+                    {/* Face Portrait Photo */}
+                    <div style={{ marginBottom: 24 }}>
+                      <label style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", display: "block", marginBottom: 8, textTransform: "uppercase" }}>
+                        Face Portrait Photo
+                      </label>
+                      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                        {charFaceUrl || charFaceBase64 ? (
+                          <img 
+                            src={charFaceBase64 || charFaceUrl} 
+                            alt="AI Character Face" 
+                            style={{ width: 80, height: 80, borderRadius: "50%", objectFit: "cover", border: "2px solid #8b5cf6", boxShadow: "0 0 15px rgba(139, 92, 246, 0.3)" }}
+                          />
+                        ) : (
+                          <div style={{ width: 80, height: 80, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: "2px dashed #8b5cf6", display: "flex", alignItems: "center", justifyContent: "center", color: "#8b5cf6" }}>
+                            <User size={32} />
+                          </div>
+                        )}
+                        <div>
+                          <label style={{
+                            padding: "8px 16px",
+                            borderRadius: 8,
+                            background: "rgba(255, 255, 255, 0.08)",
+                            border: "1px solid rgba(255, 255, 255, 0.15)",
+                            color: "var(--text-main)",
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            display: "inline-block",
+                            marginBottom: 6
+                          }}>
+                            {charFaceUrl ? "Change Photo" : "Upload Face Photo"}
+                            <input 
+                              type="file" 
+                              accept="image/*" 
+                              style={{ display: "none" }}
+                              onChange={(ev) => {
+                                const f = ev.target.files?.[0];
+                                if (!f) return;
+                                const r = new FileReader();
+                                r.onload = () => {
+                                  setCharFaceBase64(r.result as string);
+                                };
+                                r.readAsDataURL(f);
+                              }}
+                            />
+                          </label>
+                          <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0 }}>
+                            Clear front-facing portrait photo for seamless garment blending.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Height Slider */}
+                    <div style={{ marginBottom: 24 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                        <label style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>
+                          Height
+                        </label>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: "#8b5cf6" }}>
+                          {charHeight} cm ({Math.floor(charHeight / 2.54 / 12)}&apos; {Math.round((charHeight / 2.54) % 12)}&quot;)
+                        </span>
+                      </div>
+                      <input 
+                        type="range" 
+                        min={145} 
+                        max={210} 
+                        value={charHeight}
+                        onChange={(e) => setCharHeight(Number(e.target.value))}
+                        style={{ width: "100%", accentColor: "#8b5cf6", cursor: "pointer" }}
+                      />
+                    </div>
+
+                    {/* Body Structure Selection */}
+                    <div style={{ marginBottom: 28 }}>
+                      <label style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", display: "block", marginBottom: 10, textTransform: "uppercase" }}>
+                        Body Structure Silhouette
+                      </label>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10 }}>
+                        {[
+                          { id: "slim", label: "Slim", desc: "Lean & slender build" },
+                          { id: "athletic", label: "Athletic / Average", desc: "Toned chest & broader shoulders" },
+                          { id: "full_figured", label: "Full-Figured", desc: "Curvaceous & fuller build" },
+                          { id: "plus_size", label: "Plus-Size", desc: "Relaxed streetwear drape" }
+                        ].map((b) => (
+                          <div
+                            key={b.id}
+                            onClick={() => setCharBodyStructure(b.id)}
+                            style={{
+                              padding: "12px",
+                              borderRadius: 10,
+                              background: charBodyStructure === b.id ? "rgba(139, 92, 246, 0.15)" : "rgba(255, 255, 255, 0.03)",
+                              border: charBodyStructure === b.id ? "1.5px solid #8b5cf6" : "1px solid var(--border-glass)",
+                              cursor: "pointer",
+                              textAlign: "center"
+                            }}
+                          >
+                            <div style={{ fontSize: 12, fontWeight: 700, color: charBodyStructure === b.id ? "#fff" : "var(--text-main)", marginBottom: 4 }}>
+                              {b.label}
+                            </div>
+                            <div style={{ fontSize: 10, color: charBodyStructure === b.id ? "#c084fc" : "var(--text-muted)" }}>
+                              {b.desc}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={charSaving}
+                      style={{
+                        padding: "12px 24px",
+                        borderRadius: 10,
+                        background: "linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)",
+                        color: "#fff",
+                        border: "none",
+                        fontWeight: 700,
+                        fontSize: 13,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8
+                      }}
+                    >
+                      <Sparkles size={16} />
+                      <span>{charSaving ? "Saving..." : "Save AI Character Profile"}</span>
+                    </button>
+                  </form>
+                </div>
               </div>
             )}
           </div>

@@ -27,6 +27,20 @@ const TasksPage = React.lazy(() => import("./pages/tasks"));
 const LocationsPage = React.lazy(() => import("./pages/locations"));
 const ReportsPage = React.lazy(() => import("./pages/reports"));
 
+// Meta Engine Module Pages
+const MarketingDashboard = React.lazy(() => import("./pages/marketing").then(m => ({ default: m.MarketingDashboard })));
+const CampaignList = React.lazy(() => import("./pages/marketing").then(m => ({ default: m.CampaignList })));
+const CampaignCreateWizard = React.lazy(() => import("./pages/marketing").then(m => ({ default: m.CampaignCreateWizard })));
+const CampaignShow = React.lazy(() => import("./pages/marketing").then(m => ({ default: m.CampaignShow })));
+const AutomationRulesPage = React.lazy(() => import("./pages/marketing").then(m => ({ default: m.AutomationRulesPage })));
+const MetaAccountsPage = React.lazy(() => import("./pages/marketing").then(m => ({ default: m.MetaAccountsPage })));
+const MetaAgentPage = React.lazy(() => import("./pages/marketing").then(m => ({ default: m.MetaAgentPage })));
+const CompetitorSpyPage = React.lazy(() => import("./pages/marketing").then(m => ({ default: m.CompetitorSpyPage })));
+const ApiIntegrationPage = React.lazy(() => import("./pages/marketing").then(m => ({ default: m.ApiIntegrationPage })));
+const FitCheckPage = React.lazy(() => import("./pages/fit-check"));
+
+
+
 // Curated administrative dark-theme tokens matching streetwear aesthetics
 const customTheme = {
   algorithm: theme.darkAlgorithm,
@@ -59,6 +73,50 @@ export const App: React.FC = () => {
             authProvider={authProvider}
             accessControlProvider={accessControlProvider}
             options={{ syncWithLocation: true }}
+            resources={[
+              {
+                name: "campaigns",
+                list: "/marketing/campaigns",
+                create: "/marketing/campaigns/create",
+                show: "/marketing/campaigns/:id",
+                meta: { label: "Campaigns" },
+              },
+              {
+                name: "meta-engine",
+                list: "/marketing/dashboard",
+                meta: { label: "Meta Engine" },
+              },
+              {
+                name: "meta-rules",
+                list: "/marketing/rules",
+                meta: { label: "Automation Rules" },
+              },
+              {
+                name: "meta-accounts",
+                list: "/marketing/accounts",
+                meta: { label: "Meta Accounts" },
+              },
+              {
+                name: "meta-agent",
+                list: "/marketing/agent",
+                meta: { label: "AI Agent" },
+              },
+              {
+                name: "meta-competitor",
+                list: "/marketing/competitor",
+                meta: { label: "Competitor Spy" },
+              },
+              {
+                name: "meta-api-integration",
+                list: "/marketing/api-integration",
+                meta: { label: "API Integration" },
+              },
+              {
+                name: "fitcheck",
+                list: "/fit-check",
+                meta: { label: "AI Fit Check Studio" },
+              },
+            ]}
           >
             <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#08080b' }}><Spin size="large" /></div>}>
               <Routes>
@@ -76,6 +134,7 @@ export const App: React.FC = () => {
                   }
                 >
                   <Route path="/" element={<Dashboard />} />
+                  <Route path="/fit-check" element={<FitCheckPage />} />
                   <Route path="/reports" element={<ReportsPage />} />
                   <Route path="/orders" element={<Orders />} />
                   <Route path="/fulfillment" element={<Fulfillment />} />
@@ -93,7 +152,19 @@ export const App: React.FC = () => {
                   <Route path="/roles" element={<RolesPage />} />
                   <Route path="/staff" element={<StaffPage />} />
                   <Route path="/locations" element={<LocationsPage />} />
+
+                  {/* Meta Engine Routes */}
+                  <Route path="/marketing/dashboard" element={<MarketingDashboard />} />
+                  <Route path="/marketing/agent" element={<MetaAgentPage />} />
+                  <Route path="/marketing/competitor" element={<CompetitorSpyPage />} />
+                  <Route path="/marketing/api-integration" element={<ApiIntegrationPage />} />
+                  <Route path="/marketing/campaigns" element={<CampaignList />} />
+                  <Route path="/marketing/campaigns/create" element={<CampaignCreateWizard />} />
+                  <Route path="/marketing/campaigns/:id" element={<CampaignShow />} />
+                  <Route path="/marketing/rules" element={<AutomationRulesPage />} />
+                  <Route path="/marketing/accounts" element={<MetaAccountsPage />} />
                 </Route>
+
                 
                 {/* Fallbacks */}
                 <Route path="*" element={<Navigate to="/" />} />
