@@ -149,6 +149,7 @@ export default function CheckoutPage() {
   const [discountAmount, setDiscountAmount] = useState(0);
   const [appliedPromo, setAppliedPromo] = useState("");
   const [isCheckingPromo, setIsCheckingPromo] = useState(false);
+  const hasTrackedInitiateCheckout = useRef(false);
   
   const [formData, setFormData] = useState({
     name: "",
@@ -208,11 +209,36 @@ export default function CheckoutPage() {
             gender: data.gender || prev.gender,
             dob: data.date_of_birth || prev.dob,
           }));
+
+          // Cache known customer data for Meta CAPI
+          fpixel.saveUserData({
+            fn: data.username,
+            ph: userPhone,
+            em: data.email,
+            st: data.district_name,
+            ct: data.thana_name,
+            ge: data.gender,
+            db: data.date_of_birth,
+          });
         }
       })
       .catch(err => console.error("Failed to auto-fill customer profile", err));
     }
   }, []);
+
+  // Track InitiateCheckout once when cart is loaded
+  useEffect(() => {
+    if (cart.length > 0 && !hasTrackedInitiateCheckout.current) {
+      hasTrackedInitiateCheckout.current = true;
+      fpixel.trackEvent("InitiateCheckout", {
+        content_ids: cart.map((item) => item.sku),
+        content_type: "product",
+        num_items: cart.length,
+        value: cartTotal,
+        currency: "BDT",
+      });
+    }
+  }, [cart, cartTotal]);
 
   // Fetch thanas when district changes
   useEffect(() => {
@@ -280,7 +306,12 @@ export default function CheckoutPage() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (["phone", "email", "name"].includes(name) && value.trim().length >= 3) {
+      const fieldMap: Record<string, string> = { phone: "ph", email: "em", name: "fn" };
+      fpixel.saveUserData({ [fieldMap[name]]: value });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -352,6 +383,17 @@ export default function CheckoutPage() {
            content_type: "product",
            num_items: cart.length
         }, {
+           em: formData.email,
+           ph: formData.phone,
+           fn: formData.name,
+           ct: formData.thana,
+           st: formData.district,
+           country: 'bd',
+           ge: finalGender,
+           db: finalDob
+        });
+
+        fpixel.saveUserData({
            em: formData.email,
            ph: formData.phone,
            fn: formData.name,
@@ -457,7 +499,10 @@ export default function CheckoutPage() {
                       options={districts}
                       value={formData.district}
                       placeholder="Select District"
-                      onChange={(name, id) => setFormData(prev => ({ ...prev, district: name, districtId: id }))}
+                      onChange={(name, id) => {
+                        setFormData(prev => ({ ...prev, district: name, districtId: id }));
+                        fpixel.saveUserData({ st: name });
+                      }}
                     />
                   </div>
                   <div style={{ zIndex: 10 }}>
@@ -469,6 +514,7 @@ export default function CheckoutPage() {
                       disabled={!formData.districtId}
                       onChange={(name, id) => {
                         setFormData(prev => ({ ...prev, thana: name, thanaId: id }));
+                        fpixel.saveUserData({ ct: name });
                         const selectedThana = thanas.find(t => t.id === id);
                         if (selectedThana) {
                           setShippingCost(Number(selectedThana.shipping_cost) || 0);

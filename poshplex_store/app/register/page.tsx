@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { UserPlus, User, Phone, Key, Eye, EyeOff, ArrowRight } from "lucide-react";
 import SocialLogin from "../components/SocialLogin";
 import GraffitiBackground from "../components/GraffitiBackground";
+import * as fpixel from "../../lib/fpixel";
 
 function RegisterContent() {
   const router = useRouter();
@@ -68,6 +69,25 @@ function RegisterContent() {
         const data = await res.json();
         localStorage.setItem("poshplex_access_token", data.access_token);
         localStorage.setItem("poshplex_user", JSON.stringify(data.user));
+
+        // Cache customer data for Meta CAPI
+        fpixel.saveUserData({
+          em: isEmail ? formattedInput : data.user?.email,
+          ph: !isEmail ? formattedInput : undefined,
+          fn: fullName || data.user?.username,
+          external_id: String(data.user?.id || ""),
+        });
+
+        // Fire Meta CompleteRegistration event
+        fpixel.trackEvent("CompleteRegistration", {
+          status: "success",
+          content_name: "Customer Account",
+        }, {
+          em: isEmail ? formattedInput : data.user?.email,
+          ph: !isEmail ? formattedInput : undefined,
+          fn: fullName,
+        });
+
         window.dispatchEvent(new Event("storage"));
         router.push("/profile");
       } else {

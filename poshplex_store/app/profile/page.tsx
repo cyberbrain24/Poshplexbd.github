@@ -7,6 +7,7 @@ import Image from "next/image";
 import Select from "react-select";
 import { fetchWithAuth } from "../utils/fetchWithAuth";
 import GraffitiBackground from "../components/GraffitiBackground";
+import * as fpixel from "../../lib/fpixel";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -355,6 +356,18 @@ export default function ProfilePage() {
         const data = await res.json();
         setUserProfile(data);
         setIsAuthenticated(true);
+
+        // Cache customer data for Meta CAPI
+        fpixel.saveUserData({
+          fn: data.username,
+          ph: data.phone && !data.phone.startsWith("email_") ? data.phone : undefined,
+          em: data.email,
+          st: data.district_name,
+          ct: data.thana_name,
+          ge: data.gender,
+          db: data.date_of_birth,
+          external_id: String(data.id || ""),
+        });
       } else {
         setIsAuthenticated(false);
         setToken("");

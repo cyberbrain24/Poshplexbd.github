@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Lock, Phone, Key, ArrowRight, Eye, EyeOff } from "lucide-react";
 import SocialLogin from "../components/SocialLogin";
 import GraffitiBackground from "../components/GraffitiBackground";
+import * as fpixel from "../../lib/fpixel";
 
 function LoginContent() {
   const router = useRouter();
@@ -36,6 +37,16 @@ function LoginContent() {
         const data = await res.json();
         localStorage.setItem("poshplex_access_token", data.access_token);
         localStorage.setItem("poshplex_user", JSON.stringify(data.user));
+
+        // Cache customer credentials for Meta CAPI
+        const isEmail = phoneOrEmail.includes("@");
+        fpixel.saveUserData({
+          em: isEmail ? phoneOrEmail : data.user?.email,
+          ph: !isEmail ? phoneOrEmail : undefined,
+          fn: data.user?.username,
+          external_id: String(data.user?.id || ""),
+        });
+
         // dispatch storage event so Header/App can catch it immediately if needed
         window.dispatchEvent(new Event("storage"));
         router.push(next);
