@@ -51,8 +51,17 @@ def poll_performance_metrics():
                     snapshot_time=now,
                     spend=spend,
                     impressions=impressions,
+                    reach=item.get("reach", 0),
+                    frequency=item.get("frequency", 1.0),
+                    cpm=item.get("cpm", Decimal('0.00')),
                     clicks=clicks,
+                    link_clicks=item.get("link_clicks", 0),
+                    cost_per_link_click=item.get("cost_per_link_click", Decimal('0.00')),
                     conversions=conversions,
+                    cost_per_result=item.get("cost_per_result", Decimal('0.00')),
+                    shop_clicks=item.get("shop_clicks", 0),
+                    landing_page_views=item.get("landing_page_views", 0),
+                    cost_per_landing_page=item.get("cost_per_landing_page", Decimal('0.00')),
                     revenue_attributed=attributed_rev,
                 )
                 snapshots_created += 1

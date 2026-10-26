@@ -157,6 +157,20 @@ class CampaignResponseSchema(Schema):
     total_spend: Decimal = Decimal('0.00')
     total_revenue: Decimal = Decimal('0.00')
     roas: float = 0.0
+    results: int = 0
+    cost_per_result: Decimal = Decimal('0.00')
+    impressions: int = 0
+    reach: int = 0
+    frequency: float = 0.0
+    cpm: Decimal = Decimal('0.00')
+    shop_clicks: int = 0
+    link_clicks: int = 0
+    cpc: Decimal = Decimal('0.00')
+    total_clicks: int = 0
+    ctr_all: float = 0.0
+    cpc_all: Decimal = Decimal('0.00')
+    landing_page_views: int = 0
+    cost_per_landing_page: Decimal = Decimal('0.00')
 
 
 # ============================================================================

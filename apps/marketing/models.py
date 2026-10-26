@@ -264,6 +264,15 @@ class PerformanceSnapshot(models.Model):
     roas = models.FloatField(default=0.0)
     cpc = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     ctr = models.FloatField(default=0.0)
+    reach = models.PositiveIntegerField(default=0)
+    frequency = models.FloatField(default=1.0)
+    cpm = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    shop_clicks = models.PositiveIntegerField(default=0)
+    link_clicks = models.PositiveIntegerField(default=0)
+    cost_per_link_click = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    landing_page_views = models.PositiveIntegerField(default=0)
+    cost_per_landing_page = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    cost_per_result = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -275,19 +284,46 @@ class PerformanceSnapshot(models.Model):
         ]
 
     def save(self, *args, **kwargs):
-        # Auto-compute ROAS, CPC, CTR if spend/clicks exist
-        if self.spend and self.spend > 0:
-            self.roas = round(float(self.revenue_attributed) / float(self.spend), 2)
+        # Auto-compute ROAS, CPC, CTR, Frequency, CPM, Cost Per Result, Cost Per Landing Page if spend/impressions/clicks exist
+        spend_dec = self.spend or Decimal('0.00')
+        rev_dec = self.revenue_attributed or Decimal('0.00')
+        if spend_dec > 0:
+            self.roas = round(float(rev_dec) / float(spend_dec), 2)
         else:
             self.roas = 0.0
+
         if self.clicks and self.clicks > 0:
-            self.cpc = round(self.spend / Decimal(self.clicks), 2)
+            self.cpc = round(spend_dec / Decimal(self.clicks), 2)
         else:
             self.cpc = Decimal('0.00')
+
+        if self.link_clicks and self.link_clicks > 0:
+            self.cost_per_link_click = round(spend_dec / Decimal(self.link_clicks), 2)
+        else:
+            self.cost_per_link_click = self.cpc
+
         if self.impressions and self.impressions > 0:
             self.ctr = round((self.clicks / self.impressions) * 100, 2)
+            self.cpm = round((spend_dec / Decimal(self.impressions)) * Decimal('1000.00'), 2)
         else:
             self.ctr = 0.0
+            self.cpm = Decimal('0.00')
+
+        if self.reach and self.reach > 0 and self.impressions:
+            self.frequency = round(self.impressions / self.reach, 2)
+        elif self.impressions:
+            self.frequency = 1.0
+
+        if self.conversions and self.conversions > 0:
+            self.cost_per_result = round(spend_dec / Decimal(self.conversions), 2)
+        else:
+            self.cost_per_result = Decimal('0.00')
+
+        if self.landing_page_views and self.landing_page_views > 0:
+            self.cost_per_landing_page = round(spend_dec / Decimal(self.landing_page_views), 2)
+        else:
+            self.cost_per_landing_page = Decimal('0.00')
+
         super().save(*args, **kwargs)
 
     def __str__(self):

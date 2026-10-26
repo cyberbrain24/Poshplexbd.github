@@ -422,6 +422,22 @@ def _serialize_campaign(c: Campaign) -> dict:
     total_rev = sum((s.revenue_attributed for s in snapshots), Decimal('0.00'))
     roas = round(float(total_rev) / float(total_spend), 2) if total_spend > 0 else 0.0
 
+    # Extended metrics rollups for full Meta ads analytics
+    total_results = sum((s.conversions for s in snapshots), 0)
+    total_impressions = sum((s.impressions for s in snapshots), 0)
+    total_reach = sum((getattr(s, 'reach', 0) or s.impressions for s in snapshots), 0)
+    frequency = round(total_impressions / total_reach, 2) if total_reach > 0 else 1.0
+    cpm = round((total_spend / Decimal(total_impressions)) * Decimal('1000.00'), 2) if total_impressions > 0 else Decimal('0.00')
+    shop_clicks = sum((getattr(s, 'shop_clicks', 0) for s in snapshots), 0)
+    link_clicks = sum((getattr(s, 'link_clicks', 0) or s.clicks for s in snapshots), 0)
+    total_clicks = sum((s.clicks for s in snapshots), 0)
+    cpc = round(total_spend / Decimal(link_clicks), 2) if link_clicks > 0 else Decimal('0.00')
+    cpc_all = round(total_spend / Decimal(total_clicks), 2) if total_clicks > 0 else Decimal('0.00')
+    ctr_all = round((total_clicks / total_impressions) * 100, 2) if total_impressions > 0 else 0.0
+    landing_page_views = sum((getattr(s, 'landing_page_views', 0) for s in snapshots), 0)
+    cost_per_landing_page = round(total_spend / Decimal(landing_page_views), 2) if landing_page_views > 0 else Decimal('0.00')
+    cost_per_result = round(total_spend / Decimal(total_results), 2) if total_results > 0 else Decimal('0.00')
+
     product_name = None
     product_img = None
     if c.linked_product:
@@ -481,6 +497,20 @@ def _serialize_campaign(c: Campaign) -> dict:
         "total_spend": total_spend,
         "total_revenue": total_rev,
         "roas": roas,
+        "results": total_results,
+        "cost_per_result": cost_per_result,
+        "impressions": total_impressions,
+        "reach": total_reach,
+        "frequency": frequency,
+        "cpm": cpm,
+        "shop_clicks": shop_clicks,
+        "link_clicks": link_clicks,
+        "cpc": cpc,
+        "total_clicks": total_clicks,
+        "ctr_all": ctr_all,
+        "cpc_all": cpc_all,
+        "landing_page_views": landing_page_views,
+        "cost_per_landing_page": cost_per_landing_page,
     }
 
 
@@ -559,8 +589,17 @@ def sync_ad_account(request, account_id: int):
                     snapshot_time=now,
                     spend=spend,
                     impressions=item.get("impressions", 0),
+                    reach=item.get("reach", 0),
+                    frequency=item.get("frequency", 1.0),
+                    cpm=item.get("cpm", Decimal('0.00')),
                     clicks=item.get("clicks", 0),
+                    link_clicks=item.get("link_clicks", 0),
+                    cost_per_link_click=item.get("cost_per_link_click", Decimal('0.00')),
                     conversions=item.get("conversions", 0),
+                    cost_per_result=item.get("cost_per_result", Decimal('0.00')),
+                    shop_clicks=item.get("shop_clicks", 0),
+                    landing_page_views=item.get("landing_page_views", 0),
+                    cost_per_landing_page=item.get("cost_per_landing_page", Decimal('0.00')),
                     revenue_attributed=rev,
                 )
         account.last_synced_at = now
