@@ -172,7 +172,8 @@ export async function POST(req: Request) {
         const parsedUrl = new URL(eventSourceUrl);
         const fbclid = parsedUrl.searchParams.get("fbclid");
         if (fbclid) {
-          fbc = `fb.1.${timestamp}.${fbclid}`;
+          // Meta requires creation time in milliseconds (13 digits)
+          fbc = `fb.1.${Date.now()}.${fbclid}`;
           newCookies.push({ name: "_fbc", value: fbc, maxAge: 7776000 });
         }
       } catch {
@@ -206,7 +207,8 @@ export async function POST(req: Request) {
       zp: hashData(userData?.zp),
       ge: hashData(userData?.ge, "gender"),
       db: hashData(userData?.db, "dob"),
-      external_id: hashData(external_id),
+      // Meta Events Manager explicitly specifies external_id as "Not hashed - no hash required"
+      external_id: external_id,
     };
 
     // Remove undefined fields
