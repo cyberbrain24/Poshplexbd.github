@@ -655,6 +655,34 @@ export default function ProductDetailClient({
             </div>
           )}
 
+          {/* Quantity stepper (Below variations box & above Size Chart section) */}
+          {!bundleData.isBundle && (
+            <div className="product-qty-container selector-group" style={{ marginTop: 14, marginBottom: 14, display: "flex", alignItems: "center", gap: 14 }}>
+              <span className="selector-label" style={{ fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>QTY</span>
+              <div style={{ display: "flex", alignItems: "center", border: "1px solid #cbd5e1", borderRadius: 4, width: "fit-content", background: "#fff", overflow: "hidden" }}>
+                <button
+                  type="button"
+                  onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                  style={{ width: 30, height: 30, background: "#f8fafc", border: "none", borderRight: "1px solid #cbd5e1", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#475569" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "#f1f5f9")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "#f8fafc")}
+                >
+                  <Minus size={11} />
+                </button>
+                <span style={{ width: 36, textAlign: "center", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{quantity}</span>
+                <button
+                  type="button"
+                  onClick={() => setQuantity(q => q + 1)}
+                  style={{ width: 30, height: 30, background: "#f8fafc", border: "none", borderLeft: "1px solid #cbd5e1", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#475569" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "#f1f5f9")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "#f8fafc")}
+                >
+                  <Plus size={11} />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* ── Size Chart & AI Virtual Fit Check Buttons ── */}
           <div className="product-size-chart-row" style={{ marginTop: 10, marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -746,33 +774,16 @@ export default function ProductDetailClient({
             onSelectAttribute={(key, val) => selectAttr(key, val)}
             initialAttributes={initialAttributes}
             onBundleChange={(bInfo) => setBundleData(bInfo)}
+            onAddToCart={handleAddToCart}
+            onBuyNow={() => {
+              handleAddToCart();
+              router.push("/checkout");
+            }}
           />
 
-          {/* Quantity stepper (Only for single product mode) */}
-          {!bundleData.isBundle && (
-            <div className="product-qty-container selector-group" style={{ marginBottom: 24, marginTop: 16 }}>
-              <p className="selector-label">QTY</p>
-              <div style={{ display: "flex", alignItems: "center", border: "1px solid #e5e5e5", borderRadius: 4, width: "fit-content", background: "#fff", overflow: "hidden" }}>
-                <button
-                  onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                  style={{ width: 28, height: 28, background: "#fafafa", border: "none", borderRight: "1px solid #e5e5e5", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#555" }}
-                >
-                  <Minus size={11} />
-                </button>
-                <span style={{ width: 32, textAlign: "center", fontSize: 12, fontWeight: 600, color: "#111" }}>{quantity}</span>
-                <button
-                  onClick={() => setQuantity(q => q + 1)}
-                  style={{ width: 28, height: 28, background: "#fafafa", border: "none", borderLeft: "1px solid #e5e5e5", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#555" }}
-                >
-                  <Plus size={11} />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Bundle Savings Note above action buttons */}
+          {/* Bundle Savings Note above action buttons (Mobile only or outer fallback) */}
           {bundleData.isBundle && bundleData.isComplete && bundleData.savings > 0 && (
-            <div style={{
+            <div className="bundle-savings-outer-banner" style={{
               marginBottom: 10,
               padding: "9px 13px",
               backgroundColor: "#f0fdf4",
@@ -804,7 +815,7 @@ export default function ProductDetailClient({
           )}
 
           {/* State-dependent Action buttons */}
-          <div className="product-action-buttons-wrapper">
+          <div className={`product-action-buttons-wrapper ${bundleData.isBundle ? "is-bundle-active" : ""}`}>
             {product.is_sold_out ? (
               <button
                 disabled
@@ -1225,6 +1236,12 @@ export default function ProductDetailClient({
           display: flex;
           gap: 12px;
           margin-bottom: 16px;
+        }
+        @media (min-width: 769px) {
+          .product-action-buttons-wrapper.is-bundle-active,
+          .bundle-savings-outer-banner {
+            display: none !important;
+          }
         }
         .product-title {
           font-size: 26px;

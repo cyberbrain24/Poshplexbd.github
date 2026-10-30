@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { 
-  Shirt, Plus, Check, Tag, Truck, RefreshCw, X, CheckCircle2 
+  Shirt, Plus, Check, Tag, Truck, RefreshCw, X, CheckCircle2, ShoppingBag, Zap 
 } from "lucide-react";
 import ChooseProductModal from "./ChooseProductModal";
 
@@ -14,6 +14,8 @@ interface BuyMoreAndSaveProps {
   onSelectAttribute: (key: string, val: string) => void;
   initialAttributes?: any[];
   onBundleChange: (bundleInfo: any) => void;
+  onAddToCart?: () => void;
+  onBuyNow?: () => void;
 }
 
 const DEFAULT_TIERS = [
@@ -77,7 +79,9 @@ export default function BuyMoreAndSave({
   selectedAttributes,
   onSelectAttribute,
   initialAttributes = [],
-  onBundleChange
+  onBundleChange,
+  onAddToCart,
+  onBuyNow
 }: BuyMoreAndSaveProps) {
   const [tiers, setTiers] = useState<any[]>(DEFAULT_TIERS);
   const [selectedTierSlug, setSelectedTierSlug] = useState<string>("single");
@@ -523,6 +527,7 @@ export default function BuyMoreAndSave({
           );
 
           const actualSavings = actualOriginalTotal - actualBundleTotal;
+          const isSlot0SizeMissing = !isAllCurrentAttributesSelected;
 
           return (
             <div
@@ -920,6 +925,68 @@ export default function BuyMoreAndSave({
                   )}
                 </div>
               )}
+
+              {/* Action buttons inside the Bundle card box (Desktop View) */}
+              {isSelected && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="bms-bundle-actions"
+                >
+                  {isAllRequiredAdded && !isSlot0SizeMissing ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onAddToCart) onAddToCart();
+                        }}
+                        className="bms-card-add-cart-btn"
+                      >
+                        <ShoppingBag size={14} />
+                        <span>Add to Cart (Tk {actualBundleTotal})</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onBuyNow) onBuyNow();
+                        }}
+                        className="bms-card-buy-now-btn"
+                      >
+                        <Zap size={14} />
+                        <span>Buy Now</span>
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (isSlot0SizeMissing) {
+                          scrollToVariations();
+                        } else {
+                          for (let i = 1; i < tier.items_count; i++) {
+                            if (!chosenSlots[i]) {
+                              handleOpenChooseModal(i);
+                              break;
+                            }
+                          }
+                        }
+                      }}
+                      className="bms-card-unlock-btn"
+                      style={{
+                        background: isSlot0SizeMissing ? "#fff1f2" : "#f8fafc",
+                        color: isSlot0SizeMissing ? "#be123c" : "#475569",
+                        borderColor: isSlot0SizeMissing ? "#fda4af" : "#cbd5e1"
+                      }}
+                    >
+                      {isSlot0SizeMissing
+                        ? `SELECT OPTIONS FOR ${currentProduct.name.toUpperCase()} TO UNLOCK BUNDLE`
+                        : `SELECT ALL PRODUCTS TO UNLOCK BUNDLE DISCOUNT (${chosenCount}/${tier.items_count})`}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
@@ -1078,6 +1145,78 @@ export default function BuyMoreAndSave({
           border-color: #475569;
           background-color: #ffffff;
           color: #1e293b;
+        }
+        .bms-bundle-actions {
+          display: flex;
+          gap: 8px;
+          margin-top: 10px;
+          width: 100%;
+        }
+        .bms-card-add-cart-btn {
+          flex: 1;
+          height: 42px;
+          font-size: 12px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.6px;
+          background-color: #1e293b;
+          color: #ffffff;
+          border: none;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          box-shadow: 0 2px 6px rgba(30, 41, 59, 0.2);
+        }
+        .bms-card-add-cart-btn:hover {
+          background-color: #334155;
+        }
+        .bms-card-buy-now-btn {
+          flex: 1;
+          height: 42px;
+          font-size: 12px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.6px;
+          background-color: #ffffff;
+          color: #1e293b;
+          border: 1.5px solid #1e293b;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+        }
+        .bms-card-buy-now-btn:hover {
+          background-color: #1e293b;
+          color: #ffffff;
+        }
+        .bms-card-unlock-btn {
+          width: 100%;
+          height: 40px;
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          border-width: 1.5px;
+          border-style: dashed;
+          cursor: pointer;
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          transition: all 0.15s ease;
+        }
+        @media (max-width: 768px) {
+          .bms-bundle-actions {
+            display: none !important;
+          }
         }
         @media (max-width: 640px) {
           .bms-card {
