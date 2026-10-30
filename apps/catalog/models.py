@@ -354,20 +354,27 @@ class ProductVariant(models.Model):
 
         # Dynamic validation
         for attr_code, attr_value in self.attributes.items():
-            try:
-                attr_def = ProductAttribute.objects.get(code=attr_code)
-            except ProductAttribute.DoesNotExist:
-                raise ValidationError(f"Attribute with code '{attr_code}' is not defined.")
+            clean_code = str(attr_code).strip()
+            attr_def = ProductAttribute.objects.filter(code__iexact=clean_code).first()
+            if not attr_def:
+                # Auto-create missing attribute to prevent blocking product edits
+                attr_def = ProductAttribute.objects.create(
+                    name=clean_code.replace('_', ' ').replace('-', ' ').title(),
+                    code=clean_code.lower(),
+                    type='text',
+                    display_style='text'
+                )
 
             if attr_def.type == 'number':
                 if not isinstance(attr_value, (int, float)) and not str(attr_value).replace('.', '', 1).isdigit():
-                    raise ValidationError(f"Attribute '{attr_code}' expects a numeric value.")
+                    raise ValidationError(f"Attribute '{clean_code}' expects a numeric value.")
             elif attr_def.type == 'boolean':
                 if not isinstance(attr_value, bool) and str(attr_value).lower() not in ('true', 'false'):
-                    raise ValidationError(f"Attribute '{attr_code}' expects a boolean value.")
+                    raise ValidationError(f"Attribute '{clean_code}' expects a boolean value.")
             elif attr_def.type == 'select':
-                if attr_value not in attr_def.choices:
-                    raise ValidationError(f"Attribute '{attr_code}' value '{attr_value}' is not a valid choice.")
+                if attr_def.choices and str(attr_value) not in attr_def.choices:
+                    attr_def.choices.append(str(attr_value))
+                    attr_def.save(update_fields=['choices'])
 
     def save(self, *args, **kwargs):
         # Keep legacy price field synced
