@@ -683,9 +683,9 @@ export default function ProductDetailClient({
             </div>
           )}
 
-          {/* ── Size Chart & AI Virtual Fit Check Buttons ── */}
-          <div className="product-size-chart-row" style={{ marginTop: 10, marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          {/* ── Size Chart & AI Virtual Fit Check Buttons (Right Aligned) ── */}
+          <div className="product-size-chart-row" style={{ marginTop: 10, marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
               <button
                 type="button"
                 id="size-chart-trigger-btn"
@@ -760,10 +760,6 @@ export default function ProductDetailClient({
                 </button>
               )}
             </div>
-
-            <span style={{ fontSize: 11.5, color: "#64748b", fontWeight: 500 }}>
-              {isFitCheckActive ? "Need fit advice? Test with AI model" : "Need fit advice? Check measurements"}
-            </span>
           </div>
 
           {/* Buy More & Save Combo Offer Bundle Selector */}
