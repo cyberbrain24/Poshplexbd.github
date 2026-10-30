@@ -155,7 +155,7 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
       <div style={{ background: "#111116", color: "#ffffff", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "1.5px", padding: "6px 24px", textAlign: "center" }}>
         BE POSH WITH POSHPLEX
       </div>
-      <div className="container header-main-nav-container">
+      <div className="header-main-nav-container">
         
         {/* Left: Mobile Hamburger / Desktop hidden */}
         <div className="mobile-menu-btn" style={{ display: "none" }}>
@@ -227,7 +227,8 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
                       alignItems: "center", 
                       height: "100%", 
                       width: "100%", 
-                      justifyContent: "center" 
+                      justifyContent: "center",
+                      whiteSpace: "nowrap"
                     }}
                   >
                     {cat.name}
@@ -567,17 +568,28 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
           align-items: center;
           justify-content: space-between;
           position: relative;
-          width: 100%;
-          max-width: 1200px;
-          margin: 0 auto;
+          width: 100% !important;
+          max-width: 100% !important;
+          margin: 0;
+          box-sizing: border-box;
+        }
+
+        .header-logo-link {
+          display: flex;
+          align-items: center;
+          flex-shrink: 0;
         }
         
         .desktop-nav {
           display: flex;
-          gap: 16px;
+          gap: 6px;
           align-self: stretch;
           height: 100%;
           align-items: center;
+          justify-content: center;
+          flex: 1;
+          margin: 0 16px;
+          flex-wrap: nowrap;
         }
 
         .header-nav-tab {
@@ -585,15 +597,30 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
           display: flex;
           align-items: center;
           height: 100%;
-          padding: 0 32px;
+          padding: 0 12px;
           color: var(--text-main);
           text-decoration: none;
           font-size: 13px;
           font-weight: 700;
-          letter-spacing: 1px;
+          letter-spacing: 0.8px;
           text-transform: uppercase;
           transition: all 0.2s ease;
           cursor: pointer;
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+
+        @media (min-width: 1280px) {
+          .header-main-nav-container {
+            padding: 0 32px !important;
+          }
+          .desktop-nav {
+            gap: 8px;
+            margin: 0 24px;
+          }
+          .header-nav-tab {
+            padding: 0 14px;
+          }
         }
 
         .header-nav-tab:hover {
@@ -604,12 +631,19 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
         .header-nav-tab.active {
           background: #2f2f2f !important;
           color: #ffffff !important;
-          border-top-left-radius: 12px;
-          border-top-right-radius: 12px;
+          border-top-left-radius: 8px;
+          border-top-right-radius: 8px;
           margin-top: 6px;
           margin-bottom: -1px;
           height: calc(100% - 5px);
           z-index: 2;
+        }
+
+        .header-right-utils {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          flex-shrink: 0;
         }
         
         .mobile-menu-subcategories::-webkit-scrollbar {
