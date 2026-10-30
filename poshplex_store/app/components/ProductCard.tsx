@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Heart } from "lucide-react";
+import { Heart, Star } from "lucide-react";
 
 const formatBDT = (n: string | number) => `৳${Math.round(Number(n))}`;
 
@@ -105,6 +105,21 @@ export default function ProductCard({
           <p style={{ fontSize: 10, color: "#888", marginBottom: 2, letterSpacing: "0.2px", textTransform: "uppercase" }}>
             {product.category?.name || product.categories?.[0]?.name || "Apparel"}
           </p>
+          <div style={{ display: "flex", alignItems: "center", gap: 2, margin: "2px 0 4px" }}>
+            {[1, 2, 3, 4, 5].map((s) => (
+              <Star
+                key={s}
+                size={10}
+                fill={s <= Math.round(product.rating_average || product.rating || 5) ? "#111" : "none"}
+                color="#111"
+              />
+            ))}
+            {product.rating_count > 0 && (
+              <span style={{ fontSize: 9.5, fontWeight: 600, color: "#777", marginLeft: 2 }}>
+                ({product.rating_count})
+              </span>
+            )}
+          </div>
           <h3 style={{ fontSize: 11, fontWeight: 600, color: "#111", margin: "0 0 2px", lineHeight: 1.3, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {product.name}
           </h3>

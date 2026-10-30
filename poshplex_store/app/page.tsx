@@ -287,6 +287,21 @@ export default async function Home() {
                   )}
                 </div>
                 <div style={{ padding: "0 4px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 3, marginBottom: 6 }}>
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star
+                        key={s}
+                        size={11}
+                        fill={s <= Math.round(product.rating_average || product.rating || 5) ? "#111" : "none"}
+                        color="#111"
+                      />
+                    ))}
+                    {product.rating_count > 0 && (
+                      <span style={{ fontSize: 11, fontWeight: 600, color: "#777", marginLeft: 2 }}>
+                        ({product.rating_count})
+                      </span>
+                    )}
+                  </div>
                   <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 8, lineHeight: 1.3, color: "#111" }}>
                     {product.name}
                   </h3>
@@ -294,12 +309,6 @@ export default async function Home() {
                     style={{ display: "flex", justifyContent: "space-between", alignItems: "center", color: "#111" }}
                   >
                     <span style={{ fontSize: 15, fontWeight: 800 }}>{getPriceDisplay(product)}</span>
-                    {product.rating_count > 0 && (
-                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                        <Star size={12} fill="#111" color="#111" />
-                        <span style={{ fontSize: 12, fontWeight: 600 }}>{product.rating_count}</span>
-                      </div>
-                    )}
                   </div>
                 </div>
               </Link>

@@ -89,11 +89,11 @@ export default function FeaturedReviewsCarousel() {
         .review-card {
           scroll-snap-align: start;
           flex: 0 0 calc(100% / 6 - 20px * 5 / 6);
-          background: var(--bg-secondary);
-          border: 1px solid var(--border-glass);
+          background: #2f2f2f;
+          border: 1px solid rgba(255, 255, 255, 0.1);
           display: flex;
           flex-direction: column;
-          box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+          box-shadow: 0 10px 30px rgba(0,0,0,0.15);
           position: relative;
           overflow: hidden;
         }
@@ -121,23 +121,23 @@ export default function FeaturedReviewsCarousel() {
               </Link>
             )}
 
-            <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: 12, flex: 1 }}>
-              <div style={{ display: "flex", gap: 2, color: "var(--text-main)" }}>
+            <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: 12, flex: 1, background: "#2f2f2f" }}>
+              <div style={{ display: "flex", gap: 3, color: "#ffffff" }}>
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Star 
                     key={i} 
                     size={12} 
-                    fill={i < currentReview.rating ? "currentColor" : "none"} 
-                    style={{ color: i < currentReview.rating ? "var(--text-main)" : "var(--text-muted)" }}
+                    fill={i < currentReview.rating ? "#ffffff" : "none"} 
+                    style={{ color: i < currentReview.rating ? "#ffffff" : "rgba(255, 255, 255, 0.3)" }}
                   />
                 ))}
               </div>
 
-              <p style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6, flex: 1 }}>
+              <p style={{ fontSize: 13, color: "rgba(255, 255, 255, 0.9)", lineHeight: 1.6, flex: 1 }}>
                 {currentReview.comment}
               </p>
 
-              <h3 style={{ fontSize: 13, fontWeight: 900, color: "var(--text-main)", textTransform: "uppercase", margin: 0 }}>
+              <h3 style={{ fontSize: 13, fontWeight: 900, color: "#ffffff", textTransform: "uppercase", margin: 0 }}>
                 {currentReview.username}
               </h3>
             </div>
