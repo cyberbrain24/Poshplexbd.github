@@ -21,6 +21,10 @@ import { CSS } from '@dnd-kit/utilities';
 
 const API_URL = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/catalog";
 
+const getAuthToken = () => {
+  return localStorage.getItem("poshplex_access_token") || localStorage.getItem("poshplex_token") || "admin_imran";
+};
+
 interface DraggableUploadListItemProps {
   originNode: React.ReactElement<any, string | React.JSXElementConstructor<any>>;
   file: UploadFile<any>;
@@ -270,7 +274,7 @@ export const Catalog: React.FC = () => {
 
   const toggleCategoryActive = async (node: any, checked: boolean) => {
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = getAuthToken();
       await axios.put(`${API_URL}/categories/${node.id}`, {
         name: node.name,
         slug: node.slug,
@@ -310,7 +314,7 @@ export const Catalog: React.FC = () => {
   // Duplicate product
   const handleDuplicate = async (id: number) => {
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = getAuthToken();
       await axios.post(`${API_URL}/products/${id}/duplicate`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -324,7 +328,7 @@ export const Catalog: React.FC = () => {
   // Delete product checking past orders
   const handleDelete = async (id: number) => {
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = getAuthToken();
       await axios.delete(`${API_URL}/products/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -341,7 +345,7 @@ export const Catalog: React.FC = () => {
   // Instantly toggle product sold out status
   const handleToggleSoldOut = async (id: number, isSoldOut: boolean) => {
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = getAuthToken();
       await axios.patch(`${API_URL}/products/${id}/sold-out`, {
         is_sold_out: isSoldOut
       }, {
@@ -357,7 +361,7 @@ export const Catalog: React.FC = () => {
   // Bulk status updates
   const handleBulkStatusUpdate = async (active: boolean) => {
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = getAuthToken();
       await Promise.all(
         selectedRowKeys.map(async (key) => {
           const prod = products.find(p => p.id === key);
@@ -396,7 +400,7 @@ export const Catalog: React.FC = () => {
       onOk: async () => {
         let successCount = 0;
         let failCount = 0;
-        const token = localStorage.getItem("poshplex_token") || "admin_imran";
+        const token = getAuthToken();
         
         for (const key of selectedRowKeys) {
           try {
@@ -503,7 +507,7 @@ export const Catalog: React.FC = () => {
   const handleProductSubmit = async (values: any) => {
     setIsSavingProduct(true);
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = getAuthToken();
       
       const cleanVariants = (productType === "variable" ? variantsList : []).map(v => ({
         ...v,
@@ -515,12 +519,19 @@ export const Catalog: React.FC = () => {
         .map(f => f.url ? f.url.split('/').pop() || "" : "")
         .filter(s => s);
 
+      const manualFilenames = (values.image_filenames || "")
+        .split(',')
+        .map((s: string) => s.trim())
+        .filter(Boolean);
+
+      const combinedImageUrls = Array.from(new Set([...filenames, ...manualFilenames]));
+
       const { image_filenames, ...restValues } = values;
 
       const payload = { 
         ...restValues, 
         variants: cleanVariants,
-        image_urls: filenames
+        image_urls: combinedImageUrls
       };
       let productId = editingProduct?.id;
       let isNew = false;
@@ -570,12 +581,16 @@ export const Catalog: React.FC = () => {
             // Existing image: update its is_main and order via the new PUT endpoint
             const imageId = file.response?.id || file.uid;
             if (imageId && !isNaN(Number(imageId))) {
-              await axios.put(`${API_URL}/products/${productId}/images/${imageId}`, {
-                is_main: isMain,
-                order: assignedOrder
-              }, {
-                headers: { Authorization: `Bearer ${token}` }
-              });
+              try {
+                await axios.put(`${API_URL}/products/${productId}/images/${imageId}`, {
+                  is_main: isMain,
+                  order: assignedOrder
+                }, {
+                  headers: { Authorization: `Bearer ${token}` }
+                });
+              } catch (imgErr) {
+                console.warn(`Failed to update existing image ${imageId}:`, imgErr);
+              }
             }
           }
         }
@@ -592,8 +607,10 @@ export const Catalog: React.FC = () => {
             };
           });
           
+          const { image_filenames: _, ...cleanValues } = values;
           await axios.put(`${API_URL}/products/${productId}`, {
-             ...values,
+             ...cleanValues,
+             base_price: cleanValues.base_price !== undefined ? cleanValues.base_price : (editingProduct?.base_price || 0),
              variants: updatedVariants
           }, { headers: { Authorization: `Bearer ${token}` } });
         }
@@ -700,7 +717,7 @@ export const Catalog: React.FC = () => {
   // Handle Attribute creation/edit
   const handleAttributeSubmit = async (values: any) => {
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = getAuthToken();
       let finalChoices: string[] = [];
       let finalChoiceMetadata: Record<string, string> = {};
       
@@ -756,7 +773,7 @@ export const Catalog: React.FC = () => {
   // Generic CRUD Handlers
   const handleGenericSubmit = async (endpoint: string, values: any, setModalOpen: any, form: any, editingItem: any) => {
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = getAuthToken();
       if (editingItem) {
         await axios.put(`${API_URL}${endpoint}/${editingItem.id}`, values, { headers: { Authorization: `Bearer ${token}` } });
       } else {
@@ -785,18 +802,18 @@ export const Catalog: React.FC = () => {
 
   const handleGenericDelete = async (endpoint: string) => {
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = getAuthToken();
       await axios.delete(`${API_URL}${endpoint}`, { headers: { Authorization: `Bearer ${token}` } });
       message.success("Deleted successfully!");
       loadMetadata();
     } catch (err: any) {
-      message.error(err.response?.data?.message || "Failed to delete.");
+      message.error(err.response?.data?.detail || err.response?.data?.message || "Failed to delete.");
     }
   };
 
   const handleCategorySubmit = async (values: any) => {
     try {
-      const token = localStorage.getItem("poshplex_token") || "admin_imran";
+      const token = getAuthToken();
       let catId = editingCategory?.id;
       
       // Save basic info
@@ -949,7 +966,7 @@ export const Catalog: React.FC = () => {
   };
 
   const resolveCategory = async (catName: string, subcatName?: string) => {
-    const token = localStorage.getItem("poshplex_token") || "admin_imran";
+    const token = getAuthToken();
     let matchedId = getMatchedCategoryId(catName, subcatName);
     if (matchedId) return matchedId;
 
@@ -969,7 +986,7 @@ export const Catalog: React.FC = () => {
   };
 
   const resolveBrand = async (brandName: string) => {
-    const token = localStorage.getItem("poshplex_token") || "admin_imran";
+    const token = getAuthToken();
     let matchedId = getMatchedBrandId(brandName);
     if (matchedId) return matchedId;
 
@@ -1035,7 +1052,7 @@ export const Catalog: React.FC = () => {
     if (previewRows.length === 0) return;
     setImportLoading(true);
     setImportProgress({ current: 0, total: previewRows.length });
-    const token = localStorage.getItem("poshplex_token") || "admin_imran";
+    const token = getAuthToken();
 
     const groups: Record<string, typeof previewRows> = {};
     previewRows.forEach((row) => {
@@ -2026,7 +2043,7 @@ export const Catalog: React.FC = () => {
                       <DraggableUploadListItem originNode={originNode} file={file} />
                     )}
                   >
-                    {fileList.length >= 8 ? null : <div><PlusOutlined /><div style={{ marginTop: 8 }}>Upload</div></div>}
+                    <div><PlusOutlined /><div style={{ marginTop: 8 }}>Upload</div></div>
                   </Upload>
                 </SortableContext>
               </DndContext>

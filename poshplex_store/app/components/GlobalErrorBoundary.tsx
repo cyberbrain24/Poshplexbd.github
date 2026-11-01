@@ -24,8 +24,24 @@ export class GlobalErrorBoundary extends Component<Props, State> {
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Uncaught error:", error, errorInfo);
 
+    // Handle ChunkLoadError seamlessly by reloading to fetch new build assets
+    const isChunkError =
+      error?.name === "ChunkLoadError" ||
+      error?.message?.includes("Loading chunk") ||
+      error?.message?.includes("Failed to fetch dynamically imported module");
+
+    if (isChunkError && typeof window !== "undefined") {
+      const lastReload = window.sessionStorage.getItem("poshplex_chunk_reload");
+      const now = Date.now();
+      if (!lastReload || now - parseInt(lastReload, 10) > 20000) {
+        window.sessionStorage.setItem("poshplex_chunk_reload", now.toString());
+        window.location.reload();
+        return;
+      }
+    }
+
     // POST error to unified ingest endpoint
-    const ingestUrl = `${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/monitor/ingest-client-error`;
+    const ingestUrl = `${process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/monitor/ingest-client-error`;
     
     fetch(ingestUrl, {
       method: "POST",
@@ -37,7 +53,6 @@ export class GlobalErrorBoundary extends Component<Props, State> {
         path: typeof window !== "undefined" ? window.location.pathname : "SSR"
       })
     }).catch(err => {
-      // Intentionally ignore failure to post error so we don't cause an infinite loop
       console.error("Failed to post crash report to monitor", err);
     });
   }

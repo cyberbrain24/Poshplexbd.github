@@ -62,8 +62,7 @@ export default async function CategoryPage({
     initialCategoryTree = await catRes.json();
     
   } catch (err) {
-    console.error("Failed to fetch server-side catalog data:", err);
-    throw err; // Prevent Next.js from caching a broken category page
+    console.error("Failed to fetch server-side catalog data for slug:", slug, err);
   }
 
   return (

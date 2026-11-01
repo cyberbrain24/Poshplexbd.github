@@ -75,7 +75,7 @@ export default function CatalogPage() {
           url.searchParams.set("search", searchQuery.trim());
         }
         
-        const prodRes = await fetch(url.toString());
+        const prodRes = await fetch(url.toString(), { cache: 'no-store' });
         if (prodRes.ok) {
           const prods = await prodRes.json();
           setProducts(prods.results || prods || []);

@@ -36,3 +36,15 @@ def auto_delete_review_images(sender, instance, **kwargs):
                             default_storage.delete(rel_path)
                     except Exception:
                         pass
+
+
+from django.db.models.signals import post_save
+from django.core.cache import cache
+
+@receiver(post_save, sender=Review)
+@receiver(post_delete, sender=Review)
+def invalidate_review_cache(sender, instance, **kwargs):
+    try:
+        cache.clear()
+    except Exception:
+        pass

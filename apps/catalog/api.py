@@ -2,7 +2,7 @@ from typing import List, Dict, Any, Optional
 from decimal import Decimal
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.db.models import Q
 from ninja import Router, Schema, File, Form
 from ninja.files import UploadedFile
@@ -155,6 +155,8 @@ class ProductDetailResponseSchema(Schema):
     youtube_video_url: Optional[str] = ""
     video_autoplay: bool
     video_mute: bool
+    rating_average: Optional[float] = 0.0
+    rating_count: Optional[int] = 0
 
 class PaginatedProductsResponse(Schema):
     count: int
@@ -551,7 +553,7 @@ def update_product_endpoint(request, slug: str, data: ProductCreateInputSchema):
                         for pi in product.images.all():
                             pi_filename = os.path.basename(pi.image.name)
                             pi_filename_no_ext = os.path.splitext(pi_filename)[0]
-                            if pi_filename_no_ext == filename_no_ext:
+                            if pi_filename_no_ext == filename_no_ext or (filename_no_ext.isdigit() and pi.id == int(filename_no_ext)):
                                 existing_img = pi
                                 break
                                 
@@ -604,7 +606,7 @@ def update_product_endpoint(request, slug: str, data: ProductCreateInputSchema):
                     for pi in product.images.all():
                         pi_filename = os.path.basename(pi.image.name)
                         pi_filename_no_ext = os.path.splitext(pi_filename)[0]
-                        if pi_filename_no_ext == filename_no_ext:
+                        if pi_filename_no_ext == filename_no_ext or (filename_no_ext.isdigit() and pi.id == int(filename_no_ext)):
                             existing_img = pi
                             break
                             
@@ -760,6 +762,10 @@ def upload_product_image_endpoint(
     enforce_permission(request, "catalog", "edit_catalog")
     product = get_object_or_404(Product, id=product_id)
     
+    if is_main or not ProductImage.objects.filter(product=product).exists():
+        is_main = True
+        ProductImage.objects.filter(product=product).update(is_main=False)
+        
     img = ProductImage.objects.create(
         product=product,
         image=file,
@@ -776,6 +782,8 @@ def upload_product_image_endpoint(
     from django.core.cache import cache
     if hasattr(cache, 'delete_pattern'):
         cache.delete_pattern("products_list_*")
+    else:
+        cache.clear()
         
     return {
         "id": img.id,
@@ -793,6 +801,8 @@ def update_product_image_endpoint(request, product_id: int, image_id: int, data:
     img = get_object_or_404(ProductImage, id=image_id, product_id=product_id)
     
     if data.is_main is not None:
+        if data.is_main:
+            ProductImage.objects.filter(product_id=product_id).exclude(id=image_id).update(is_main=False)
         img.is_main = data.is_main
     if data.order is not None:
         img.order = data.order
@@ -807,6 +817,8 @@ def update_product_image_endpoint(request, product_id: int, image_id: int, data:
     from django.core.cache import cache
     if hasattr(cache, 'delete_pattern'):
         cache.delete_pattern("products_list_*")
+    else:
+        cache.clear()
         
     return {
         "id": img.id,
@@ -916,33 +928,57 @@ class CategoryInputSchema(Schema):
 @router.post("/categories", auth=BearerAuth())
 def create_category(request, data: CategoryInputSchema):
     enforce_permission(request, "catalog", "edit_catalog")
-    cat = Category.objects.create(
-        name=data.name,
-        slug=data.slug,
-        parent_id=data.parent_id,
-        is_active=data.is_active,
-        listing_order=data.listing_order
-    )
-    return {"id": cat.id}
+    from django.utils.text import slugify
+    slug = slugify(data.slug or data.name)
+    try:
+        cat = Category.objects.create(
+            name=data.name,
+            slug=slug,
+            parent_id=data.parent_id,
+            is_active=data.is_active,
+            listing_order=data.listing_order
+        )
+        return {"id": cat.id}
+    except (ValidationError, IntegrityError) as e:
+        msg = e.message if hasattr(e, "message") else str(e)
+        raise HttpError(400, msg)
+    except Exception as e:
+        raise HttpError(400, str(e))
 
 @router.put("/categories/{cat_id}", auth=BearerAuth())
 def update_category(request, cat_id: int, data: CategoryInputSchema):
     enforce_permission(request, "catalog", "edit_catalog")
     cat = get_object_or_404(Category, id=cat_id)
-    cat.name = data.name
-    cat.slug = data.slug
-    cat.parent_id = data.parent_id
-    cat.is_active = data.is_active
-    cat.listing_order = data.listing_order
-    cat.save()
-    return {"success": True}
+    if data.parent_id and data.parent_id == cat.id:
+        raise HttpError(400, "A category cannot be its own parent.")
+    from django.utils.text import slugify
+    slug = slugify(data.slug or data.name)
+    try:
+        cat.name = data.name
+        cat.slug = slug
+        cat.parent_id = data.parent_id
+        cat.is_active = data.is_active
+        cat.listing_order = data.listing_order
+        cat.save()
+        return {"success": True}
+    except (ValidationError, IntegrityError) as e:
+        msg = e.message if hasattr(e, "message") else str(e)
+        raise HttpError(400, msg)
+    except Exception as e:
+        raise HttpError(400, str(e))
 
 @router.delete("/categories/{cat_id}", auth=BearerAuth())
 def delete_category(request, cat_id: int):
     enforce_permission(request, "catalog", "edit_catalog")
     cat = get_object_or_404(Category, id=cat_id)
-    cat.delete()
-    return {"success": True}
+    try:
+        cat.delete()
+        return {"success": True}
+    except (ValidationError, IntegrityError) as e:
+        msg = e.message if hasattr(e, "message") else str(e)
+        raise HttpError(400, msg)
+    except Exception as e:
+        raise HttpError(400, str(e))
 
 @router.post("/categories/{cat_id}/image", auth=BearerAuth())
 def upload_category_image(request, cat_id: int, file: UploadedFile = File(...)):
@@ -976,8 +1012,14 @@ def update_brand(request, brand_id: int, data: BrandInputSchema):
 def delete_brand(request, brand_id: int):
     enforce_permission(request, "catalog", "edit_catalog")
     brand = get_object_or_404(Brand, id=brand_id)
-    brand.delete()
-    return {"success": True}
+    try:
+        brand.delete()
+        return {"success": True}
+    except (ValidationError, IntegrityError) as e:
+        msg = e.message if hasattr(e, "message") else str(e)
+        raise HttpError(400, msg)
+    except Exception as e:
+        raise HttpError(400, str(e))
 
 class SizeGuideInputSchema(Schema):
     name: str
@@ -1287,6 +1329,11 @@ def delete_my_review(request, review_id: int):
     if review.is_approved:
         raise HttpError(403, "Approved reviews cannot be deleted.")
     review.delete()
+    try:
+        from django.core.cache import cache
+        cache.clear()
+    except Exception:
+        pass
     return {"success": True}
 
 @router.get("/reviews", response=List[ReviewResponseSchema])
@@ -1430,6 +1477,11 @@ def admin_create_review(request, data: AdminReviewCreateSchema):
             is_approved=True,  # Auto-approve admin created reviews
             listing_order=data.listing_order
         )
+        try:
+            from django.core.cache import cache
+            cache.clear()
+        except Exception:
+            pass
     except IntegrityError:
         raise HttpError(400, "This customer has already reviewed this product. Please edit the existing review or select a different customer.")
     
@@ -1489,6 +1541,11 @@ def admin_moderate_review(request, review_id: int, data: ReviewModerationSchema)
         review.images = data.images
         
     review.save()
+    try:
+        from django.core.cache import cache
+        cache.clear()
+    except Exception:
+        pass
     return {
         "id": review.id,
         "product_id": review.product.id,

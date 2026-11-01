@@ -67,7 +67,7 @@ def dispatch_order_to_steadfast_task(self, order_id: int):
             "https://portal.packzy.com/api/v1/create_order",
             json=payload,
             headers=headers,
-            timeout=10
+            timeout=(10, 30)
         )
         if res.status_code == 200:
             data = res.json()
@@ -92,8 +92,14 @@ def dispatch_order_to_steadfast_task(self, order_id: int):
         else:
             raise Exception(f"HTTP Error {res.status_code}")
     except Exception as exc:
-        logger.error(f"Steadfast API failure for order {order_id}. Retrying... Error: {exc}")
-        raise self.retry(exc=exc)
+        retries = getattr(getattr(self, "request", None), "retries", 0)
+        max_retries = getattr(self, "max_retries", 3)
+        if retries < max_retries:
+            logger.warning(f"Steadfast API temporary failure for order {order_id} (Attempt {retries + 1}/{max_retries}): {exc}")
+            raise self.retry(exc=exc)
+        else:
+            logger.error(f"Steadfast API final failure for order {order_id} after {max_retries} attempts: {exc}")
+            raise exc
 
 
 @shared_task(bind=True, max_retries=2, default_retry_delay=120)
@@ -106,8 +112,14 @@ def sync_steadfast_status_task(self, order_id: int):
     try:
         return sync_steadfast_status(order_id)
     except Exception as exc:
-        logger.error(f"Steadfast sync failure for order {order_id}. Retrying... Error: {exc}")
-        raise self.retry(exc=exc)
+        retries = getattr(getattr(self, "request", None), "retries", 0)
+        max_retries = getattr(self, "max_retries", 2)
+        if retries < max_retries:
+            logger.warning(f"Steadfast sync temporary failure for order {order_id} (Attempt {retries + 1}/{max_retries}): {exc}")
+            raise self.retry(exc=exc)
+        else:
+            logger.error(f"Steadfast sync final failure for order {order_id} after {max_retries} attempts: {exc}")
+            raise exc
 
 @shared_task(bind=True, max_retries=2, default_retry_delay=60)
 def generate_invoice_pdf_task(self, order_id: int):

@@ -7,18 +7,20 @@ type Props = {
 };
 
 async function getProduct(slug: string) {
-  const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/products/${slug}`, { next: { revalidate: 60 } });
-  
-  if (res.ok) {
-    return await res.json();
+  try {
+    const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/catalog/products/${slug}`, { next: { revalidate: 60 } });
+    if (res.ok) {
+      return await res.json();
+    }
+    if (res.status === 404) {
+      return null;
+    }
+    console.error(`Backend returned status ${res.status} for product slug "${slug}"`);
+    return null;
+  } catch (err) {
+    console.error(`Error fetching product slug "${slug}":`, err);
+    return null;
   }
-  
-  if (res.status === 404) {
-    return null; // Product explicitly not found
-  }
-  
-// Prevent Next.js from caching a temporary backend crash as a permanent 'Not Found' page
-  throw new Error(`Backend unavailable: ${res.status}`);
 }
 
 async function getReviews(slug: string) {
