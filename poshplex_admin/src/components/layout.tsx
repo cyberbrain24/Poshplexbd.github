@@ -141,7 +141,7 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
-      <Sider width={260} breakpoint="lg" collapsedWidth="0" className="desktop-sider">
+      <Sider width={260} breakpoint="lg" collapsedWidth="0" className="desktop-sider" style={{ height: "100vh", position: "sticky", top: 0, left: 0, zIndex: 101, overflowY: "auto", overflowX: "hidden" }}>
         <div style={{ height: 64, display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid var(--border-glass)" }}>
           <span style={{ fontSize: 18, fontWeight: 800, color: "var(--accent-purple)", letterSpacing: "1px" }}>POSHPLEX ERP</span>
         </div>
@@ -191,7 +191,7 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
         />
       </Drawer>
 
-      <Layout>
+      <Layout style={{ minWidth: 0, overflowX: "hidden" }}>
         <Header style={{ height: "auto", minHeight: 56, background: "var(--bg-secondary)", padding: "8px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--border-glass)", position: "sticky", top: 0, zIndex: 100 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <Button type="text" icon={<MenuOutlined />} onClick={() => setMobileMenuOpen(true)} style={{ color: "var(--text-main)", fontSize: 18, padding: "4px 8px", minHeight: 40, display: "none" }} className="mobile-menu-btn-header" />
@@ -207,7 +207,7 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
             <Button type="text" icon={<LogoutOutlined />} onClick={() => logout()} style={{ color: "var(--accent-rose)", minHeight: 36, padding: "4px 8px" }} />
           </Space>
         </Header>
-        <Content style={{ padding: 20, overflow: "initial" }}>
+        <Content style={{ padding: "16px 20px", overflowX: "hidden", minWidth: 0 }}>
           {children}
         </Content>
       </Layout>

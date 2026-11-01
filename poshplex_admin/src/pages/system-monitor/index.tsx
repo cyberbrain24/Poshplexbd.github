@@ -166,8 +166,8 @@ export const SystemMonitor: React.FC = () => {
   ];
 
   return (
-    <div style={{ padding: "0 12px 24px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+    <div style={{ padding: 0 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <Title level={2} style={{ margin: 0, fontWeight: 800, letterSpacing: "-0.5px" }}>
           System Monitor
         </Title>
@@ -182,39 +182,90 @@ export const SystemMonitor: React.FC = () => {
       </div>
 
       {metrics && (
-        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
           <Col xs={24} md={8}>
-            <Card style={{ background: "var(--bg-secondary)", borderColor: "var(--border-glass)", borderRadius: 12 }}>
-              <Title level={5} style={{ color: "var(--text-muted)", marginTop: 0 }}>CPU USAGE</Title>
-              <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-                <Progress type="dashboard" percent={metrics.cpu.percent} strokeColor="var(--accent-purple)" size={80} />
-                <div>
-                  <div style={{ fontSize: 24, fontWeight: 700 }}>{metrics.cpu.percent}%</div>
-                  <div style={{ color: "var(--text-muted)", fontSize: 13 }}>{metrics.cpu.cores} Logical Cores</div>
+            <Card 
+              style={{ background: "var(--bg-secondary)", borderColor: "var(--border-glass)", borderRadius: 12 }}
+              styles={{ body: { padding: "16px 20px" } }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <Text style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  CPU USAGE
+                </Text>
+                <Tag color={metrics.cpu.percent > 85 ? "red" : metrics.cpu.percent > 60 ? "orange" : "green"}>
+                  {metrics.cpu.percent > 85 ? "High Load" : metrics.cpu.percent > 60 ? "Moderate" : "Optimal"}
+                </Tag>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <Progress type="dashboard" percent={metrics.cpu.percent} strokeColor="var(--accent-purple)" size={72} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text-main)", lineHeight: 1.2 }}>
+                    {metrics.cpu.percent}%
+                  </div>
+                  <div style={{ color: "var(--text-muted)", fontSize: 12, marginTop: 4 }}>
+                    {metrics.cpu.cores} Logical Cores Active
+                  </div>
+                  <div style={{ marginTop: 8 }}>
+                    <Progress percent={metrics.cpu.percent} showInfo={false} size="small" strokeColor="var(--accent-purple)" />
+                  </div>
                 </div>
               </div>
             </Card>
           </Col>
           <Col xs={24} md={8}>
-            <Card style={{ background: "var(--bg-secondary)", borderColor: "var(--border-glass)", borderRadius: 12 }}>
-              <Title level={5} style={{ color: "var(--text-muted)", marginTop: 0 }}>MEMORY ALLOCATION</Title>
-              <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-                <Progress type="dashboard" percent={metrics.memory.percent} strokeColor="var(--accent-cyan)" size={80} />
-                <div>
-                  <div style={{ fontSize: 24, fontWeight: 700 }}>{metrics.memory.used_mb} MB</div>
-                  <div style={{ color: "var(--text-muted)", fontSize: 13 }}>of {metrics.memory.total_mb} MB Total</div>
+            <Card 
+              style={{ background: "var(--bg-secondary)", borderColor: "var(--border-glass)", borderRadius: 12 }}
+              styles={{ body: { padding: "16px 20px" } }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <Text style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  MEMORY ALLOCATION
+                </Text>
+                <Tag color={metrics.memory.percent > 90 ? "red" : metrics.memory.percent > 75 ? "orange" : "cyan"}>
+                  {metrics.memory.percent}% Used
+                </Tag>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <Progress type="dashboard" percent={metrics.memory.percent} strokeColor="var(--accent-cyan)" size={72} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text-main)", lineHeight: 1.2 }}>
+                    {metrics.memory.used_mb} MB
+                  </div>
+                  <div style={{ color: "var(--text-muted)", fontSize: 12, marginTop: 4 }}>
+                    of {metrics.memory.total_mb} MB Total ({(metrics.memory.total_mb / 1024).toFixed(1)} GB)
+                  </div>
+                  <div style={{ marginTop: 8 }}>
+                    <Progress percent={metrics.memory.percent} showInfo={false} size="small" strokeColor="var(--accent-cyan)" />
+                  </div>
                 </div>
               </div>
             </Card>
           </Col>
           <Col xs={24} md={8}>
-            <Card style={{ background: "var(--bg-secondary)", borderColor: "var(--border-glass)", borderRadius: 12 }}>
-              <Title level={5} style={{ color: "var(--text-muted)", marginTop: 0 }}>DISK SPACE (ROOT)</Title>
-              <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-                <Progress type="dashboard" percent={metrics.disk.percent} strokeColor="var(--accent-rose)" size={80} />
-                <div>
-                  <div style={{ fontSize: 24, fontWeight: 700 }}>{metrics.disk.free_gb} GB</div>
-                  <div style={{ color: "var(--text-muted)", fontSize: 13 }}>Free of {metrics.disk.total_gb} GB</div>
+            <Card 
+              style={{ background: "var(--bg-secondary)", borderColor: "var(--border-glass)", borderRadius: 12 }}
+              styles={{ body: { padding: "16px 20px" } }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <Text style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  DISK SPACE (ROOT)
+                </Text>
+                <Tag color={metrics.disk.percent > 85 ? "red" : metrics.disk.percent > 70 ? "orange" : "green"}>
+                  {metrics.disk.percent}% Used
+                </Tag>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <Progress type="dashboard" percent={metrics.disk.percent} strokeColor="var(--accent-rose)" size={72} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text-main)", lineHeight: 1.2 }}>
+                    {metrics.disk.free_gb} GB Free
+                  </div>
+                  <div style={{ color: "var(--text-muted)", fontSize: 12, marginTop: 4 }}>
+                    of {metrics.disk.total_gb} GB Storage
+                  </div>
+                  <div style={{ marginTop: 8 }}>
+                    <Progress percent={metrics.disk.percent} showInfo={false} size="small" strokeColor="var(--accent-rose)" />
+                  </div>
                 </div>
               </div>
             </Card>
@@ -223,32 +274,32 @@ export const SystemMonitor: React.FC = () => {
       )}
 
       <Row gutter={[16, 16]}>
-        <Col xs={24} lg={6}>
+        <Col xs={24} lg={10} xl={9}>
           <Card 
             title="Docker Containers" 
-            style={{ background: "var(--bg-secondary)", borderColor: "var(--border-glass)", borderRadius: 12, height: "100%" }}
-            styles={{ header: { borderBottom: "1px solid var(--border-glass)" } }}
+            style={{ background: "var(--bg-secondary)", borderColor: "var(--border-glass)", borderRadius: 12 }}
+            styles={{ header: { borderBottom: "1px solid var(--border-glass)" }, body: { padding: "12px 16px" } }}
           >
             {containers.length === 0 ? (
               <div style={{ color: "var(--text-muted)", textAlign: "center", padding: "20px 0" }}>
                 No containers running or Docker daemon unavailable.
               </div>
             ) : (
-              <Space direction="vertical" style={{ width: "100%" }}>
+              <Space direction="vertical" style={{ width: "100%" }} size="small">
                 {containers.map(c => (
-                  <div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: 14 }}>{c.name}</div>
-                      <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{c.image}</div>
+                  <div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.05)", flexWrap: "wrap", gap: 8 }}>
+                    <div style={{ minWidth: 0, flex: "1 1 130px" }}>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text-main)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</div>
+                      <div style={{ fontSize: 11, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.image}</div>
                     </div>
-                    <Space size="middle">
+                    <Space size="small" style={{ flexWrap: "wrap", justifyContent: "flex-end" }}>
                       {c.cpu_percent !== undefined && (
-                        <Text style={{ fontSize: 13, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
+                        <Text style={{ fontSize: 12, color: "var(--text-muted)", display: "inline-flex", alignItems: "center", gap: 4 }}>
                           <DesktopOutlined /> {c.cpu_percent}%
                         </Text>
                       )}
                       {c.memory_mb !== undefined && (
-                        <Text style={{ fontSize: 13, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
+                        <Text style={{ fontSize: 12, color: "var(--text-muted)", display: "inline-flex", alignItems: "center", gap: 4 }}>
                           <DatabaseOutlined /> {c.memory_mb} MB
                         </Text>
                       )}
@@ -261,18 +312,19 @@ export const SystemMonitor: React.FC = () => {
           </Card>
         </Col>
 
-        <Col xs={24} lg={18}>
+        <Col xs={24} lg={14} xl={15}>
           <Card 
             title={
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span>Unified Error Log (Redis Buffer)</span>
-                <Space>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                <span style={{ fontSize: 14, fontWeight: 600 }}>Unified Error Log (Redis Buffer)</span>
+                <Space size="small" style={{ flexWrap: "wrap" }}>
                   <Input.Search 
                     placeholder="Search logs..." 
                     allowClear 
                     onSearch={setSearchText} 
                     onChange={e => setSearchText(e.target.value)}
-                    style={{ width: 250 }} 
+                    style={{ width: 180 }} 
+                    size="small"
                   />
                   <Popconfirm
                     title="Clear Error Logs"
@@ -281,7 +333,7 @@ export const SystemMonitor: React.FC = () => {
                     okText="Yes, Clear"
                     cancelText="Cancel"
                   >
-                    <Button danger>Clear Logs</Button>
+                    <Button danger size="small">Clear Logs</Button>
                   </Popconfirm>
                 </Space>
               </div>
@@ -293,9 +345,10 @@ export const SystemMonitor: React.FC = () => {
               columns={columns}
               dataSource={filteredLogs}
               rowKey="id"
-              pagination={{ pageSize: 15 }}
-              size="middle"
+              pagination={{ pageSize: 10, size: "small" }}
+              size="small"
               loading={loading}
+              scroll={{ x: 500 }}
               expandable={{
                 expandedRowRender: record => (
                   <div style={{ padding: 16, background: "rgba(0,0,0,0.2)", borderRadius: 8 }}>

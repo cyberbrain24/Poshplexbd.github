@@ -655,37 +655,122 @@ export default function ProductDetailClient({
             </div>
           )}
 
-          {/* Quantity stepper (Below variations box & above Size Chart section) */}
-          {!bundleData.isBundle && (
-            <div className="product-qty-container selector-group" style={{ marginTop: 14, marginBottom: 14, display: "flex", alignItems: "center", gap: 14 }}>
-              <span className="selector-label" style={{ fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>QTY</span>
-              <div style={{ display: "flex", alignItems: "center", border: "1px solid #cbd5e1", borderRadius: 4, width: "fit-content", background: "#fff", overflow: "hidden" }}>
-                <button
-                  type="button"
-                  onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                  style={{ width: 30, height: 30, background: "#f8fafc", border: "none", borderRight: "1px solid #cbd5e1", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#475569" }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "#f1f5f9")}
-                  onMouseLeave={e => (e.currentTarget.style.background = "#f8fafc")}
+          {/* ── Unified QTY & Size Chart Row (QTY Left-aligned, Size Chart Right-aligned) ── */}
+          <div
+            className="product-qty-and-size-row"
+            style={{
+              marginTop: 14,
+              marginBottom: 16,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+              width: "100%",
+            }}
+          >
+            {/* Left: QTY Stepper */}
+            {!bundleData.isBundle ? (
+              <div
+                className="product-qty-container"
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "flex-start",
+                  gap: 12,
+                  margin: 0,
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: "#475569",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                  }}
                 >
-                  <Minus size={11} />
-                </button>
-                <span style={{ width: 36, textAlign: "center", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{quantity}</span>
-                <button
-                  type="button"
-                  onClick={() => setQuantity(q => q + 1)}
-                  style={{ width: 30, height: 30, background: "#f8fafc", border: "none", borderLeft: "1px solid #cbd5e1", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#475569" }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "#f1f5f9")}
-                  onMouseLeave={e => (e.currentTarget.style.background = "#f8fafc")}
+                  QTY
+                </span>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: 4,
+                    width: "fit-content",
+                    background: "#fff",
+                    overflow: "hidden",
+                  }}
                 >
-                  <Plus size={11} />
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                    style={{
+                      width: 30,
+                      height: 30,
+                      background: "#f8fafc",
+                      border: "none",
+                      borderRight: "1px solid #cbd5e1",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#475569",
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "#f1f5f9")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "#f8fafc")}
+                  >
+                    <Minus size={11} />
+                  </button>
+                  <span
+                    style={{
+                      width: 36,
+                      textAlign: "center",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: "#0f172a",
+                    }}
+                  >
+                    {quantity}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setQuantity(q => q + 1)}
+                    style={{
+                      width: 30,
+                      height: 30,
+                      background: "#f8fafc",
+                      border: "none",
+                      borderLeft: "1px solid #cbd5e1",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#475569",
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "#f1f5f9")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "#f8fafc")}
+                  >
+                    <Plus size={11} />
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            ) : (
+              <div />
+            )}
 
-          {/* ── Size Chart & AI Virtual Fit Check Buttons (Right Aligned) ── */}
-          <div className="product-size-chart-row" style={{ marginTop: 10, marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+            {/* Right: Size Chart & AI Virtual Fit Check Buttons */}
+            <div
+              className="product-size-chart-row"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                justifyContent: "flex-end",
+                margin: 0,
+              }}
+            >
               <button
                 type="button"
                 id="size-chart-trigger-btn"
@@ -705,7 +790,8 @@ export default function ProductDetailClient({
                   textTransform: "uppercase",
                   letterSpacing: "0.5px",
                   transition: "all 0.15s ease",
-                  boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)"
+                  boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
+                  whiteSpace: "nowrap",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = "#f8fafc";
@@ -742,7 +828,8 @@ export default function ProductDetailClient({
                     textTransform: "uppercase",
                     letterSpacing: "0.5px",
                     transition: "all 0.15s ease",
-                    boxShadow: "0 2px 8px rgba(139, 92, 246, 0.2)"
+                    boxShadow: "0 2px 8px rgba(139, 92, 246, 0.2)",
+                    whiteSpace: "nowrap",
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = "#18181b";
@@ -1338,14 +1425,33 @@ export default function ProductDetailClient({
             justify-content: flex-start !important;
             flex: 1 !important;
           }
+          .product-qty-and-size-row {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            width: 100% !important;
+            margin-top: 14px !important;
+            margin-bottom: 16px !important;
+          }
           .product-qty-container {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
             justify-content: flex-start !important;
-            margin-bottom: 12px !important;
-            gap: 16px !important;
+            margin-bottom: 0px !important;
+            gap: 12px !important;
           }
           .product-qty-container > span {
-            min-width: 60px !important;
+            min-width: auto !important;
+            width: auto !important;
             text-align: left !important;
+          }
+          .product-size-chart-row {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: flex-end !important;
+            margin: 0 !important;
           }
           .product-divider {
             padding-top: 12px !important;
