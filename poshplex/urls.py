@@ -5,9 +5,12 @@ from django.conf.urls.static import static
 from django.urls import re_path
 from django.views.static import serve
 from poshplex.api import api
+from apps.catalog.feeds import meta_catalog_feed
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/v1/catalog/meta-catalog.xml', meta_catalog_feed, name='meta_catalog_feed'),
+    path('meta-catalog.xml', meta_catalog_feed, name='meta_catalog_feed_root'),
     path('api/v1/', api.urls),
 ]
 

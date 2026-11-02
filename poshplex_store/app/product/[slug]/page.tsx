@@ -67,14 +67,27 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const product = await getProduct(params.slug);
   if (!product) return { title: "Product Not Found | Poshplex Streetwear" };
   
-  const imageUrl = product.images?.[0]?.url || `https://placehold.co/600x400?text=${product.name.replace(/ /g, "+")}`;
-  
+  const imageUrl = product.images?.[0]?.url || `https://placehold.co/600x400?text=${encodeURIComponent(product.name)}`;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://store.poshplexbd.com";
+  const productUrl = `${siteUrl.replace(/\/$/, "")}/product/${product.slug}`;
+  const price = String(product.selling_price || product.price || product.base_price || 0);
+  const inStock = product.is_active && !product.is_sold_out;
+  const sku = product.sku || `PROD-${product.id}`;
+  const brandName = product.brand?.name || "Poshplex";
+  const desc = product.description || product.short_description || product.name;
+
   return {
     title: `${product.name} | Poshplex Streetwear`,
-    description: product.description,
+    description: desc,
+    alternates: {
+      canonical: productUrl,
+    },
     openGraph: {
       title: product.name,
-      description: product.description,
+      description: desc,
+      url: productUrl,
+      type: "website",
+      siteName: "Poshplex",
       images: [
         {
           url: imageUrl,
@@ -83,6 +96,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           alt: product.name,
         },
       ],
+    },
+    other: {
+      "product:retailer_item_id": sku,
+      "product:price:amount": price,
+      "product:price:currency": "BDT",
+      "product:availability": inStock ? "in stock" : "out of stock",
+      "product:condition": "new",
+      "product:brand": brandName,
     },
   };
 }
@@ -105,5 +126,49 @@ export default async function ProductPage({ params }: Props) {
     getAttributes()
   ]);
 
-  return <ProductDetailClient product={product} initialReviews={reviews} initialRelatedProducts={relatedProducts} initialAttributes={attributes} />;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://store.poshplexbd.com";
+  const productUrl = `${siteUrl.replace(/\/$/, "")}/product/${product.slug}`;
+  const price = parseFloat(product.selling_price || product.price || product.base_price || 0);
+  const inStock = product.is_active && !product.is_sold_out;
+  const sku = product.sku || `PROD-${product.id}`;
+  const brandName = product.brand?.name || "Poshplex";
+  const imageUrls = (product.images || []).map((img: any) => img.url).filter(Boolean);
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": product.name,
+    "image": imageUrls.length > 0 ? imageUrls : undefined,
+    "description": product.description || product.short_description || product.name,
+    "sku": sku,
+    "mpn": sku,
+    "brand": {
+      "@type": "Brand",
+      "name": brandName
+    },
+    "offers": {
+      "@type": "Offer",
+      "url": productUrl,
+      "priceCurrency": "BDT",
+      "price": price.toFixed(2),
+      "priceValidUntil": new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+      "availability": inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      "itemCondition": "https://schema.org/NewCondition"
+    }
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <ProductDetailClient
+        product={product}
+        initialReviews={reviews}
+        initialRelatedProducts={relatedProducts}
+        initialAttributes={attributes}
+      />
+    </>
+  );
 }
