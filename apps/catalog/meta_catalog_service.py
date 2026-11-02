@@ -1,3 +1,4 @@
+import json
 import logging
 import re
 import requests
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 GRAPH_API_VERSION = "v21.0"
 BASE_URL = f"https://graph.facebook.com/{GRAPH_API_VERSION}"
-DEFAULT_CATALOG_ID = "4449649758613207"
+DEFAULT_CATALOG_ID = "798721796069008"
 
 
 def clean_description(text: str) -> str:
@@ -24,7 +25,7 @@ def clean_description(text: str) -> str:
 
 class MetaCatalogService:
     """
-    Production-grade client for the Meta Catalog Batch API.
+    Production-grade client for the Meta Catalog Items Batch API.
     Handles real-time item updates, batch upserts, item removals,
     and connection health diagnostics.
     """
@@ -172,7 +173,7 @@ class MetaCatalogService:
         if not image_url:
             image_url = f"https://placehold.co/600x600.png?text={sku}"
 
-        # Resolve price in cents/poisha for Meta Batch API
+        # Resolve price
         price = product.base_price or 0
         if not price and product.variants.exists():
             active_prices = [
@@ -183,33 +184,28 @@ class MetaCatalogService:
             if active_prices:
                 price = min(active_prices)
 
-        price_in_cents = int(round(float(price) * 100))
+        price_str = f"{float(price):.2f} BDT"
         availability = "in stock" if (product.is_active and not product.is_sold_out) else "out of stock"
         brand = product.brand.name if product.brand else "Poshplex"
         category_name = product.category.name if product.category else "Apparel & Accessories"
 
         return {
-            "retailer_id": sku,
-            "data": {
-                "id": sku,
-                "title": title,
-                "description": desc,
-                "availability": availability,
-                "condition": "new",
-                "price": price_in_cents,
-                "currency": "BDT",
-                "link": link,
-                "image_url": image_url,
-                "brand": brand,
-                "item_group_id": sku,
-                "fb_product_category": category_name
-            }
+            "id": sku,
+            "title": title,
+            "description": desc,
+            "availability": availability,
+            "condition": "new",
+            "price": price_str,
+            "link": link,
+            "image_link": image_url,
+            "brand": brand,
+            "fb_product_category": category_name
         }
 
     @classmethod
     def send_batch(cls, requests_list: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
-        Dispatches a batch of requests to Meta's /{catalog_id}/batch endpoint.
+        Dispatches a batch of requests to Meta's /{catalog_id}/items_batch endpoint.
         """
         cfg = cls.get_config()
         catalog_id = cfg["catalog_id"]
@@ -219,20 +215,18 @@ class MetaCatalogService:
             logger.warning("[MetaCatalogService] Skipped sync: No Meta Access Token configured.")
             return {"success": False, "message": "No Meta Access Token configured."}
 
-        url = f"{BASE_URL}/{catalog_id}/batch"
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "requests": requests_list
+        url = f"{BASE_URL}/{catalog_id}/items_batch"
+        data_payload = {
+            "item_type": "PRODUCT_ITEM",
+            "requests": json.dumps(requests_list),
+            "access_token": token
         }
 
         try:
-            res = requests.post(url, json=payload, headers=headers, timeout=20)
+            res = requests.post(url, data=data_payload, timeout=25)
             data = res.json()
             if res.status_code == 200:
-                logger.info(f"[MetaCatalogService] Batch dispatched successfully. Handles: {data.get('handles')}")
+                logger.info(f"[MetaCatalogService] Items batch dispatched successfully. Handles: {data.get('handles')}")
                 return {
                     "success": True,
                     "handles": data.get("handles", []),
@@ -240,14 +234,14 @@ class MetaCatalogService:
                 }
             else:
                 err = data.get("error", {})
-                logger.error(f"[MetaCatalogService] Batch failed: {err}")
+                logger.error(f"[MetaCatalogService] Items batch failed: {err}")
                 return {
                     "success": False,
                     "error": err,
-                    "message": err.get("message", "Batch sync failed.")
+                    "message": err.get("message", "Items batch sync failed.")
                 }
         except Exception as e:
-            logger.error(f"[MetaCatalogService] Network exception during batch send: {e}")
+            logger.error(f"[MetaCatalogService] Network exception during items batch send: {e}")
             return {
                 "success": False,
                 "message": f"Network exception: {str(e)}"
@@ -263,11 +257,10 @@ class MetaCatalogService:
 
         requests_list = []
         for p in products:
-            item = cls.format_product_item(p)
+            item_data = cls.format_product_item(p)
             requests_list.append({
                 "method": method,
-                "retailer_id": item["retailer_id"],
-                "data": item["data"]
+                "data": item_data
             })
 
         # Chunk into batches of 250
@@ -297,7 +290,8 @@ class MetaCatalogService:
         """
         request_item = {
             "method": "DELETE",
-            "retailer_id": sku
+            "data": {
+                "id": sku
+            }
         }
         return cls.send_batch([request_item])
-
