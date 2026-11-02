@@ -144,7 +144,7 @@ class MetaCatalogService:
         Converts a Django Product model into Meta Catalog item data.
         """
         store_base = getattr(settings, 'STORE_BASE_URL', 'https://store.poshplexbd.com')
-        api_base = getattr(settings, 'SITE_BASE_URL', 'https://api.poshplexbd.com')
+        api_base = getattr(settings, 'SITE_BASE_URL', 'https://media.poshplexbd.com')
         if settings.DEBUG:
             store_base = 'http://localhost:3000'
             api_base = 'http://localhost:8000'

@@ -28,7 +28,7 @@ def meta_catalog_feed(request):
         return HttpResponse(cached_xml, content_type="application/xml; charset=utf-8")
 
     store_base_url = "https://store.poshplexbd.com"
-    api_base_url = "https://api.poshplexbd.com"
+    api_base_url = "https://media.poshplexbd.com"
     if settings.DEBUG:
         store_base_url = "http://localhost:3000"
         api_base_url = "http://localhost:8000"
