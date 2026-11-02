@@ -1,10 +1,11 @@
-from django.db.models.signals import post_delete
+from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 from django.core.files.storage import default_storage
+from django.core.cache import cache
 from urllib.parse import urlparse
 from django.conf import settings
 
-from apps.catalog.models import Category, ProductImage, Review
+from apps.catalog.models import Category, ProductImage, Review, Product
 
 @receiver(post_delete, sender=Category)
 def auto_delete_category_image(sender, instance, **kwargs):
@@ -37,14 +38,29 @@ def auto_delete_review_images(sender, instance, **kwargs):
                     except Exception:
                         pass
 
-
-from django.db.models.signals import post_save
-from django.core.cache import cache
-
 @receiver(post_save, sender=Review)
 @receiver(post_delete, sender=Review)
 def invalidate_review_cache(sender, instance, **kwargs):
     try:
         cache.clear()
+    except Exception:
+        pass
+
+@receiver(post_save, sender=Product)
+def trigger_meta_catalog_sync_on_save(sender, instance, **kwargs):
+    if kwargs.get('raw', False):
+        return
+    try:
+        from .tasks import queue_meta_product_sync
+        queue_meta_product_sync(instance.id, method='UPDATE')
+    except Exception:
+        pass
+
+@receiver(post_delete, sender=Product)
+def trigger_meta_catalog_sync_on_delete(sender, instance, **kwargs):
+    try:
+        from .tasks import queue_meta_product_delete
+        sku = instance.sku or f'PROD-{instance.id}'
+        queue_meta_product_delete(sku)
     except Exception:
         pass

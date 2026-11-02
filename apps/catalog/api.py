@@ -1571,3 +1571,79 @@ def admin_delete_review(request, review_id: int):
     review = get_object_or_404(Review, id=review_id)
     review.delete()
     return {"success": True}
+
+
+# --- Meta Commerce Catalog API Endpoints ---
+
+class MetaCatalogConfigInputSchema(Schema):
+    catalog_id: str
+    access_token: Optional[str] = None
+    auto_sync_enabled: bool = True
+
+class MetaCatalogSyncRequestSchema(Schema):
+    product_id: Optional[int] = None
+    all_products: bool = False
+
+@router.get("/meta-catalog/status", auth=BearerAuth())
+def get_meta_catalog_status(request):
+    """Retrieve Meta Catalog integration status and verify Graph API connection."""
+    enforce_permission(request, "catalog", "view_catalog")
+    from .meta_catalog_service import MetaCatalogService
+    cfg = MetaCatalogService.get_config()
+    connection = MetaCatalogService.test_connection()
+    return {
+        "catalog_id": cfg["catalog_id"],
+        "has_token": cfg["has_token"],
+        "auto_sync_enabled": cfg["auto_sync_enabled"],
+        "connection": connection
+    }
+
+@router.post("/meta-catalog/config", auth=BearerAuth())
+def update_meta_catalog_config(request, data: MetaCatalogConfigInputSchema):
+    """Save Meta Catalog ID and Access Token (Admin only)."""
+    enforce_permission(request, "catalog", "edit_catalog")
+    from .meta_catalog_service import MetaCatalogService
+    cfg = MetaCatalogService.save_config(
+        catalog_id=data.catalog_id,
+        access_token=data.access_token or "",
+        auto_sync_enabled=data.auto_sync_enabled
+    )
+    return {
+        "success": True,
+        "catalog_id": cfg["catalog_id"],
+        "has_token": cfg["has_token"],
+        "auto_sync_enabled": cfg["auto_sync_enabled"]
+    }
+
+@router.post("/meta-catalog/sync", auth=BearerAuth())
+def trigger_meta_catalog_sync(request, data: MetaCatalogSyncRequestSchema):
+    """Manually trigger Meta Catalog synchronization (single product or entire catalog)."""
+    enforce_permission(request, "catalog", "edit_catalog")
+    from .meta_catalog_service import MetaCatalogService
+    from .models import Product
+    
+    if data.all_products:
+        products = list(
+            Product.objects.filter(is_active=True)
+            .select_related("brand", "category")
+            .prefetch_related("images", "variants")
+            .order_by("-id")
+        )
+        res = MetaCatalogService.sync_products(products, method="UPDATE")
+        return {
+            "success": res.get("success", False),
+            "message": f"Bulk sync processed {res.get('total_synced', 0)} of {res.get('total_requested', 0)} items.",
+            "details": res
+        }
+    elif data.product_id:
+        product = Product.objects.filter(id=data.product_id).select_related("brand", "category").prefetch_related("images", "variants").first()
+        if not product:
+            raise HttpError(404, "Product not found")
+        res = MetaCatalogService.sync_products([product], method="UPDATE")
+        return {
+            "success": res.get("success", False),
+            "message": f"Product '{product.name}' ({product.sku}) synced to Meta.",
+            "details": res
+        }
+    else:
+        raise HttpError(400, "Must specify 'product_id' or 'all_products: true'.")

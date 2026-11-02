@@ -7,7 +7,7 @@ import axios from "axios";
 import {
   ApiOutlined, MailOutlined, MobileOutlined, 
   GlobalOutlined, SafetyCertificateOutlined, MessageOutlined,
-  NotificationOutlined, ShoppingCartOutlined
+  NotificationOutlined, ShoppingCartOutlined, ShopOutlined, SyncOutlined
 } from "@ant-design/icons";
 import { useList, useCreate, useUpdate } from "@refinedev/core";
 
@@ -19,6 +19,8 @@ export const Integrations: React.FC = () => {
   const [testModalType, setTestModalType] = useState<"sms" | "email">("sms");
   const [testTarget, setTestTarget] = useState("");
   const [isTesting, setIsTesting] = useState(false);
+  const [isTestingMeta, setIsTestingMeta] = useState(false);
+  const [isSyncingMeta, setIsSyncingMeta] = useState(false);
 
   // Load current dynamic settings from modular backend
   const { data: settingsData, refetch } = useList<any>({ resource: "settings" });
@@ -61,6 +63,9 @@ export const Integrations: React.FC = () => {
         enable_google_login: socialSetting?.value?.enable_google_login ?? true,
         facebook_app_id: socialSetting?.value?.facebook_app_id || "",
         enable_facebook_login: socialSetting?.value?.enable_facebook_login ?? true,
+        meta_catalog_id: metaCatalogSetting?.value?.catalog_id || "4449649758613207",
+        meta_catalog_token: metaCatalogSetting?.value?.access_token || "",
+        meta_catalog_auto_sync: metaCatalogSetting?.value?.auto_sync_enabled ?? true,
       });
 
       autoForm.setFieldsValue({
@@ -129,6 +134,16 @@ export const Integrations: React.FC = () => {
       description: "OAuth App Client IDs",
     };
 
+    const metaCatalogPayload = {
+      key: "meta_catalog",
+      value: {
+        catalog_id: values.meta_catalog_id || "4449649758613207",
+        access_token: values.meta_catalog_token || "",
+        auto_sync_enabled: values.meta_catalog_auto_sync ?? true,
+      },
+      description: "Meta Commerce Manager Catalog API configuration",
+    };
+
     // Submit all to settings endpoint (POST /settings writes or updates keys)
     updateSettings(
       { resource: "settings", values: providersPayload },
@@ -142,8 +157,15 @@ export const Integrations: React.FC = () => {
                   { resource: "settings", values: socialPayload },
                   {
                     onSuccess: () => {
-                      message.success("Operational API Keys, Tracking, and Social Auth configurations synced.");
-                      refetch();
+                      updateSettings(
+                        { resource: "settings", values: metaCatalogPayload },
+                        {
+                          onSuccess: () => {
+                            message.success("Operational API Keys, Tracking, Social Auth, and Meta Catalog configurations synced.");
+                            refetch();
+                          }
+                        }
+                      );
                     }
                   }
                 )
@@ -344,6 +366,55 @@ export const Integrations: React.FC = () => {
                   <Form.Item name="google_ga" label="Google Analytics ID (G-XXXX)">
                     <Input placeholder="GA Measurement ID" />
                   </Form.Item>
+                </Col>
+              </Row>
+
+              <Divider style={{ margin: "20px 0" }} />
+
+              <Row gutter={24}>
+                <Col xs={24}>
+                  <Divider orientation="left"><ShopOutlined /> Meta Commerce Catalogue API (Real-Time Sync)</Divider>
+                  <p style={{ color: "#8c8c8c", fontSize: 13, marginBottom: 16 }}>
+                    Real-time inventory synchronization with Meta Commerce Manager (Catalog ID: <strong>4449649758613207</strong>). 
+                    Whenever products are created, updated, or deleted, Poshplex automatically syncs your inventory to Meta Dynamic Ads &amp; Instagram Shop.
+                  </p>
+                </Col>
+                <Col xs={24} md={12}>
+                  <Form.Item name="meta_catalog_id" label="Meta Catalog ID" tooltip="Found in Commerce Manager > Catalog Settings">
+                    <Input placeholder="4449649758613207" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={12}>
+                  <Form.Item name="meta_catalog_token" label="Meta System User Access Token" tooltip="Permanent System User token with catalog_management permission">
+                    <Input.Password placeholder="EAAR... permanent access token" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={12}>
+                  <Form.Item name="meta_catalog_auto_sync" valuePropName="checked">
+                    <Checkbox><strong>Automatically sync products to Meta on create/update</strong></Checkbox>
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={12} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 24 }}>
+                  <Button 
+                    loading={isTestingMeta} 
+                    onClick={handleTestMetaConnection}
+                  >
+                    Test Meta Connection
+                  </Button>
+                  <Button 
+                    type="primary" 
+                    icon={<SyncOutlined />} 
+                    loading={isSyncingMeta} 
+                    onClick={handleSyncMetaCatalog}
+                  >
+                    Sync All Products Now
+                  </Button>
+                </Col>
+                <Col xs={24}>
+                  <div style={{ background: "rgba(255,255,255,0.03)", padding: "10px 14px", borderRadius: 6, fontSize: 12, border: "1px solid rgba(255,255,255,0.08)" }}>
+                    <span style={{ color: "#8c8c8c" }}>Backup Scheduled XML Feed URL: </span>
+                    <code style={{ color: "#52c41a" }}>https://api.poshplexbd.com/api/v1/catalog/meta-catalog.xml</code>
+                  </div>
                 </Col>
               </Row>
               
