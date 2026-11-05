@@ -117,6 +117,7 @@ class ProductCreateInputSchema(Schema):
     variants: List[VariantInputSchema] = []
     attributes: Optional[Dict[str, Any]] = {}
     image_urls: Optional[List[str]] = None
+    deleted_image_ids: Optional[List[int]] = None
 
 class ImageResponseSchema(Schema):
     id: int
@@ -591,6 +592,15 @@ def update_product_endpoint(request, slug: str, data: ProductCreateInputSchema):
             # Strict clean: Hard delete any variants not in input as requested by user
             product.variants.exclude(id__in=incoming_variant_ids).delete()
             
+            # Explicitly delete any images marked for deletion by admin
+            if getattr(data, 'deleted_image_ids', None):
+                for del_id in data.deleted_image_ids:
+                    del_img = ProductImage.objects.filter(id=del_id, product=product).first()
+                    if del_img:
+                        ProductVariant.objects.filter(product=product, image=del_img).update(image=None)
+                        ProductVariant.objects.filter(product=product, image_id=del_id).update(image_id=None)
+                        del_img.delete()
+
             # Handle base product image_urls download & sync
             if getattr(data, 'image_urls', None) is not None:
                 keep_image_ids = []
@@ -871,6 +881,28 @@ def update_product_image_endpoint(request, product_id: int, image_id: int, data:
         "color_tag": img.color_tag,
         "order": img.order
     }
+
+@router.delete("/products/{product_id}/images/{image_id}", auth=BearerAuth())
+def delete_product_image_endpoint(request, product_id: int, image_id: int):
+    """Delete a specific product image and purge it from Cloudflare R2 storage (Admin only)."""
+    enforce_permission(request, "catalog", "edit_catalog")
+    product = get_object_or_404(Product, id=product_id)
+    img = get_object_or_404(ProductImage, id=image_id, product=product)
+
+    # Detach image from any variants
+    ProductVariant.objects.filter(product=product, image=img).update(image=None)
+    ProductVariant.objects.filter(product=product, image_id=image_id).update(image_id=None)
+
+    # Calling img.delete() triggers default_storage.delete() which purges the file from Cloudflare R2
+    img.delete()
+
+    from django.core.cache import cache
+    if hasattr(cache, 'delete_pattern'):
+        cache.delete_pattern("products_list_*")
+    else:
+        cache.clear()
+
+    return {"success": True, "message": f"Image {image_id} deleted successfully."}
 
 # Category tree endpoint
 @router.get("/categories/tree", response=List[CategoryTreeSchema])

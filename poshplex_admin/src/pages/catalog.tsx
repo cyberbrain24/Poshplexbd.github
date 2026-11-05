@@ -313,6 +313,7 @@ export const Catalog: React.FC = () => {
   // Product Media Upload state
   const [fileList, setFileList] = useState<any[]>([]);
   const [mainImageUid, setMainImageUid] = useState<string | null>(null);
+  const [deletedImageIds, setDeletedImageIds] = useState<number[]>([]);
 
   // Load catalog metadata helpers
   const loadMetadata = async () => {
@@ -691,9 +692,7 @@ export const Catalog: React.FC = () => {
     const mainImg = product.images?.find((img: any) => img.is_main);
     setMainImageUid(mainImg ? mainImg.id.toString() : null);
 
-    const existingFilenames = product.images
-      ? product.images.map((img: any) => img.url.split('/').pop()).join(', ')
-      : "";
+    setDeletedImageIds([]);
     
     productForm.setFieldsValue({
       name: product.name,
@@ -712,7 +711,7 @@ export const Catalog: React.FC = () => {
       youtube_video_url: product.youtube_video_url,
       video_autoplay: product.video_autoplay,
       video_mute: product.video_mute,
-      image_filenames: existingFilenames
+      image_filenames: ""
     });
     setIsProductModalOpen(true);
   };
@@ -749,6 +748,7 @@ export const Catalog: React.FC = () => {
     setVariantsList([]);
     setFileList([]);
     setMainImageUid(null);
+    setDeletedImageIds([]);
     setVariantBuilderOptions({});
     productForm.resetFields();
     productForm.setFieldsValue({ is_active: true, is_featured: false, is_sold_out: false, product_type: "simple", image_filenames: "" });
@@ -759,10 +759,25 @@ export const Catalog: React.FC = () => {
     setIsSavingProduct(true);
     try {
       const token = getAuthToken();
-      
+      let productId = editingProduct?.id;
+      let isNew = false;
+
+      // 1. Explicitly purge any deleted images from Cloudflare R2 and backend database
+      if (editingProduct && deletedImageIds.length > 0) {
+        for (const delId of deletedImageIds) {
+          try {
+            await axios.delete(`${API_URL}/products/${productId}/images/${delId}`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+          } catch (delErr) {
+            console.warn(`Failed to delete image ${delId} via endpoint:`, delErr);
+          }
+        }
+      }
+
       const cleanVariants = (productType === "variable" ? variantsList : []).map(v => ({
         ...v,
-        image_id: typeof v.image_id === 'number' ? v.image_id : null
+        image_id: (typeof v.image_id === 'number' && !deletedImageIds.includes(v.image_id)) ? v.image_id : null
       }));
 
       const filenames = fileList
@@ -782,10 +797,9 @@ export const Catalog: React.FC = () => {
       const payload = { 
         ...restValues, 
         variants: cleanVariants,
+        deleted_image_ids: deletedImageIds,
         image_urls: combinedImageUrls
       };
-      let productId = editingProduct?.id;
-      let isNew = false;
 
       let createdProductData: any = null;
 
@@ -2400,6 +2414,23 @@ export const Catalog: React.FC = () => {
                     fileList={fileList}
                     beforeUpload={() => false}
                     onChange={({ fileList: newFileList }) => setFileList(newFileList)}
+                    onRemove={(file) => {
+                      const rawId = file.response?.id || (!isNaN(Number(file.uid)) ? Number(file.uid) : null);
+                      if (rawId && typeof rawId === 'number') {
+                        setDeletedImageIds(prev => prev.includes(rawId) ? prev : [...prev, rawId]);
+                      }
+                      const currentFilenames = productForm.getFieldValue("image_filenames") || "";
+                      const fileBaseName = file.url ? file.url.split('/').pop() : file.name;
+                      if (fileBaseName && currentFilenames.includes(fileBaseName)) {
+                        const updated = currentFilenames
+                          .split(',')
+                          .map((s: string) => s.trim())
+                          .filter((s: string) => s && s !== fileBaseName)
+                          .join(', ');
+                        productForm.setFieldsValue({ image_filenames: updated });
+                      }
+                      return true;
+                    }}
                     itemRender={(originNode, file) => (
                       <DraggableUploadListItem originNode={originNode} file={file} />
                     )}

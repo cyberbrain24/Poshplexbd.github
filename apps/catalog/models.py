@@ -306,8 +306,14 @@ class ProductImage(models.Model):
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        # Cleanup files to prevent orphaned storage records
-        if self.image:
+        # Explicitly purge file from Cloudflare R2 / filesystem storage to prevent orphaned assets
+        if self.image and self.image.name:
+            file_name = self.image.name
+            try:
+                from django.core.files.storage import default_storage
+                default_storage.delete(file_name)
+            except Exception:
+                pass
             try:
                 self.image.delete(save=False)
             except Exception:
