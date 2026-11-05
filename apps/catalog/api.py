@@ -669,6 +669,16 @@ def update_product_endpoint(request, slug: str, data: ProductCreateInputSchema):
 class ToggleSoldOutSchema(Schema):
     is_sold_out: bool
 
+class ToggleFeaturedSchema(Schema):
+    is_featured: bool
+
+class ReorderFeaturedItemSchema(Schema):
+    id: int
+    order: int
+
+class ReorderFeaturedSchema(Schema):
+    items: List[ReorderFeaturedItemSchema]
+
 @router.patch("/products/{product_id}/sold-out", auth=BearerAuth())
 def toggle_product_sold_out(request, product_id: int, data: ToggleSoldOutSchema):
     """Instantly toggle sold out status for a product (Admin only)."""
@@ -684,6 +694,39 @@ def toggle_product_sold_out(request, product_id: int, data: ToggleSoldOutSchema)
         cache.clear()
 
     return {"success": True, "id": product.id, "is_sold_out": product.is_sold_out}
+
+@router.patch("/products/{product_id}/featured", auth=BearerAuth())
+def toggle_product_featured(request, product_id: int, data: ToggleFeaturedSchema):
+    """Instantly toggle featured status for a product (Admin only)."""
+    enforce_permission(request, "catalog", "edit_catalog")
+    product = get_object_or_404(Product, id=product_id)
+    product.is_featured = data.is_featured
+    product.save(update_fields=['is_featured', 'updated_at'])
+
+    from django.core.cache import cache
+    if hasattr(cache, 'delete_pattern'):
+        cache.delete_pattern("products_list_*")
+    else:
+        cache.clear()
+
+    return {"success": True, "id": product.id, "is_featured": product.is_featured}
+
+@router.post("/products/reorder-featured", auth=BearerAuth())
+def reorder_featured_products(request, data: ReorderFeaturedSchema):
+    """Update display order (listing_order) for featured products (Admin only)."""
+    enforce_permission(request, "catalog", "edit_catalog")
+
+    with transaction.atomic():
+        for item in data.items:
+            Product.objects.filter(id=item.id).update(listing_order=item.order)
+
+    from django.core.cache import cache
+    if hasattr(cache, 'delete_pattern'):
+        cache.delete_pattern("products_list_*")
+    else:
+        cache.clear()
+
+    return {"success": True, "updated_count": len(data.items)}
 
 @router.delete("/products/{slug}", auth=BearerAuth())
 def delete_product_endpoint(request, slug: str):

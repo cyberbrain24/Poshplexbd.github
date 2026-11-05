@@ -6,16 +6,17 @@ import {
 import {
   PlusOutlined, FolderOpenOutlined, TagsOutlined, UploadOutlined, BuildOutlined,
   EditOutlined, DeleteOutlined, CopyOutlined, EyeOutlined, CheckCircleOutlined, CloseCircleOutlined,
-  DownloadOutlined, MinusCircleOutlined
+  DownloadOutlined, MinusCircleOutlined, StarOutlined, StarFilled, HolderOutlined, ReloadOutlined
 } from "@ant-design/icons";
 import axios from "axios";
 import type { UploadFile } from "antd/es/upload/interface";
-import { DndContext, PointerSensor, useSensor } from '@dnd-kit/core';
+import { DndContext, PointerSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
 import {
   SortableContext,
   arrayMove,
   useSortable,
-  horizontalListSortingStrategy
+  horizontalListSortingStrategy,
+  verticalListSortingStrategy
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -46,6 +47,164 @@ const DraggableUploadListItem = ({ originNode, file }: DraggableUploadListItemPr
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       {originNode}
+    </div>
+  );
+};
+
+interface SortableFeaturedRowProps {
+  product: any;
+  index: number;
+  onRemove: (id: number) => void;
+  onPreview: (slug: string) => void;
+  onEdit: (product: any) => void;
+}
+
+const SortableFeaturedRow: React.FC<SortableFeaturedRowProps> = ({
+  product,
+  index,
+  onRemove,
+  onPreview,
+  onEdit
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: product.id });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 9999 : "auto",
+    opacity: isDragging ? 0.6 : 1,
+    background: isDragging ? "rgba(30, 27, 75, 0.9)" : "rgba(17, 17, 26, 0.8)",
+    border: isDragging ? "1px solid #7c3aed" : "1px solid var(--border-glass, rgba(255,255,255,0.08))",
+    borderRadius: 6,
+    marginBottom: 8,
+    padding: "10px 14px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    boxShadow: isDragging ? "0 8px 24px rgba(0,0,0,0.5)" : "none",
+    userSelect: "none",
+  };
+
+  const main = product.images?.find((img: any) => img.is_main) || product.images?.[0];
+  const prices = product.variants?.map((v: any) => v.selling_price) || [];
+  const minPrice = prices.length ? Math.min(...prices) : product.base_price || 0;
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <Space size="middle" align="center" style={{ flex: 1, minWidth: 0 }}>
+        {/* Mouse Drag Handle */}
+        <div
+          {...attributes}
+          {...listeners}
+          style={{
+            cursor: "grab",
+            padding: "6px 8px",
+            borderRadius: 4,
+            background: "rgba(255,255,255,0.06)",
+            display: "flex",
+            alignItems: "center",
+            touchAction: "none",
+          }}
+          title="Drag up or down with mouse to change homepage serial rank"
+        >
+          <HolderOutlined style={{ fontSize: 18, color: "var(--text-muted, #9ca3af)" }} />
+        </div>
+
+        {/* Serial Rank Badge */}
+        <div
+          style={{
+            minWidth: 38,
+            height: 26,
+            borderRadius: 4,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: 800,
+            fontSize: 12,
+            background: index === 0 ? "#faad14" : (index < 3 ? "#7c3aed" : "rgba(255,255,255,0.1)"),
+            color: index === 0 ? "#000" : "#fff",
+            letterSpacing: 0.5
+          }}
+          title={`Homepage Serial Rank #${index + 1}`}
+        >
+          #{index + 1}
+        </div>
+
+        {/* Main Thumbnail */}
+        {main ? (
+          <img
+            src={main.url}
+            alt={product.name}
+            style={{ width: 44, height: 44, objectFit: "cover", borderRadius: 4, border: "1px solid rgba(255,255,255,0.1)" }}
+          />
+        ) : (
+          <div style={{ width: 44, height: 44, borderRadius: 4, background: "#1f2937", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#9ca3af" }}>
+            No Img
+          </div>
+        )}
+
+        {/* Product Details */}
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontWeight: 600, fontSize: 14, color: "#fff", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 360 }}>{product.name}</span>
+            <Tag color={product.product_type === "variable" ? "purple" : "blue"} style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px" }}>
+              {product.product_type?.toUpperCase()}
+            </Tag>
+            {product.is_sold_out && <Tag color="error" style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px" }}>SOLD OUT</Tag>}
+          </div>
+          <div style={{ fontSize: 12, color: "var(--text-muted, #9ca3af)", marginTop: 2, display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <span>SKU: <code style={{ color: "#e5e7eb" }}>{product.sku}</code></span>
+            <span>Price: <strong style={{ color: "#34d399" }}>৳{Math.round(minPrice)}</strong></span>
+            {product.categories?.length > 0 && (
+              <span>Category: {product.categories.map((c: any) => c.name).join(", ")}</span>
+            )}
+          </div>
+        </div>
+      </Space>
+
+      {/* Action Buttons */}
+      <Space size="small">
+        <Tooltip title="Preview on Storefront">
+          <Button
+            type="text"
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={() => onPreview(product.slug)}
+          />
+        </Tooltip>
+        <Tooltip title="Edit Drop Entry">
+          <Button
+            type="text"
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => onEdit(product)}
+          />
+        </Tooltip>
+        <Popconfirm
+          title="Remove from Featured Drops?"
+          description="This product will no longer appear on the homepage featured drops."
+          okText="Remove"
+          cancelText="Cancel"
+          okButtonProps={{ danger: true }}
+          onConfirm={() => onRemove(product.id)}
+        >
+          <Button
+            danger
+            type="text"
+            size="small"
+            icon={<DeleteOutlined />}
+          >
+            Remove
+          </Button>
+        </Popconfirm>
+      </Space>
     </div>
   );
 };
@@ -85,6 +244,11 @@ export const Catalog: React.FC = () => {
   const [pageSize, setPageSize] = useState(10);
   const [totalProducts, setTotalProducts] = useState(0);
   const [loading, setLoading] = useState(false);
+
+  // Featured Products Reordering State
+  const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
+  const [featuredLoading, setFeaturedLoading] = useState(false);
+  const [isSavingFeaturedOrder, setIsSavingFeaturedOrder] = useState(false);
 
   // Selected row keys for bulk operations
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
@@ -193,6 +357,21 @@ export const Catalog: React.FC = () => {
     }
   };
 
+  // Fetch homepage featured products list
+  const fetchFeaturedProducts = async () => {
+    setFeaturedLoading(true);
+    try {
+      const res = await axios.get(`${API_URL}/products`, {
+        params: { is_featured: true, limit: 100 }
+      });
+      setFeaturedProducts(res.data.results || []);
+    } catch (err) {
+      console.error("Failed to load featured products", err);
+    } finally {
+      setFeaturedLoading(false);
+    }
+  };
+
   // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
@@ -205,7 +384,14 @@ export const Catalog: React.FC = () => {
 
   useEffect(() => {
     loadMetadata();
+    fetchFeaturedProducts();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === "featured") {
+      fetchFeaturedProducts();
+    }
+  }, [activeTab]);
 
   const openEditCategory = (node: any) => {
     setEditingCategory(node);
@@ -356,6 +542,71 @@ export const Catalog: React.FC = () => {
     } catch (err: any) {
       message.error(err.response?.data?.message || err.response?.data?.detail || "Failed to update sold out status.");
     }
+  };
+
+  // Instantly toggle product featured status
+  const handleToggleFeatured = async (id: number, isFeatured: boolean) => {
+    try {
+      const token = getAuthToken();
+      await axios.patch(`${API_URL}/products/${id}/featured`, {
+        is_featured: isFeatured
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      message.success(`Product ${isFeatured ? "added to" : "removed from"} Featured Drops.`);
+      setProducts(prev => prev.map(p => p.id === id ? { ...p, is_featured: isFeatured } : p));
+      if (!isFeatured) {
+        setFeaturedProducts(prev => prev.filter(p => p.id !== id));
+      } else {
+        fetchFeaturedProducts();
+      }
+    } catch (err: any) {
+      message.error(err.response?.data?.message || err.response?.data?.detail || "Failed to update featured status.");
+    }
+  };
+
+  // Drag and drop sensors with activation distance constraint so clicks/buttons aren't intercepted
+  const featuredSensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 5 },
+    })
+  );
+
+  // Save new featured sequence order to database and bust cache
+  const saveFeaturedOrder = async (itemsList: any[]) => {
+    setIsSavingFeaturedOrder(true);
+    try {
+      const token = getAuthToken();
+      const payload = itemsList.map((item, idx) => ({
+        id: item.id,
+        order: idx + 1
+      }));
+      await axios.post(`${API_URL}/products/reorder-featured`, {
+        items: payload
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      message.success("Homepage featured order updated!");
+    } catch (err: any) {
+      message.error(err.response?.data?.message || err.response?.data?.detail || "Failed to save featured order.");
+      fetchFeaturedProducts();
+    } finally {
+      setIsSavingFeaturedOrder(false);
+    }
+  };
+
+  // Handle reorder on mouse drag end
+  const handleFeaturedDragEnd = async (event: any) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = featuredProducts.findIndex(item => item.id === active.id);
+    const newIndex = featuredProducts.findIndex(item => item.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(featuredProducts, oldIndex, newIndex);
+    setFeaturedProducts(reordered);
+    await saveFeaturedOrder(reordered);
   };
 
   // Bulk status updates
@@ -1284,6 +1535,20 @@ export const Catalog: React.FC = () => {
       )
     },
     {
+      title: "Featured",
+      key: "is_featured",
+      width: 120,
+      render: (record: any) => (
+        <Switch
+          checked={!!record.is_featured}
+          checkedChildren="FEATURED"
+          unCheckedChildren="NO"
+          style={{ backgroundColor: record.is_featured ? "#faad14" : undefined }}
+          onChange={(checked) => handleToggleFeatured(record.id, checked)}
+        />
+      )
+    },
+    {
       title: "Sold Out",
       key: "is_sold_out",
       width: 120,
@@ -1436,6 +1701,102 @@ export const Catalog: React.FC = () => {
             />
           </Card>
         ) },
+
+        /* TAB: Featured List (Homepage Featured Drops Drag & Drop Sequence) */
+        {
+          label: (
+            <span>
+              <StarFilled style={{ color: "#faad14", marginRight: 6 }} />
+              Featured List
+              {featuredProducts.length > 0 && (
+                <Badge
+                  count={featuredProducts.length}
+                  style={{ backgroundColor: "#7c3aed", marginLeft: 6 }}
+                />
+              )}
+            </span>
+          ),
+          key: "featured",
+          children: (
+            <Card
+              title={
+                <Space direction="vertical" size={2}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 16, fontWeight: 700 }}>Homepage Featured Drops Sequence</span>
+                    <Tag color="gold" icon={<StarFilled />}>LIVE STOREFRONT ORDER</Tag>
+                  </div>
+                  <span style={{ fontSize: 12, color: "var(--text-muted, #9ca3af)", fontWeight: "normal" }}>
+                    Drag & drop products using the mouse to prioritize which drop appears #1, #2, #3 on the homepage. Changes auto-save instantly.
+                  </span>
+                </Space>
+              }
+              extra={
+                <Space>
+                  <Button
+                    icon={<ReloadOutlined spin={featuredLoading} />}
+                    onClick={fetchFeaturedProducts}
+                    disabled={featuredLoading}
+                  >
+                    Refresh
+                  </Button>
+                  <Button
+                    type="primary"
+                    loading={isSavingFeaturedOrder}
+                    onClick={() => saveFeaturedOrder(featuredProducts)}
+                    style={{ borderRadius: 0, background: "#7c3aed", borderColor: "#7c3aed" }}
+                  >
+                    {isSavingFeaturedOrder ? "Saving..." : "Save Order"}
+                  </Button>
+                </Space>
+              }
+            >
+              {featuredLoading && featuredProducts.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-muted)" }}>
+                  Loading featured products...
+                </div>
+              ) : featuredProducts.length === 0 ? (
+                <Alert
+                  type="info"
+                  showIcon
+                  message="No Featured Products"
+                  description={
+                    <span>
+                      You currently have no products marked as featured. Go to the <b>Drop Listings</b> tab to toggle <b>FEATURED</b> on any product, or edit a product and enable <b>Homepage Featured</b>.
+                    </span>
+                  }
+                  style={{ margin: "20px 0" }}
+                />
+              ) : (
+                <DndContext
+                  sensors={featuredSensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleFeaturedDragEnd}
+                >
+                  <SortableContext
+                    items={featuredProducts.map(p => p.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div style={{ maxWidth: 1000, margin: "0 auto", padding: "8px 0" }}>
+                      {featuredProducts.map((prod, idx) => (
+                        <SortableFeaturedRow
+                          key={prod.id}
+                          product={prod}
+                          index={idx}
+                          onRemove={(id) => handleToggleFeatured(id, false)}
+                          onPreview={(slug) => {
+                            const storeUrl = window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:3000';
+                            window.open(`${storeUrl}/product/${slug}`, "_blank");
+                          }}
+                          onEdit={(prodToEdit) => openEditModal(prodToEdit)}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+              )}
+            </Card>
+          )
+        },
 
         /* TAB 2: Categories tree hierarchy */
         { label: <span><FolderOpenOutlined /> Structure Tree</span>, key: "2", children: (
