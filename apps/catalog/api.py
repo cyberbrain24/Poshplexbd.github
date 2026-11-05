@@ -482,6 +482,100 @@ def post_product_endpoint(request, data: ProductCreateInputSchema):
     except Exception as e:
         raise HttpError(400, str(e))
 
+class ToggleSoldOutSchema(Schema):
+    is_sold_out: bool
+
+class ToggleFeaturedSchema(Schema):
+    is_featured: bool
+
+class ReorderFeaturedItemSchema(Schema):
+    id: int
+    order: int
+
+class ReorderFeaturedSchema(Schema):
+    items: List[ReorderFeaturedItemSchema]
+
+@router.patch("/products/{product_id}/sold-out", auth=BearerAuth())
+def toggle_product_sold_out(request, product_id: int, data: ToggleSoldOutSchema):
+    """Instantly toggle sold out status for a product (Admin only)."""
+    enforce_permission(request, "catalog", "edit_catalog")
+    product = get_object_or_404(Product, id=product_id)
+    product.is_sold_out = data.is_sold_out
+    product.save(update_fields=['is_sold_out', 'updated_at'])
+
+    from django.core.cache import cache
+    if hasattr(cache, 'delete_pattern'):
+        cache.delete_pattern("products_list_*")
+    else:
+        cache.clear()
+
+    return {"success": True, "id": product.id, "is_sold_out": product.is_sold_out}
+
+@router.patch("/products/{product_id}/featured", auth=BearerAuth())
+def toggle_product_featured(request, product_id: int, data: ToggleFeaturedSchema):
+    """Instantly toggle featured status for a product (Admin only)."""
+    enforce_permission(request, "catalog", "edit_catalog")
+    product = get_object_or_404(Product, id=product_id)
+    product.is_featured = data.is_featured
+    product.save(update_fields=['is_featured', 'updated_at'])
+
+    from django.core.cache import cache
+    if hasattr(cache, 'delete_pattern'):
+        cache.delete_pattern("products_list_*")
+    else:
+        cache.clear()
+
+    return {"success": True, "id": product.id, "is_featured": product.is_featured}
+
+@router.post("/products/reorder-featured", auth=BearerAuth())
+@router.post("/products/reorder-featured/", auth=BearerAuth())
+def reorder_featured_products(request, data: ReorderFeaturedSchema):
+    """Update display order (listing_order) for featured products (Admin only)."""
+    enforce_permission(request, "catalog", "edit_catalog")
+
+    with transaction.atomic():
+        for item in data.items:
+            Product.objects.filter(id=item.id).update(listing_order=item.order)
+
+    from django.core.cache import cache
+    if hasattr(cache, 'delete_pattern'):
+        cache.delete_pattern("products_list_*")
+    else:
+        cache.clear()
+
+    return {"success": True, "updated_count": len(data.items)}
+
+# CSV Import Endpoints
+
+@router.post("/products/bulk-upload", auth=BearerAuth())
+@router.post("/products/bulk-upload/", auth=BearerAuth())
+def bulk_upload_endpoint(request, file: UploadedFile = File(...)):
+    """Import catalog catalog from CSV files with validation logs (Admin only)."""
+    enforce_permission(request, "catalog", "edit_catalog")
+    try:
+        file_content = file.read().decode('utf-8')
+        
+        # Simple default column mapping
+        column_mapping = {
+            "name": "Product Name",
+            "sku": "SKU",
+            "product_type": "Product Type",
+            "short_description": "Short Description",
+            "description": "Description",
+            "base_price": "Base Price",
+            "category": "Category",
+            "brand": "Brand",
+            "variant_sku": "Variant SKU",
+            "variant_price": "Variant Price",
+            "variant_size": "Variant Size",
+            "variant_color": "Variant Color"
+        }
+        
+        report = import_products_from_csv(file_content, column_mapping)
+        return report
+    except Exception as e:
+        raise HttpError(400, f"Spreadsheet import error: {str(e)}")
+
 @router.put("/products/{slug}", response=ProductDetailResponseSchema, auth=BearerAuth())
 def update_product_endpoint(request, slug: str, data: ProductCreateInputSchema):
     """Edit product details and variant options while preserving order histories (Admin only)."""
@@ -676,68 +770,6 @@ def update_product_endpoint(request, slug: str, data: ProductCreateInputSchema):
     except Exception as e:
         raise HttpError(400, str(e))
 
-class ToggleSoldOutSchema(Schema):
-    is_sold_out: bool
-
-class ToggleFeaturedSchema(Schema):
-    is_featured: bool
-
-class ReorderFeaturedItemSchema(Schema):
-    id: int
-    order: int
-
-class ReorderFeaturedSchema(Schema):
-    items: List[ReorderFeaturedItemSchema]
-
-@router.patch("/products/{product_id}/sold-out", auth=BearerAuth())
-def toggle_product_sold_out(request, product_id: int, data: ToggleSoldOutSchema):
-    """Instantly toggle sold out status for a product (Admin only)."""
-    enforce_permission(request, "catalog", "edit_catalog")
-    product = get_object_or_404(Product, id=product_id)
-    product.is_sold_out = data.is_sold_out
-    product.save(update_fields=['is_sold_out', 'updated_at'])
-
-    from django.core.cache import cache
-    if hasattr(cache, 'delete_pattern'):
-        cache.delete_pattern("products_list_*")
-    else:
-        cache.clear()
-
-    return {"success": True, "id": product.id, "is_sold_out": product.is_sold_out}
-
-@router.patch("/products/{product_id}/featured", auth=BearerAuth())
-def toggle_product_featured(request, product_id: int, data: ToggleFeaturedSchema):
-    """Instantly toggle featured status for a product (Admin only)."""
-    enforce_permission(request, "catalog", "edit_catalog")
-    product = get_object_or_404(Product, id=product_id)
-    product.is_featured = data.is_featured
-    product.save(update_fields=['is_featured', 'updated_at'])
-
-    from django.core.cache import cache
-    if hasattr(cache, 'delete_pattern'):
-        cache.delete_pattern("products_list_*")
-    else:
-        cache.clear()
-
-    return {"success": True, "id": product.id, "is_featured": product.is_featured}
-
-@router.post("/products/reorder-featured", auth=BearerAuth())
-def reorder_featured_products(request, data: ReorderFeaturedSchema):
-    """Update display order (listing_order) for featured products (Admin only)."""
-    enforce_permission(request, "catalog", "edit_catalog")
-
-    with transaction.atomic():
-        for item in data.items:
-            Product.objects.filter(id=item.id).update(listing_order=item.order)
-
-    from django.core.cache import cache
-    if hasattr(cache, 'delete_pattern'):
-        cache.delete_pattern("products_list_*")
-    else:
-        cache.clear()
-
-    return {"success": True, "updated_count": len(data.items)}
-
 @router.delete("/products/{slug}", auth=BearerAuth())
 def delete_product_endpoint(request, slug: str):
     """Safely delete product checking order logs and cascading gallery storage files (Admin only)."""
@@ -768,36 +800,6 @@ def duplicate_product_endpoint(request, product_id: int):
         return get_product_details(new_prod.slug)
     except Exception as e:
         raise HttpError(400, str(e))
-
-# CSV Import Endpoints
-
-@router.post("/products/bulk-upload", auth=BearerAuth())
-def bulk_upload_endpoint(request, file: UploadedFile = File(...)):
-    """Import catalog catalog from CSV files with validation logs (Admin only)."""
-    enforce_permission(request, "catalog", "edit_catalog")
-    try:
-        file_content = file.read().decode('utf-8')
-        
-        # Simple default column mapping
-        column_mapping = {
-            "name": "Product Name",
-            "sku": "SKU",
-            "product_type": "Product Type",
-            "short_description": "Short Description",
-            "description": "Description",
-            "base_price": "Base Price",
-            "category": "Category",
-            "brand": "Brand",
-            "variant_sku": "Variant SKU",
-            "variant_price": "Variant Price",
-            "variant_size": "Variant Size",
-            "variant_color": "Variant Color"
-        }
-        
-        report = import_products_from_csv(file_content, column_mapping)
-        return report
-    except Exception as e:
-        raise HttpError(400, f"Spreadsheet import error: {str(e)}")
 
 # Image Upload Gallery Endpoint
 
