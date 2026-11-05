@@ -68,7 +68,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!product) return { title: "Product Not Found | Poshplex Streetwear" };
   
   const imageUrl = product.images?.[0]?.url || `https://placehold.co/600x400?text=${encodeURIComponent(product.name)}`;
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://store.poshplexbd.com";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://poshplexbd.com";
   const productUrl = `${siteUrl.replace(/\/$/, "")}/product/${product.slug}`;
   const price = String(product.selling_price || product.price || product.base_price || 0);
   const inStock = product.is_active && !product.is_sold_out;
@@ -126,7 +126,7 @@ export default async function ProductPage({ params }: Props) {
     getAttributes()
   ]);
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://store.poshplexbd.com";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://poshplexbd.com";
   const productUrl = `${siteUrl.replace(/\/$/, "")}/product/${product.slug}`;
   const price = parseFloat(product.selling_price || product.price || product.base_price || 0);
   const inStock = product.is_active && !product.is_sold_out;

@@ -169,16 +169,16 @@ def deploy_campaign(campaign_id: int) -> Dict[str, Any]:
                     headline=headline[:100],
                     primary_text="Discover the latest streetwear collection at PoshPlex. Premium fabrics, oversized cuts, engineered for Dhaka streets.",
                     call_to_action="SHOP_NOW",
-                    image_url=img_url or "https://store.poshplexbd.com/logo.png"
+                    image_url=img_url or "https://poshplexbd.com/logo.png"
                 )
                 creatives = [default_creative]
 
             for creative in creatives:
                 # 3A: Create AdCreative on Meta
                 if not creative.meta_creative_id:
-                    link_url = "https://store.poshplexbd.com"
+                    link_url = "https://poshplexbd.com"
                     if campaign.linked_product:
-                        link_url = f"https://store.poshplexbd.com/product/{campaign.linked_product.slug}?utm_source=facebook&utm_medium=paid&utm_campaign={campaign.id}"
+                        link_url = f"https://poshplexbd.com/product/{campaign.linked_product.slug}?utm_source=facebook&utm_medium=paid&utm_campaign={campaign.id}"
 
                     creative_payload = {
                         "name": creative.name,
@@ -189,7 +189,7 @@ def deploy_campaign(campaign_id: int) -> Dict[str, Any]:
                                 "link": link_url,
                                 "name": creative.headline,
                                 "description": creative.description or "PoshPlex Official Store",
-                                "picture": creative.image_url or "https://store.poshplexbd.com/logo.png",
+                                "picture": creative.image_url or "https://poshplexbd.com/logo.png",
                                 "call_to_action": {
                                     "type": creative.call_to_action,
                                     "value": {"link": link_url}

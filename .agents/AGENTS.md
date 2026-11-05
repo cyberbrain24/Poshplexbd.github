@@ -3,7 +3,7 @@
 This document contains rules, architecture details, and deployment best practices for agents working on the Poshplex codebase. **All future Antigravity agents MUST read and adhere to these guidelines before making changes.**
 
 ## System Architecture & Stack
-- **Frontend (Storefront):** Next.js App Router (Runs on port 3000 locally, `store.poshplexbd.com` in production).
+- **Frontend (Storefront):** Next.js App Router (Runs on port 3000 locally, `poshplexbd.com` in production).
 - **Frontend (Admin):** Next.js or React SPA (Runs on port 3001 locally, `admin.poshplexbd.com` in production).
 - **Backend API:** Django REST Framework (Runs on port 8000 locally, `api.poshplexbd.com` / `poshplexbd.com` in production).
 - **Database:** SQLite (Local development) / PostgreSQL (Production VPS).
