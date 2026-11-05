@@ -26,7 +26,7 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
     setIsOpen(prev => {
       const nextState = !prev;
       if (nextState && typeof window !== 'undefined' && window.innerWidth <= 768) {
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        window.scrollTo(0, 0);
       }
       return nextState;
     });
@@ -60,16 +60,23 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
       setIsOpen(prev => {
         const nextState = !prev;
         if (nextState && typeof window !== 'undefined' && window.innerWidth <= 768) {
-          window.scrollTo({ top: 0, behavior: "smooth" });
+          window.scrollTo(0, 0);
         }
         return nextState;
       });
     };
+    const handleClose = () => setIsOpen(false);
     document.addEventListener("toggle-mobile-menu", handleToggle);
+    document.addEventListener("close-mobile-menu", handleClose);
     return () => {
       document.removeEventListener("toggle-mobile-menu", handleToggle);
+      document.removeEventListener("close-mobile-menu", handleClose);
     };
   }, []);
+
+  useEffect(() => {
+    document.dispatchEvent(new CustomEvent("mobile-menu-state", { detail: { isOpen } }));
+  }, [isOpen]);
 
   useEffect(() => {
     const updateWishlistCount = () => {
@@ -151,7 +158,7 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
   }, [searchQuery]);
 
   return (
-    <header className="street-header">
+    <header className={`street-header ${isOpen ? "menu-open" : ""}`}>
       <div style={{ background: "#111116", color: "#ffffff", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "1.5px", padding: "6px 24px", textAlign: "center" }}>
         BE POSH WITH POSHPLEX
       </div>
@@ -450,105 +457,43 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
               setIsOpen(false);
             }
           }}
-          style={{
-            position: "fixed",
-            top: 100,
-            left: 0,
-            width: "100%",
-            height: "calc(100vh - 100px)",
-            backgroundColor: "rgba(10, 10, 12, 0.98)",
-            backdropFilter: "blur(16px)",
-            zIndex: 99,
-            display: "flex",
-            flexDirection: "column",
-            gap: 12,
-            animation: "slideIn 0.3s ease",
-            padding: "16px 20px",
-            overflowY: "auto"
-          }}
         >
           {categories.map((cat: any) => (
-            <div key={cat.id} style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
+            <div key={cat.id} className="mobile-menu-category-block">
               {/* Category Main Header Link */}
               <Link 
                 href={`/catalog/${cat.slug}`} 
                 onClick={closeMenu}
-                style={{ 
-                  color: "#ffffff", 
-                  textDecoration: "none", 
-                  fontSize: 12, 
-                  fontWeight: 800, 
-                  letterSpacing: "1.5px", 
-                  textTransform: "uppercase",
-                  borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-                  paddingBottom: 4,
-                  textAlign: "right",
-                  display: "block",
-                  width: "100%"
-                }}
+                className="mobile-category-title-link"
               >
                 {cat.name}
               </Link>
               
-              {/* Grid list of Subcategories with Images */}
+              {/* Single row of Subcategories with Images */}
               {cat.children && cat.children.length > 0 && (
-                <div 
-                  style={{ 
-                    display: "flex", 
-                    flexWrap: "wrap",
-                    justifyContent: "flex-end",
-                    gap: "16px 8px", 
-                    paddingBottom: 8
-                  }} 
-                  className="mobile-menu-subcategories"
-                >
+                <div className="mobile-menu-subcategories">
                   {cat.children.map((child: any) => (
                     <Link
                       key={child.id}
                       href={`/catalog/${child.slug}`}
                       onClick={closeMenu}
-                      style={{ 
-                        display: "flex", 
-                        flexDirection: "column", 
-                        alignItems: "center", 
-                        gap: 6, 
-                        textDecoration: "none",
-                        width: "calc((100% - 32px) / 5)" 
-                      }}
+                      className="mobile-subcategory-item"
                     >
-                      <div style={{
-                        width: "100%",
-                        aspectRatio: "1/1",
-                        borderRadius: 4,
-                        overflow: "hidden",
-                        background: "#222",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        border: "1px solid rgba(255, 255, 255, 0.15)",
-                        position: "relative"
-                      }}>
+                      <div className="mobile-subcategory-thumb">
                         {child.image ? (
-                          <Image unoptimized={true} src={child.image} alt={child.name} fill sizes="(max-width: 768px) 25vw, 72px" style={{ objectFit: "cover" }} />
+                          <Image 
+                            unoptimized={true} 
+                            src={child.image} 
+                            alt={child.name} 
+                            fill 
+                            sizes="72px" 
+                            style={{ objectFit: "cover" }} 
+                          />
                         ) : (
                           <span style={{ color: "#666", fontSize: 8, textTransform: "uppercase", fontWeight: 700 }}>Street</span>
                         )}
                       </div>
-                      <span style={{ 
-                        color: "#ccc", 
-                        fontSize: 8, 
-                        fontWeight: 700, 
-                        textTransform: "uppercase", 
-                        textAlign: "center",
-                        whiteSpace: "normal",
-                        display: "-webkit-box",
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        lineHeight: 1.2,
-                        width: "100%" 
-                      }}>
+                      <span className="mobile-subcategory-label">
                         {child.name}
                       </span>
                     </Link>
@@ -645,12 +590,29 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
           gap: 16px;
           flex-shrink: 0;
         }
-        
-        .mobile-menu-subcategories::-webkit-scrollbar {
-          display: none;
+
+        @media (min-width: 769px) {
+          .mobile-menu-overlay {
+            position: fixed;
+            top: 74px;
+            left: 0;
+            width: 100%;
+            max-height: calc(100vh - 74px);
+            background-color: rgba(10, 10, 12, 0.98);
+            backdrop-filter: blur(16px);
+            z-index: 99;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding: 24px 32px;
+            overflow-y: auto;
+          }
         }
 
         @media (max-width: 768px) {
+          .street-header.menu-open {
+            z-index: 99998 !important;
+          }
           .header-main-nav-container {
             min-height: 48px !important;
             height: 48px !important;
@@ -665,10 +627,107 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
           }
           .mobile-menu-btn {
             order: 1;
+            display: flex !important;
           }
           .mobile-menu-overlay {
+            position: fixed !important;
             top: 74px !important;
-            height: calc(100vh - 74px - 52px) !important;
+            bottom: 52px !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            max-height: calc(100dvh - 74px - 52px) !important;
+            background-color: rgba(10, 10, 12, 0.98) !important;
+            backdrop-filter: blur(16px) !important;
+            -webkit-backdrop-filter: blur(16px) !important;
+            z-index: 99990 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-evenly !important;
+            gap: clamp(2px, 0.8vh, 6px) !important;
+            padding: clamp(6px, 1.2vh, 10px) clamp(10px, 3vw, 16px) !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            scrollbar-width: none !important;
+            box-sizing: border-box !important;
+            animation: slideIn 0.25s ease !important;
+          }
+          .mobile-menu-overlay::-webkit-scrollbar {
+            display: none !important;
+          }
+          .mobile-menu-category-block {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: clamp(2px, 0.4vh, 4px) !important;
+            width: 100% !important;
+            flex-shrink: 0 !important;
+          }
+          .mobile-category-title-link {
+            color: #ffffff !important;
+            text-decoration: none !important;
+            font-size: clamp(10px, 1.3vh, 12px) !important;
+            font-weight: 800 !important;
+            letter-spacing: 1.5px !important;
+            text-transform: uppercase !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+            padding-bottom: 2px !important;
+            text-align: right !important;
+            display: block !important;
+            width: 100% !important;
+            line-height: 1.2 !important;
+          }
+          .mobile-menu-subcategories {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            justify-content: flex-end !important;
+            align-items: flex-start !important;
+            gap: clamp(4px, 1.4vw, 7px) !important;
+            width: 100% !important;
+            overflow-x: auto !important;
+            scrollbar-width: none !important;
+            -webkit-overflow-scrolling: touch !important;
+            padding: 1px 0 !important;
+          }
+          .mobile-menu-subcategories::-webkit-scrollbar {
+            display: none !important;
+          }
+          .mobile-subcategory-item {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            gap: clamp(2px, 0.4vh, 3px) !important;
+            text-decoration: none !important;
+            flex: 0 0 auto !important;
+            width: clamp(42px, calc((100% - 30px) / 6), 56px) !important;
+            max-width: 56px !important;
+          }
+          .mobile-subcategory-thumb {
+            width: 100% !important;
+            aspect-ratio: 1 / 1 !important;
+            border-radius: 4px !important;
+            overflow: hidden !important;
+            background: #222 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            position: relative !important;
+          }
+          .mobile-subcategory-label {
+            color: #ccc !important;
+            font-size: clamp(7px, 1.8vw, 8px) !important;
+            font-weight: 700 !important;
+            text-transform: uppercase !important;
+            text-align: center !important;
+            white-space: normal !important;
+            display: -webkit-box !important;
+            -webkit-line-clamp: 2 !important;
+            -webkit-box-orient: vertical !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            line-height: 1.15 !important;
+            width: 100% !important;
           }
         }
       ` }} />

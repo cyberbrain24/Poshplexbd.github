@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Grid, Sparkles, ShoppingBag, User } from "lucide-react";
@@ -13,10 +13,28 @@ export default function BottomNav() {
   const { cartCount, openCart, closeCart, isCartOpen } = useCart();
   const { isFitCheckActive } = useFitCheckConfig();
   const [isGlobalFitModalOpen, setIsGlobalFitModalOpen] = useState(false);
+  const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleMenuState = (e: any) => {
+      if (e?.detail && typeof e.detail.isOpen === "boolean") {
+        setIsCategoryMenuOpen(e.detail.isOpen);
+      }
+    };
+    document.addEventListener("mobile-menu-state", handleMenuState);
+    return () => document.removeEventListener("mobile-menu-state", handleMenuState);
+  }, []);
+
+  const handleNavCloseMenus = () => {
+    closeCart();
+    if (typeof document !== "undefined") {
+      document.dispatchEvent(new CustomEvent("close-mobile-menu"));
+    }
+  };
 
   const handleAiFitCheckClick = () => {
     if (!isFitCheckActive) return;
-    closeCart();
+    handleNavCloseMenus();
     if (pathname.startsWith("/product/")) {
       document.dispatchEvent(new CustomEvent("open-ai-fit-check"));
     } else {
@@ -31,7 +49,7 @@ export default function BottomNav() {
         <div style={{ display: "flex", justifyContent: "space-around", alignItems: "center", height: "100%", width: "100%", position: "relative" }}>
           
           {/* Home */}
-          <Link href="/" onClick={closeCart} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textDecoration: "none", color: pathname === "/" ? "var(--text-main)" : "var(--text-muted)", gap: 4, flex: 1 }}>
+          <Link href="/" onClick={handleNavCloseMenus} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textDecoration: "none", color: pathname === "/" && !isCategoryMenuOpen ? "var(--text-main)" : "var(--text-muted)", gap: 4, flex: 1 }}>
             <Home size={20} />
             <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Home</span>
           </Link>
@@ -49,7 +67,7 @@ export default function BottomNav() {
                 closeCart();
               }
             }} 
-            style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textDecoration: "none", color: pathname.startsWith("/catalog") ? "var(--text-main)" : "var(--text-muted)", gap: 4, flex: 1 }}
+            style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textDecoration: "none", color: (pathname.startsWith("/catalog") || isCategoryMenuOpen) ? "var(--text-main)" : "var(--text-muted)", gap: 4, flex: 1 }}
           >
             <Grid size={20} />
             <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Category</span>
@@ -147,7 +165,7 @@ export default function BottomNav() {
           </button>
 
           {/* Account */}
-          <Link href="/profile" onClick={closeCart} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textDecoration: "none", color: pathname === "/profile" ? "var(--text-main)" : "var(--text-muted)", gap: 4, flex: 1 }}>
+          <Link href="/profile" onClick={handleNavCloseMenus} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textDecoration: "none", color: pathname === "/profile" ? "var(--text-main)" : "var(--text-muted)", gap: 4, flex: 1 }}>
             <User size={20} />
             <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Account</span>
           </Link>
