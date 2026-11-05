@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
 import {
   Tabs, Table, Button, Modal, Form, Input, InputNumber, Select, Tree, 
-  Card, Col, Row, Space, Tag, message, Upload, Switch, Divider, Alert, Tooltip, Checkbox, Badge, Popconfirm
+  Card, Col, Row, Space, Tag, message, Upload, Switch, Divider, Alert, Tooltip, Checkbox, Badge, Popconfirm,
+  Pagination, Segmented
 } from "antd";
 import {
   PlusOutlined, FolderOpenOutlined, TagsOutlined, UploadOutlined, BuildOutlined,
   EditOutlined, DeleteOutlined, CopyOutlined, EyeOutlined, CheckCircleOutlined, CloseCircleOutlined,
-  DownloadOutlined, MinusCircleOutlined, StarOutlined, StarFilled, HolderOutlined, ReloadOutlined
+  DownloadOutlined, MinusCircleOutlined, StarOutlined, StarFilled, HolderOutlined, ReloadOutlined,
+  AppstoreOutlined, BarsOutlined
 } from "@ant-design/icons";
 import axios from "axios";
 import type { UploadFile } from "antd/es/upload/interface";
@@ -226,6 +228,249 @@ const DebouncedSearchInput = ({ placeholder, onSearch, style }: { placeholder?: 
   );
 };
 
+interface ProductGridCardProps {
+  product: any;
+  isSelected: boolean;
+  onSelect: (id: number, checked: boolean) => void;
+  onToggleFeatured: (id: number, featured: boolean) => void;
+  onToggleSoldOut: (id: number, soldOut: boolean) => void;
+  onPreview: (slug: string) => void;
+  onEdit: (product: any) => void;
+  onDuplicate: (id: number) => void;
+  onDelete: (id: number) => void;
+}
+
+const ProductGridCard: React.FC<ProductGridCardProps> = ({
+  product,
+  isSelected,
+  onSelect,
+  onToggleFeatured,
+  onToggleSoldOut,
+  onPreview,
+  onEdit,
+  onDuplicate,
+  onDelete
+}) => {
+  const main = product.images?.find((img: any) => img.is_main) || product.images?.[0];
+  const prices = product.variants?.map((v: any) => v.selling_price) || [];
+  const minPrice = prices.length ? Math.min(...prices) : (product.base_price || 0);
+
+  return (
+    <div
+      style={{
+        background: isSelected ? "rgba(124, 58, 237, 0.12)" : "rgba(17, 17, 26, 0.85)",
+        border: isSelected ? "1px solid #7c3aed" : "1px solid var(--border-glass, rgba(255, 255, 255, 0.08))",
+        borderRadius: 6,
+        padding: "6px",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        transition: "all 0.18s ease-in-out",
+        boxShadow: isSelected ? "0 0 10px rgba(124, 58, 237, 0.25)" : "none",
+        position: "relative",
+        minWidth: 0,
+        height: "100%"
+      }}
+    >
+      <div>
+        {/* Top Header: Checkbox + Active & Type Badges */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+          <Checkbox 
+            checked={isSelected} 
+            onChange={(e) => onSelect(product.id, e.target.checked)} 
+            style={{ transform: "scale(0.85)" }} 
+          />
+          <Space size={3}>
+            {product.is_active ? (
+              <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 4px", borderRadius: 3, background: "rgba(16, 185, 129, 0.15)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.3)" }}>
+                ACT
+              </span>
+            ) : (
+              <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 4px", borderRadius: 3, background: "rgba(156, 163, 175, 0.15)", color: "#9ca3af", border: "1px solid rgba(156, 163, 175, 0.3)" }}>
+                INA
+              </span>
+            )}
+            <span style={{ fontSize: 9, fontWeight: 600, padding: "1px 4px", borderRadius: 3, background: product.product_type === "variable" ? "rgba(168, 85, 247, 0.15)" : "rgba(59, 130, 246, 0.15)", color: product.product_type === "variable" ? "#c084fc" : "#60a5fa" }}>
+              {product.product_type === "variable" ? "VAR" : "SMP"}
+            </span>
+          </Space>
+        </div>
+
+        {/* Thumbnail Image Box (1:1 aspect ratio with status ribbons) */}
+        <div 
+          style={{ 
+            width: "100%", 
+            paddingTop: "100%", 
+            position: "relative", 
+            borderRadius: 4, 
+            overflow: "hidden", 
+            background: "#181824",
+            border: "1px solid rgba(255, 255, 255, 0.06)",
+            marginBottom: 6
+          }}
+        >
+          {main ? (
+            <img 
+              src={main.url} 
+              alt={product.name} 
+              style={{ 
+                position: "absolute", 
+                top: 0, 
+                left: 0, 
+                width: "100%", 
+                height: "100%", 
+                objectFit: "cover" 
+              }} 
+            />
+          ) : (
+            <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "var(--text-muted)" }}>
+              No Img
+            </div>
+          )}
+
+          {/* Overlaid Badges */}
+          {product.is_sold_out && (
+            <div style={{ position: "absolute", bottom: 4, left: 4, background: "rgba(220, 38, 38, 0.9)", color: "#fff", fontSize: 9, fontWeight: 800, padding: "1px 5px", borderRadius: 3, letterSpacing: 0.5, boxShadow: "0 2px 4px rgba(0,0,0,0.5)" }}>
+              SOLD OUT
+            </div>
+          )}
+          {product.is_featured && (
+            <div style={{ position: "absolute", top: 4, right: 4, background: "rgba(0,0,0,0.75)", border: "1px solid #faad14", color: "#faad14", fontSize: 9, fontWeight: 800, padding: "1px 4px", borderRadius: 3, display: "flex", alignItems: "center", gap: 2 }}>
+              <StarFilled style={{ fontSize: 9 }} />
+            </div>
+          )}
+        </div>
+
+        {/* Product Name (truncated with tooltip) */}
+        <Tooltip title={product.name} placement="topLeft">
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: "16px" }}>
+            {product.name}
+          </div>
+        </Tooltip>
+
+        {/* SKU & Category */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 2, fontSize: 10, color: "var(--text-muted, #9ca3af)", lineHeight: "14px" }}>
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "55%" }}>
+            <code>{product.sku}</code>
+          </span>
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "42%", textAlign: "right" }}>
+            {product.categories?.[0]?.name || product.brand?.name || ""}
+          </span>
+        </div>
+
+        {/* Pricing */}
+        <div style={{ marginTop: 3, display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+          <span style={{ fontSize: 13, fontWeight: 800, color: "#10b981" }}>
+            ৳{Math.round(minPrice)}
+          </span>
+          {prices.length > 1 && (
+            <span style={{ fontSize: 9, color: "var(--text-muted)" }}>{prices.length} sizes</span>
+          )}
+        </div>
+      </div>
+
+      {/* Controls & Actions Bottom Section */}
+      <div style={{ marginTop: 6, borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 5 }}>
+        {/* Toggle Switches Row */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5 }}>
+          {/* Featured Toggle */}
+          <Tooltip title={product.is_featured ? "Featured Drop (Click to unfeature)" : "Standard Drop (Click to feature)"}>
+            <div 
+              onClick={() => onToggleFeatured(product.id, !product.is_featured)}
+              style={{
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 3,
+                fontSize: 9,
+                fontWeight: 600,
+                padding: "2px 5px",
+                borderRadius: 3,
+                background: product.is_featured ? "rgba(250, 173, 20, 0.18)" : "rgba(255, 255, 255, 0.05)",
+                color: product.is_featured ? "#faad14" : "#9ca3af",
+                border: product.is_featured ? "1px solid rgba(250, 173, 20, 0.4)" : "1px solid rgba(255, 255, 255, 0.08)"
+              }}
+            >
+              <StarFilled style={{ fontSize: 9, color: product.is_featured ? "#faad14" : "#6b7280" }} />
+              <span>{product.is_featured ? "STAR" : "DROP"}</span>
+            </div>
+          </Tooltip>
+
+          {/* Sold Out Toggle */}
+          <Tooltip title={product.is_sold_out ? "Mark as In Stock" : "Mark as Sold Out"}>
+            <div 
+              onClick={() => onToggleSoldOut(product.id, !product.is_sold_out)}
+              style={{
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 3,
+                fontSize: 9,
+                fontWeight: 600,
+                padding: "2px 5px",
+                borderRadius: 3,
+                background: product.is_sold_out ? "rgba(239, 68, 68, 0.18)" : "rgba(16, 185, 129, 0.12)",
+                color: product.is_sold_out ? "#ef4444" : "#10b981",
+                border: product.is_sold_out ? "1px solid rgba(239, 68, 68, 0.4)" : "1px solid rgba(16, 185, 129, 0.3)"
+              }}
+            >
+              <span>{product.is_sold_out ? "SOLD" : "STOCK"}</span>
+            </div>
+          </Tooltip>
+        </div>
+
+        {/* Action Icon Buttons */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(0,0,0,0.25)", borderRadius: 4, padding: "2px" }}>
+          <Tooltip title="Preview on Store">
+            <Button 
+              type="text" 
+              size="small" 
+              icon={<EyeOutlined style={{ fontSize: 12 }} />} 
+              onClick={() => onPreview(product.slug)} 
+              style={{ padding: "0 4px", height: 22, color: "#9ca3af" }}
+            />
+          </Tooltip>
+          <Tooltip title="Edit Drop Entry">
+            <Button 
+              type="text" 
+              size="small" 
+              icon={<EditOutlined style={{ fontSize: 12, color: "#60a5fa" }} />} 
+              onClick={() => onEdit(product)} 
+              style={{ padding: "0 4px", height: 22 }}
+            />
+          </Tooltip>
+          <Tooltip title="Duplicate Drop Entry">
+            <Button 
+              type="text" 
+              size="small" 
+              icon={<CopyOutlined style={{ fontSize: 12, color: "#c084fc" }} />} 
+              onClick={() => onDuplicate(product.id)} 
+              style={{ padding: "0 4px", height: 22 }}
+            />
+          </Tooltip>
+          <Popconfirm
+            title="Delete product?"
+            description="Are you sure you want to delete this product?"
+            onConfirm={() => onDelete(product.id)}
+            okText="Delete"
+            cancelText="Cancel"
+            okButtonProps={{ danger: true, size: "small" }}
+            cancelButtonProps={{ size: "small" }}
+          >
+            <Button 
+              type="text" 
+              danger 
+              size="small" 
+              icon={<DeleteOutlined style={{ fontSize: 12 }} />} 
+              style={{ padding: "0 4px", height: 22 }}
+            />
+          </Popconfirm>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const Catalog: React.FC = () => {
   const [activeTab, setActiveTab] = useState("1");
   const [products, setProducts] = useState<any[]>([]);
@@ -241,9 +486,10 @@ export const Catalog: React.FC = () => {
   const [filterBrand, setFilterBrand] = useState<number | undefined>(undefined);
   const [filterStatus, setFilterStatus] = useState<boolean | undefined>(undefined);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(24);
   const [totalProducts, setTotalProducts] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
 
   // Featured Products Reordering State
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
@@ -1693,26 +1939,141 @@ export const Catalog: React.FC = () => {
               </Space>
             }
           >
-            <Table scroll={{ x: 'max-content' }}
-              rowSelection={{
-                selectedRowKeys,
-                onChange: (keys) => setSelectedRowKeys(keys)
-              }}
-              dataSource={products}
-              columns={mainColumns}
-              rowKey="id"
-              loading={loading}
-              pagination={{
-                current: currentPage,
-                pageSize: pageSize,
-                total: totalProducts,
-                showSizeChanger: true,
-                onChange: (page, size) => {
-                  setCurrentPage(page);
-                  setPageSize(size || 10);
+            <style>{`
+              .posh-drop-8col-grid {
+                display: grid;
+                grid-template-columns: repeat(8, minmax(0, 1fr));
+                gap: 8px;
+                margin-bottom: 16px;
+              }
+              @media (max-width: 1750px) {
+                .posh-drop-8col-grid {
+                  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
                 }
-              }}
-            />
+              }
+              @media (max-width: 1350px) {
+                .posh-drop-8col-grid {
+                  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+                }
+              }
+              @media (max-width: 900px) {
+                .posh-drop-8col-grid {
+                  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                }
+              }
+            `}</style>
+
+            {/* View Mode & Selection Toolbar */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, background: "rgba(255,255,255,0.02)", padding: "6px 10px", borderRadius: 4, border: "1px solid rgba(255,255,255,0.06)" }}>
+              <Space size="middle">
+                <Checkbox
+                  checked={products.length > 0 && products.every(p => selectedRowKeys.includes(p.id))}
+                  indeterminate={products.some(p => selectedRowKeys.includes(p.id)) && !products.every(p => selectedRowKeys.includes(p.id))}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      const pageIds = products.map(p => p.id);
+                      setSelectedRowKeys(prev => Array.from(new Set([...prev, ...pageIds])));
+                    } else {
+                      const pageIds = new Set(products.map(p => p.id));
+                      setSelectedRowKeys(prev => prev.filter(id => !pageIds.has(id as number)));
+                    }
+                  }}
+                >
+                  <span style={{ fontSize: 12, fontWeight: 500 }}>Select All on Page ({products.length})</span>
+                </Checkbox>
+                {selectedRowKeys.length > 0 && (
+                  <span style={{ fontSize: 12, color: "#a855f7", fontWeight: 600 }}>
+                    {selectedRowKeys.length} selected
+                  </span>
+                )}
+              </Space>
+
+              <Space size="small">
+                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>View:</span>
+                <Segmented
+                  size="small"
+                  value={viewMode}
+                  onChange={(val: any) => setViewMode(val)}
+                  options={[
+                    { value: "grid", icon: <AppstoreOutlined />, label: "8-Col Grid" },
+                    { value: "table", icon: <BarsOutlined />, label: "List View" }
+                  ]}
+                />
+              </Space>
+            </div>
+
+            {viewMode === "grid" ? (
+              loading && products.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "60px 0", color: "var(--text-muted)" }}>
+                  Loading streetwear drops...
+                </div>
+              ) : products.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "60px 0", color: "var(--text-muted)" }}>
+                  No drop products found matching current filters.
+                </div>
+              ) : (
+                <>
+                  <div className="posh-drop-8col-grid">
+                    {products.map((record) => (
+                      <ProductGridCard
+                        key={record.id}
+                        product={record}
+                        isSelected={selectedRowKeys.includes(record.id)}
+                        onSelect={(id, checked) => {
+                          setSelectedRowKeys(prev => checked ? [...prev, id] : prev.filter(k => k !== id));
+                        }}
+                        onToggleFeatured={handleToggleFeatured}
+                        onToggleSoldOut={handleToggleSoldOut}
+                        onPreview={(slug) => {
+                          const storeUrl = window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:3000';
+                          window.open(`${storeUrl}/product/${slug}`, "_blank");
+                        }}
+                        onEdit={openEditModal}
+                        onDuplicate={handleDuplicate}
+                        onDelete={handleDelete}
+                      />
+                    ))}
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
+                    <Pagination
+                      current={currentPage}
+                      pageSize={pageSize}
+                      total={totalProducts}
+                      showSizeChanger={true}
+                      pageSizeOptions={["16", "24", "32", "48", "64"]}
+                      showTotal={(total, range) => `${range[0]}-${range[1]} of ${total} drops`}
+                      onChange={(page, size) => {
+                        setCurrentPage(page);
+                        setPageSize(size || 24);
+                      }}
+                    />
+                  </div>
+                </>
+              )
+            ) : (
+              <Table scroll={{ x: 'max-content' }}
+                rowSelection={{
+                  selectedRowKeys,
+                  onChange: (keys) => setSelectedRowKeys(keys)
+                }}
+                dataSource={products}
+                columns={mainColumns}
+                rowKey="id"
+                loading={loading}
+                pagination={{
+                  current: currentPage,
+                  pageSize: pageSize,
+                  total: totalProducts,
+                  showSizeChanger: true,
+                  pageSizeOptions: ["16", "24", "32", "48", "64"],
+                  onChange: (page, size) => {
+                    setCurrentPage(page);
+                    setPageSize(size || 24);
+                  }
+                }}
+              />
+            )}
           </Card>
         ) },
 
