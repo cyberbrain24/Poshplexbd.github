@@ -5,6 +5,7 @@ import * as fpixel from "../lib/fpixel";
 
 export interface CartItem {
   sku: string;
+  product_sku?: string;
   name: string;
   price: number;
   quantity: number;
@@ -57,13 +58,19 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return [...prev, item];
     });
 
-    // Fire FB AddToCart event
+    // Fire FB AddToCart event with both product_sku (for Meta Catalog match) and variant sku
+    const contentIds = Array.from(new Set([item.product_sku, item.sku].filter(Boolean))) as string[];
     fpixel.trackEvent("AddToCart", {
-      content_ids: [item.sku],
+      content_ids: contentIds,
       content_name: item.name,
       content_type: "product",
       value: item.price * item.quantity,
       currency: "BDT",
+      contents: [{
+        id: item.product_sku || item.sku,
+        quantity: item.quantity,
+        item_price: item.price
+      }]
     });
 
     // Show toast then open drawer

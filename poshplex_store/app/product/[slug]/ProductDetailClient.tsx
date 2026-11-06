@@ -86,26 +86,28 @@ export default function ProductDetailClient({
 
   useEffect(() => {
     if (product) {
-      if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-        window.requestIdleCallback(() => {
-          fpixel.trackEvent("ViewContent", {
-            content_name: product.name,
-            content_ids: [product.sku || product.id],
-            content_type: "product",
-            value: parseFloat(product.selling_price || product.price || product.base_price || 0),
-            currency: "BDT",
-          });
+      const catalogId = product.sku || `PROD-${product.id}`;
+      const priceVal = parseFloat(product.selling_price || product.price || product.base_price || 0);
+
+      const fireViewContent = () => {
+        fpixel.trackEvent("ViewContent", {
+          content_name: product.name,
+          content_ids: [catalogId],
+          content_type: "product",
+          value: priceVal,
+          currency: "BDT",
+          contents: [{
+            id: catalogId,
+            quantity: 1,
+            item_price: priceVal
+          }]
         });
+      };
+
+      if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+        window.requestIdleCallback(fireViewContent);
       } else {
-        setTimeout(() => {
-          fpixel.trackEvent("ViewContent", {
-            content_name: product.name,
-            content_ids: [product.sku || product.id],
-            content_type: "product",
-            value: parseFloat(product.selling_price || product.price || product.base_price || 0),
-            currency: "BDT",
-          });
-        }, 1000);
+        setTimeout(fireViewContent, 1000);
       }
     }
   }, [product]);
@@ -265,6 +267,7 @@ export default function ProductDetailClient({
         };
         addToCart({
           sku: itemSku,
+          product_sku: item.product?.sku || `PROD-${item.product.id}`,
           name: item.product.name,
           price: item.discountedPrice,
           quantity: 1,
