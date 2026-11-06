@@ -230,12 +230,21 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (cart.length > 0 && !hasTrackedInitiateCheckout.current) {
       hasTrackedInitiateCheckout.current = true;
+      const allContentIds = Array.from(new Set(
+        cart.flatMap((item: any) => [item.product_sku, item.sku].filter(Boolean))
+      )) as string[];
+
       fpixel.trackEvent("InitiateCheckout", {
-        content_ids: cart.map((item) => item.sku),
+        content_ids: allContentIds,
         content_type: "product",
         num_items: cart.length,
         value: cartTotal,
         currency: "BDT",
+        contents: cart.map((item: any) => ({
+          id: item.product_sku || item.sku,
+          quantity: item.quantity,
+          item_price: item.price
+        }))
       });
     }
   }, [cart, cartTotal]);
@@ -375,13 +384,22 @@ export default function CheckoutPage() {
         const randomDay = String(Math.floor(Math.random() * 28) + 1).padStart(2, '0');
         const finalDob = formData.dob ? formData.dob.replace(/-/g, '') : `${randomYear}${randomMonth}${randomDay}`;
 
+        const allPurchaseContentIds = Array.from(new Set(
+          cart.flatMap((item: any) => [item.product_sku, item.sku].filter(Boolean))
+        )) as string[];
+
         // Fire Purchase Event
         fpixel.trackEvent("Purchase", {
            value: Math.max(0, cartTotal + shippingCost - discountAmount),
            currency: "BDT",
-           content_ids: cart.map(item => item.sku),
+           content_ids: allPurchaseContentIds,
            content_type: "product",
-           num_items: cart.length
+           num_items: cart.length,
+           contents: cart.map((item: any) => ({
+             id: item.product_sku || item.sku,
+             quantity: item.quantity,
+             item_price: item.price
+           }))
         }, {
            em: formData.email,
            ph: formData.phone,

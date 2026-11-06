@@ -300,6 +300,7 @@ export default function ProductDetailClient({
 
     addToCart({
       sku: finalSku || `PROD-${product.id}`,
+      product_sku: product.sku || `PROD-${product.id}`,
       name: product.name,
       price: finalPrice,
       quantity,
