@@ -1,7 +1,11 @@
+import os
+import urllib.parse
 from typing import List, Dict, Any, Optional
 from decimal import Decimal
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from django.db import transaction, IntegrityError
 from django.db.models import Q
 from ninja import Router, Schema, File, Form
@@ -376,9 +380,6 @@ def post_product_endpoint(request, data: ProductCreateInputSchema):
 
                 if getattr(var, 'variant_image_url', None):
                     try:
-                        from django.core.files.base import ContentFile
-                        from apps.catalog.models import ProductImage
-                        
                         orig_filename, content, asset_file = resolve_image_content(var.variant_image_url)
                         if asset_file or content:
                             original_filename_no_ext = os.path.splitext(orig_filename)[0]
@@ -425,9 +426,6 @@ def post_product_endpoint(request, data: ProductCreateInputSchema):
                     if not img_url:
                         continue
                     try:
-                        from django.core.files.base import ContentFile
-                        from apps.catalog.models import ProductImage
-                        
                         orig_filename, content, asset_file = resolve_image_content(img_url)
                         if asset_file or content:
                             original_filename_no_ext = os.path.splitext(orig_filename)[0]
@@ -638,9 +636,6 @@ def update_product_endpoint(request, slug: str, data: ProductCreateInputSchema):
 
                 if getattr(var, 'variant_image_url', None):
                     try:
-                        from django.core.files.base import ContentFile
-                        from apps.catalog.models import ProductImage
-                        import urllib.parse
                         filename = urllib.parse.unquote(os.path.basename(var.variant_image_url.split("?")[0]))
                         filename_no_ext = os.path.splitext(filename)[0]
                         
@@ -702,7 +697,6 @@ def update_product_endpoint(request, slug: str, data: ProductCreateInputSchema):
                     if not img_url:
                         continue
                     
-                    import urllib.parse
                     filename = urllib.parse.unquote(os.path.basename(img_url.split("?")[0]))
                     filename_no_ext = os.path.splitext(filename)[0]
                     
@@ -722,9 +716,6 @@ def update_product_endpoint(request, slug: str, data: ProductCreateInputSchema):
                         continue
                         
                     try:
-                        from django.core.files.base import ContentFile
-                        from apps.catalog.models import ProductImage
-                        
                         orig_filename, content, asset_file = resolve_image_content(img_url)
                         if asset_file or content:
                             if asset_file:
@@ -754,6 +745,13 @@ def update_product_endpoint(request, slug: str, data: ProductCreateInputSchema):
                 # Sync: Delete product images that are no longer in the list explicitly to trigger file cleanup
                 for old_img in product.images.exclude(id__in=keep_image_ids):
                     old_img.delete()
+
+            # Ensure at least one image is marked as main if images remain
+            if product.images.exists() and not product.images.filter(is_main=True).exists():
+                first_img = product.images.order_by('order', 'id').first()
+                if first_img:
+                    first_img.is_main = True
+                    first_img.save(update_fields=['is_main'])
 
             # Save product at the end to trigger model clean check on active variants
             product.save()
