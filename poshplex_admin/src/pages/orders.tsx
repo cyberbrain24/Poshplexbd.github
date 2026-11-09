@@ -629,13 +629,52 @@ export const Orders: React.FC = () => {
         if (!ph) return <span style={{ color: "#9ca3af" }}>-</span>;
         return (
           <Popover
-            content={<div style={{ width: 440 }}><SteadfastRiskCard phone={ph} compact /></div>}
-            title={null}
-            trigger="click"
+            trigger="hover"
+            placement="rightTop"
+            mouseEnterDelay={0.15}
+            mouseLeaveDelay={0.2}
+            overlayInnerStyle={{
+              background: "#121212",
+              border: "1px solid #2e2e2e",
+              borderRadius: 16,
+              padding: "12px 14px",
+              boxShadow: "0 12px 32px rgba(0,0,0,0.6)"
+            }}
+            content={
+              <div style={{ width: 440 }}>
+                <div style={{ 
+                  fontSize: 11, 
+                  fontWeight: 800, 
+                  color: "#9ca3af", 
+                  letterSpacing: "0.8px", 
+                  marginBottom: 8, 
+                  textTransform: "uppercase" 
+                }}>
+                  STEADFAST DELIVERY RISK & MERCHANT REPORTS
+                </div>
+                <SteadfastRiskCard phone={ph} compact />
+              </div>
+            }
           >
-            <Button size="small" style={{ fontSize: 11, borderRadius: 4, height: 24, padding: "0 8px", background: "rgba(16, 185, 129, 0.1)", borderColor: "rgba(16, 185, 129, 0.4)", color: "#10b981" }}>
-              <SafetyCertificateOutlined style={{ marginRight: 4 }} /> Risk Check
-            </Button>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: "#10b981",
+                backgroundColor: "rgba(16, 185, 129, 0.12)",
+                border: "1px solid rgba(16, 185, 129, 0.3)",
+                padding: "2px 8px",
+                borderRadius: 4,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                lineHeight: "16px",
+                userSelect: "none"
+              }}
+            >
+              <SafetyCertificateOutlined style={{ fontSize: 11 }} /> Risk Check
+            </span>
           </Popover>
         );
       }
@@ -805,26 +844,79 @@ export const Orders: React.FC = () => {
                 <div style={{ fontSize: 13, marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {order.shipping_name || order.customer_name}
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 'bold', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Space>
-                    {order.customer_phone}
+                <div style={{ fontSize: 13, fontWeight: 'bold', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span>{order.customer_phone}</span>
                     {!isValidPhone(order.shipping_phone || order.customer_phone) && (
                       <Tooltip title="Invalid Phone Number. Cannot Ship. Click eye icon to edit.">
                         <WarningOutlined style={{ color: 'red' }} />
                       </Tooltip>
                     )}
-                  </Space>
-                  {activePhones[order.id] ? (
-                    <PhoneOutlined 
-                      style={{ color: '#25D366', cursor: 'pointer', fontSize: 16 }} 
-                      onClick={() => setActivePhones(prev => ({...prev, [order.id]: false}))} 
-                    />
-                  ) : (
-                    <PhoneOutlined 
-                      style={{ color: '#888', cursor: 'pointer', fontSize: 16 }} 
-                      onClick={() => setActivePhones(prev => ({...prev, [order.id]: true}))} 
-                    />
-                  )}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {(order.shipping_phone || order.customer_phone) && (
+                      <Popover
+                        trigger="hover"
+                        placement="rightTop"
+                        mouseEnterDelay={0.15}
+                        mouseLeaveDelay={0.2}
+                        overlayInnerStyle={{
+                          background: "#121212",
+                          border: "1px solid #2e2e2e",
+                          borderRadius: 16,
+                          padding: "12px 14px",
+                          boxShadow: "0 12px 32px rgba(0,0,0,0.6)"
+                        }}
+                        content={
+                          <div style={{ width: 440 }}>
+                            <div style={{ 
+                              fontSize: 11, 
+                              fontWeight: 800, 
+                              color: "#9ca3af", 
+                              letterSpacing: "0.8px", 
+                              marginBottom: 8, 
+                              textTransform: "uppercase" 
+                            }}>
+                              STEADFAST DELIVERY RISK & MERCHANT REPORTS
+                            </div>
+                            <SteadfastRiskCard phone={order.shipping_phone || order.customer_phone} compact />
+                          </div>
+                        }
+                      >
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: "#10b981",
+                            backgroundColor: "rgba(16, 185, 129, 0.12)",
+                            border: "1px solid rgba(16, 185, 129, 0.3)",
+                            padding: "1px 6px",
+                            borderRadius: 4,
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 3,
+                            lineHeight: "15px",
+                            whiteSpace: "nowrap",
+                            userSelect: "none"
+                          }}
+                        >
+                          <SafetyCertificateOutlined style={{ fontSize: 10 }} /> Risk Check
+                        </span>
+                      </Popover>
+                    )}
+                    {activePhones[order.id] ? (
+                      <PhoneOutlined 
+                        style={{ color: '#25D366', cursor: 'pointer', fontSize: 15 }} 
+                        onClick={() => setActivePhones(prev => ({...prev, [order.id]: false}))} 
+                      />
+                    ) : (
+                      <PhoneOutlined 
+                        style={{ color: '#888', cursor: 'pointer', fontSize: 15 }} 
+                        onClick={() => setActivePhones(prev => ({...prev, [order.id]: true}))} 
+                      />
+                    )}
+                  </div>
                 </div>
 
                 {order.customer_notes && (
