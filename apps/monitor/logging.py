@@ -20,9 +20,9 @@ class RedisListHandler(logging.Handler):
         try:
             # We must grab the raw redis client from the Django cache
             redis_client = None
-            if hasattr(cache, 'client'):
+            if hasattr(cache, 'client') and hasattr(cache.client, 'get_client'):
                 redis_client = cache.client.get_client()
-            elif hasattr(cache, '_cache'): # fallback for some django-redis versions
+            elif hasattr(cache, '_cache') and hasattr(cache._cache, 'get_client'): # fallback for some django-redis versions
                 redis_client = cache._cache.get_client()
             
             if not redis_client:
