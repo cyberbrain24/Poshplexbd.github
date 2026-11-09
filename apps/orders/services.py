@@ -30,7 +30,7 @@ def calculate_order_risk(order: Order) -> tuple[str, list[str]]:
     if is_cod and order.total_amount > Decimal('800.00'):
         reasons.append("High value Cash on Delivery (COD) order (> $800).")
         
-    cancelled_count = Order.objects.filter(user=order.user, status='cancelled').count()
+    cancelled_count = Order.objects.filter(user=order.user, status__in=['cancelled', 'manually_cancelled']).count()
     if cancelled_count >= 2:
         reasons.append(f"User profile has {cancelled_count} past cancelled orders.")
         

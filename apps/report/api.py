@@ -58,7 +58,7 @@ def get_sales_report(request, date_from: Optional[str] = None, date_to: Optional
         "fixed_expense": fixed_expense,
     }
 
-    status_keys = ["placed", "review", "pending", "hold", "approval_pending", "delivered", "returned", "cancelled"]
+    status_keys = ["placed", "review", "pending", "hold", "approval_pending", "delivered", "returned", "cancelled", "manually_cancelled"]
     status_report = {}
 
     for st in status_keys:

@@ -541,6 +541,28 @@ export const Orders: React.FC = () => {
     } catch (err: any) { if (err?.response?.status !== 403) message.error(err.response?.data?.message || "Failed to process return."); }
   };
 
+  // Manually Cancel Order
+  const handleManualCancelOrder = async (id: number) => {
+    try {
+      const token = localStorage.getItem("poshplex_access_token");
+      const res = await axios.put(`${API_URL}/${id}/status`, {
+        status: "manually_cancelled",
+        notes: "Order manually cancelled by admin from Orders Queue."
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      message.success(`Order #${res.data.order_number || id} marked as Manually Cancelled.`);
+      fetchOrders();
+      if (selectedOrder && selectedOrder.id === id) {
+        setSelectedOrder(res.data);
+      }
+    } catch (err: any) {
+      if (err?.response?.status !== 403) {
+        message.error(err.response?.data?.message || err.response?.data?.detail || "Failed to cancel order manually.");
+      }
+    }
+  };
+
   // Delete Order
   const handleDeleteOrder = async (id: number) => {
     Modal.confirm({
@@ -573,6 +595,7 @@ export const Orders: React.FC = () => {
       delivered: { color: "green", label: "Delivered" },
       partially_delivered: { color: "lime", label: "Partially Delivered" },
       cancelled: { color: "red", label: "Cancelled" },
+      manually_cancelled: { color: "#c41d7f", label: "Manually Cancelled" },
       returned: { color: "purple", label: "Returned" },
       rto: { color: "magenta", label: "RTO" },
     };
@@ -746,6 +769,7 @@ export const Orders: React.FC = () => {
           { label: <span>Delivered <Badge count={orderCounts.delivered || 0} overflowCount={99999} showZero color="green" /></span>, key: "delivered" },
           { label: <span>Returned <Badge count={orderCounts.returned || 0} overflowCount={99999} showZero color="purple" /></span>, key: "returned" },
           { label: <span>Cancelled <Badge count={orderCounts.cancelled || 0} overflowCount={99999} showZero color="red" /></span>, key: "cancelled" },
+          { label: <span>Manually Cancelled <Badge count={orderCounts.manually_cancelled || 0} overflowCount={99999} showZero color="#eb2f96" /></span>, key: "manually_cancelled" },
         ]} />
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
@@ -888,9 +912,33 @@ export const Orders: React.FC = () => {
                 </div>
 
                 {/* Bottom Icons */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 'auto' }}>
-                  <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => handleOpenDrawerWithDraft(order)} />
-                  <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDeleteOrder(order.id)} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: 4 }}>
+                  <div>
+                    {order.status !== 'cancelled' && order.status !== 'manually_cancelled' && (
+                      <Popconfirm
+                        title="Cancel Order Manually"
+                        description="Mark this order as Manually Cancelled?"
+                        onConfirm={() => handleManualCancelOrder(order.id)}
+                        okText="Yes, Cancel"
+                        cancelText="No"
+                        okButtonProps={{ danger: true }}
+                      >
+                        <Button
+                          type="text"
+                          size="small"
+                          danger
+                          icon={<CloseCircleOutlined />}
+                          style={{ fontSize: 11, padding: "0 6px", color: "#c41d7f", height: 24, borderRadius: 4, background: "rgba(196, 29, 127, 0.08)" }}
+                        >
+                          Cancel
+                        </Button>
+                      </Popconfirm>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => handleOpenDrawerWithDraft(order)} />
+                    <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDeleteOrder(order.id)} />
+                  </div>
                 </div>
               </Card>
             );
@@ -1162,6 +1210,20 @@ export const Orders: React.FC = () => {
         closeIcon={!isAddingProduct ? undefined : null}
         extra={!isAddingProduct ? (
           <Space>
+            {selectedOrder?.status !== 'cancelled' && selectedOrder?.status !== 'manually_cancelled' && (
+              <Popconfirm
+                title="Cancel Order Manually"
+                description="Are you sure you want to mark this order as Manually Cancelled?"
+                onConfirm={() => handleManualCancelOrder(selectedOrder.id)}
+                okText="Yes, Cancel"
+                cancelText="No"
+                okButtonProps={{ danger: true }}
+              >
+                <Button danger icon={<CloseCircleOutlined />} style={{ color: "#c41d7f", borderColor: "rgba(196, 29, 127, 0.4)", background: "rgba(196, 29, 127, 0.08)" }}>
+                  Manually Cancel
+                </Button>
+              </Popconfirm>
+            )}
             <Button danger icon={<DeleteOutlined />} onClick={() => handleDeleteOrder(selectedOrder.id)}>
               Delete Order
             </Button>
@@ -1383,7 +1445,8 @@ export const Orders: React.FC = () => {
                     <Select.Option value="approval_pending">Approval Pending</Select.Option>
                     <Select.Option value="delivered">Delivered</Select.Option>
                     <Select.Option value="partially_delivered">Partially Delivered</Select.Option>
-                    <Select.Option value="cancelled">Cancelled</Select.Option>
+                    <Select.Option value="cancelled">Cancelled (Courier)</Select.Option>
+                    <Select.Option value="manually_cancelled">Manually Cancelled</Select.Option>
                     <Select.Option value="returned">Returned</Select.Option>
                     <Select.Option value="rto">RTO</Select.Option>
                   </Select>

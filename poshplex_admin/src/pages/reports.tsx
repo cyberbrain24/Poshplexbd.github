@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Card, Row, Col, Typography, Spin, message, DatePicker, Select, Space, Divider, Tag, Checkbox, InputNumber, Button } from "antd";
-import { BarChartOutlined, LineChartOutlined, ClockCircleOutlined, SyncOutlined, StopOutlined, CarOutlined, UndoOutlined, PauseCircleOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import { BarChartOutlined, LineChartOutlined, ClockCircleOutlined, SyncOutlined, StopOutlined, CarOutlined, UndoOutlined, PauseCircleOutlined, CheckCircleOutlined, CloseCircleOutlined } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
 
@@ -138,6 +138,7 @@ export const ReportsPage: React.FC = () => {
     delivered: <CheckCircleOutlined style={{ color: "#52c41a" }} />,
     returned: <UndoOutlined style={{ color: "#eb2f96" }} />,
     cancelled: <StopOutlined style={{ color: "#ff4d4f" }} />,
+    manually_cancelled: <CloseCircleOutlined style={{ color: "#c41d7f" }} />,
   };
 
   const formatStatus = (s: string) => {

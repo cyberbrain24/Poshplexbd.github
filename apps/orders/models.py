@@ -14,6 +14,7 @@ class Order(AuditedModelMixin):
         ('delivered', 'Delivered'),
         ('partially_delivered', 'Partially Delivered'),
         ('cancelled', 'Cancelled'),
+        ('manually_cancelled', 'Manually Cancelled'),
         ('returned', 'Returned'),
         ('rto', 'RTO'),
     )

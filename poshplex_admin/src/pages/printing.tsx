@@ -739,6 +739,7 @@ const PreparePrint: React.FC = () => {
     { label: "Approval Pending", value: "approval_pending" },
     { label: "Delivered", value: "delivered" },
     { label: "Cancelled", value: "cancelled" },
+    { label: "Manually Cancelled", value: "manually_cancelled" },
     { label: "Returned", value: "returned" },
     { label: "RTO", value: "rto" },
   ];

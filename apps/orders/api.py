@@ -890,8 +890,8 @@ def sync_all_couriers_endpoint(request):
     enforce_permission(request, "orders", "edit_orders")
     try:
         from apps.orders.tasks import sync_steadfast_status_task
-        # Sync orders that have tracking number and are not delivered/cancelled/returned
-        orders_to_sync = Order.objects.exclude(status__in=['delivered', 'cancelled', 'returned']).exclude(tracking_number__isnull=True).exclude(tracking_number='')
+        # Sync orders that have tracking number and are not delivered/cancelled/returned/manually_cancelled
+        orders_to_sync = Order.objects.exclude(status__in=['delivered', 'cancelled', 'returned', 'manually_cancelled']).exclude(tracking_number__isnull=True).exclude(tracking_number='')
         for o in orders_to_sync:
             sync_steadfast_status_task.delay(o.id)
         return {"success": True, "count": orders_to_sync.count()}

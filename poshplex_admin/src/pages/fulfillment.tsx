@@ -283,6 +283,7 @@ export const Fulfillment: React.FC = () => {
       delivered: "green",
       partially_delivered: "lime",
       cancelled: "red",
+      manually_cancelled: "#c41d7f",
       returned: "magenta",
       rto: "volcano"
     };
@@ -294,6 +295,7 @@ export const Fulfillment: React.FC = () => {
       delivered: "DELIVERED",
       partially_delivered: "PARTIAL DELIVERY",
       cancelled: "CANCELLED",
+      manually_cancelled: "MANUALLY CANCELLED",
       returned: "RETURNED",
       rto: "RTO"
     };
@@ -513,7 +515,8 @@ export const Fulfillment: React.FC = () => {
                 <Select.Option value="approval_pending">Shipped / Dispatch</Select.Option>
                 <Select.Option value="delivered">Delivered</Select.Option>
                 <Select.Option value="partially_delivered">Partially Delivered</Select.Option>
-                <Select.Option value="cancelled">Cancelled</Select.Option>
+                <Select.Option value="cancelled">Cancelled (Courier)</Select.Option>
+                <Select.Option value="manually_cancelled">Manually Cancelled</Select.Option>
                 <Select.Option value="returned">Returned</Select.Option>
                 <Select.Option value="rto">RTO</Select.Option>
               </Select>
