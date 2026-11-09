@@ -388,6 +388,17 @@ def list_customers_endpoint(request, search: Optional[str] = None):
     return results
 
 
+@router.get("/delivery-risk/{phone}", auth=BearerAuth())
+def get_delivery_risk_endpoint(request, phone: str):
+    """
+    Check a customer's delivery risk, success ratio, cancellation ratio, and
+    merchant fraud reports via Steadfast Courier API (Admin / CS only).
+    """
+    enforce_permission(request, "orders", "view_orders")
+    from apps.orders.services import check_steadfast_delivery_risk
+    return check_steadfast_delivery_risk(phone)
+
+
 @router.get("/{int:order_id}", response=OrderResponseSchema, auth=BearerAuth())
 def get_order_endpoint(request, order_id: int):
     """Retrieve details, payments, returns, and timeline updates of an order."""

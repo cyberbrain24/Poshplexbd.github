@@ -344,3 +344,116 @@ def reconcile_cod_payment(order_id: int, amount_collected: Decimal, approver_use
     )
     
     return order
+
+
+def check_steadfast_delivery_risk(phone: str) -> dict:
+    """
+    Queries Steadfast Courier API for a customer's delivery history,
+    delivery ratio, cancellation ratio, volume, and merchant reports.
+    Caches results for 2 hours to optimize API latency and protect rate limits.
+    """
+    import os
+    import re
+    import requests
+    from django.core.cache import cache
+
+    # Normalize phone: extract digits, handle +880 or 880 prefix
+    cleaned_phone = re.sub(r'\D', '', phone or '')
+    if cleaned_phone.startswith('880') and len(cleaned_phone) == 13:
+        cleaned_phone = cleaned_phone[2:]
+    elif cleaned_phone.startswith('00880') and len(cleaned_phone) == 15:
+        cleaned_phone = cleaned_phone[4:]
+
+    if not cleaned_phone or len(cleaned_phone) != 11:
+        return {
+            "success": False,
+            "error": "Invalid phone number format. Expected an 11-digit Bangladeshi mobile number.",
+            "phone": phone,
+            "masked_phone": phone,
+            "delivery_ratio": None,
+            "cancellation_ratio": None,
+            "delivered_count": 0,
+            "cancelled_count": 0,
+            "total_parcels": 0,
+            "total_reports": 0,
+            "volume_band": "none",
+            "volume_range": "0",
+            "fraud_categories": {},
+            "reasons": []
+        }
+
+    cache_key = f"steadfast_risk_score_{cleaned_phone}"
+    cached_data = cache.get(cache_key)
+    if cached_data is not None:
+        return cached_data
+
+    api_key = os.environ.get("STEADFAST_API_KEY", "")
+    secret_key = os.environ.get("STEADFAST_SECRET_KEY", "")
+
+    headers = {
+        "Api-Key": api_key,
+        "Secret-Key": secret_key,
+        "Content-Type": "application/json"
+    }
+
+    url = f"https://portal.packzy.com/api/v1/fraud_check/score/{cleaned_phone}"
+    
+    try:
+        response = requests.get(url, headers=headers, timeout=8)
+        if response.status_code == 200:
+            data = response.json()
+            delivered_cnt = data.get("delivered_count") or 0
+            cancelled_cnt = data.get("cancelled_count") or 0
+            total_parcels = delivered_cnt + cancelled_cnt
+            
+            result = {
+                "success": True,
+                "phone": data.get("phone", cleaned_phone),
+                "masked_phone": f"{cleaned_phone[:3]}****{cleaned_phone[-4:]}" if len(cleaned_phone) == 11 else cleaned_phone,
+                "delivery_ratio": data.get("delivery_ratio") if data.get("delivery_ratio") is not None else (100 if total_parcels == 0 else int(round((delivered_cnt / total_parcels) * 100))),
+                "cancellation_ratio": data.get("cancellation_ratio") if data.get("cancellation_ratio") is not None else (0 if total_parcels == 0 else int(round((cancelled_cnt / total_parcels) * 100))),
+                "delivered_count": delivered_cnt,
+                "cancelled_count": cancelled_cnt,
+                "total_parcels": total_parcels,
+                "total_reports": data.get("total_reports") or 0,
+                "volume_band": data.get("volume_band") or "none",
+                "volume_range": data.get("volume_range") or "0",
+                "fraud_categories": data.get("fraud_categories") or {},
+                "reasons": data.get("reasons") or []
+            }
+            cache.set(cache_key, result, timeout=7200) # Cache for 2 hours
+            return result
+        else:
+            return {
+                "success": False,
+                "error": f"Steadfast API responded with status {response.status_code}",
+                "phone": cleaned_phone,
+                "masked_phone": f"{cleaned_phone[:3]}****{cleaned_phone[-4:]}" if len(cleaned_phone) == 11 else cleaned_phone,
+                "delivery_ratio": None,
+                "cancellation_ratio": None,
+                "delivered_count": 0,
+                "cancelled_count": 0,
+                "total_parcels": 0,
+                "total_reports": 0,
+                "volume_band": "none",
+                "volume_range": "0",
+                "fraud_categories": {},
+                "reasons": []
+            }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "phone": cleaned_phone,
+            "masked_phone": f"{cleaned_phone[:3]}****{cleaned_phone[-4:]}" if len(cleaned_phone) == 11 else cleaned_phone,
+            "delivery_ratio": None,
+            "cancellation_ratio": None,
+            "delivered_count": 0,
+            "cancelled_count": 0,
+            "total_parcels": 0,
+            "total_reports": 0,
+            "volume_band": "none",
+            "volume_range": "0",
+            "fraud_categories": {},
+            "reasons": []
+        }

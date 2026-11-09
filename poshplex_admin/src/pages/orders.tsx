@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from "react";
 import {
   Table, Tag, Button, Space, Card, Modal, Form, Input, Pagination,
-  InputNumber, Select, Descriptions, Divider, message, Tabs, Drawer, Timeline, Tooltip, Switch, Row, Col, Alert, Badge, Popconfirm
+  InputNumber, Select, Descriptions, Divider, message, Tabs, Drawer, Timeline, Tooltip, Switch, Row, Col, Alert, Badge, Popconfirm, Popover
 } from "antd";
 import {
   ShoppingCartOutlined, CheckCircleOutlined, CarOutlined, 
-  PrinterOutlined, PlusOutlined, ShoppingOutlined, EyeOutlined, SyncOutlined, DeleteOutlined, GiftOutlined, CloseCircleOutlined, EditOutlined, WhatsAppOutlined, SaveOutlined, PhoneOutlined, WarningOutlined
+  PrinterOutlined, PlusOutlined, ShoppingOutlined, EyeOutlined, SyncOutlined, DeleteOutlined, GiftOutlined, CloseCircleOutlined, EditOutlined, WhatsAppOutlined, SaveOutlined, PhoneOutlined, WarningOutlined, SafetyCertificateOutlined
 } from "@ant-design/icons";
 import axios from "axios";
 import { getOrderLocationZone } from "../utils/orderUtils";
+import { SteadfastRiskCard } from "../components/SteadfastRiskCard";
 
 const API_URL = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/orders";
 const CATALOG_API_URL = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/catalog";
@@ -103,6 +104,11 @@ export const Orders: React.FC = () => {
   const [orderForm] = Form.useForm();
   const [paymentForm] = Form.useForm();
   const [returnForm] = Form.useForm();
+
+  // Watch manual order phone input for live delivery risk check
+  const manualCustomerPhone = Form.useWatch("customer_phone", orderForm);
+  const manualShippingPhone = Form.useWatch("shipping_phone", orderForm);
+  const activeManualPhone = manualShippingPhone || manualCustomerPhone;
 
   // Dynamic Metadata lists
   const [locationRates, setLocationRates] = useState<any[]>([]);
@@ -592,6 +598,26 @@ export const Orders: React.FC = () => {
     { title: "Customer Name", dataIndex: "shipping_name", key: "shipping_name", render: (text: string, rec: any) => <b>{text || rec.customer_name}</b> },
     { title: "Phone", dataIndex: "customer_phone", key: "customer_phone" },
     {
+      title: "Delivery Risk",
+      key: "delivery_risk",
+      width: 130,
+      render: (_: any, rec: any) => {
+        const ph = rec.shipping_phone || rec.customer_phone;
+        if (!ph) return <span style={{ color: "#9ca3af" }}>-</span>;
+        return (
+          <Popover
+            content={<div style={{ width: 440 }}><SteadfastRiskCard phone={ph} compact /></div>}
+            title={null}
+            trigger="click"
+          >
+            <Button size="small" style={{ fontSize: 11, borderRadius: 4, height: 24, padding: "0 8px", background: "rgba(16, 185, 129, 0.1)", borderColor: "rgba(16, 185, 129, 0.4)", color: "#10b981" }}>
+              <SafetyCertificateOutlined style={{ marginRight: 4 }} /> Risk Check
+            </Button>
+          </Popover>
+        );
+      }
+    },
+    {
       title: "Total Pay",
       dataIndex: "total_amount",
       key: "total_amount",
@@ -951,6 +977,16 @@ export const Orders: React.FC = () => {
           )}
 
 
+
+          {/* Live Steadfast Delivery Risk Widget */}
+          {activeManualPhone && activeManualPhone.replace(/\D/g, '').length >= 11 && (
+            <div style={{ marginTop: 8, marginBottom: 16 }}>
+              <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', marginBottom: 6, fontWeight: 700 }}>
+                Steadfast Live Delivery Risk Check
+              </div>
+              <SteadfastRiskCard phone={activeManualPhone} compact />
+            </div>
+          )}
 
           <Divider orientation="left">Shipping Address & Cost</Divider>
 
@@ -1429,6 +1465,16 @@ export const Orders: React.FC = () => {
                   <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Internal Notes</div>
                   <Input.TextArea value={selectedOrder.internal_notes} onChange={e => setSelectedOrder({...selectedOrder, internal_notes: e.target.value})} style={{ marginTop: 4 }} />
                 </Col>
+
+                {/* Steadfast Delivery Risk & Merchant Reports Card */}
+                {(selectedOrder.shipping_phone || selectedOrder.customer_phone) && (
+                  <Col span={24} style={{ marginTop: 14 }}>
+                    <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>
+                      Steadfast Delivery Risk & Merchant Reports
+                    </div>
+                    <SteadfastRiskCard phone={selectedOrder.shipping_phone || selectedOrder.customer_phone} />
+                  </Col>
+                )}
               </Row>
             </div>
 
