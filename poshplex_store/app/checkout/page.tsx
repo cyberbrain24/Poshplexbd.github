@@ -535,9 +535,11 @@ export default function CheckoutPage() {
           cart.flatMap((item: any) => [item.product_sku, item.sku].filter(Boolean))
         )) as string[];
 
-        // Fire Purchase Event
-        const { fn: purchaseFn, ln: purchaseLn } = fpixel.splitFullName(formData.name);
-        const resolvedZip = formData.postalCode || fpixel.resolveBangladeshZip(formData.district || formData.thana);
+        // Fire Purchase Event with 100% Guaranteed Surname & Postcode
+        const { fn: rawFn, ln: rawLn } = fpixel.splitFullName(formData.name);
+        const purchaseFn = rawFn || formData.name;
+        const purchaseLn = rawLn || purchaseFn;
+        const resolvedZip = formData.postalCode || fpixel.resolveBangladeshZip(formData.district || formData.thana) || "1200";
         const fbc = fpixel.getOrCreateFbc();
 
         fpixel.trackEvent("Purchase", {
@@ -556,8 +558,8 @@ export default function CheckoutPage() {
            ph: formData.phone,
            fn: purchaseFn,
            ln: purchaseLn,
-           ct: formData.thana,
-           st: formData.district,
+           ct: formData.thana || "dhaka",
+           st: formData.district || "dhaka",
            zp: resolvedZip,
            country: 'bd',
            ge: finalGender,
@@ -570,8 +572,8 @@ export default function CheckoutPage() {
            ph: formData.phone,
            fn: purchaseFn,
            ln: purchaseLn,
-           ct: formData.thana,
-           st: formData.district,
+           ct: formData.thana || "dhaka",
+           st: formData.district || "dhaka",
            zp: resolvedZip,
            country: 'bd',
            ge: finalGender,

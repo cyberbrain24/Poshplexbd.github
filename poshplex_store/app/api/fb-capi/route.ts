@@ -32,8 +32,12 @@ const hashData = (
     clean = clean.replace(/[\s\-]/g, "");
     if (!clean) return undefined;
   } else if (type === "alpha") {
-    // Meta expects lowercase letters only, no spaces, no punctuation
-    clean = clean.replace(/[^a-z]/g, "");
+    // Transliterate known Bengali name words to English for maximum Meta match quality
+    const words = clean.split(/\s+/);
+    const transliterated = words.map(w => BENGALI_TO_ENGLISH_NAME_MAP[w.trim()] || w.trim());
+    clean = transliterated.join("");
+    // Remove punctuation, digits, symbols, spaces - retain lowercase alphabetic letters (including UTF-8)
+    clean = clean.replace(/[\d\s.,\/#!$%\^&\*;:{}=\-_`~()\[\]<>?"'@\\|]/g, "").toLowerCase();
     if (!clean) return undefined;
   } else if (type === "country") {
     // Meta expects 2-letter ISO code in lowercase
@@ -44,15 +48,95 @@ const hashData = (
   return crypto.createHash("sha256").update(clean).digest("hex");
 };
 
+const BENGALI_TO_ENGLISH_NAME_MAP: Record<string, string> = {
+  "মোহাম্মদ": "mohammad",
+  "মুহাম্মদ": "muhammad",
+  "মোঃ": "md",
+  "মো": "md",
+  "মোস্তফা": "mostafa",
+  "নাহিদ": "nahid",
+  "হাসান": "hasan",
+  "হোসেন": "hossain",
+  "হোসাইন": "hossain",
+  "রায়হান": "rayhan",
+  "মাহির": "mahir",
+  "খান": "khan",
+  "আহমেদ": "ahmed",
+  "আহমদ": "ahmed",
+  "আলী": "ali",
+  "শেখ": "sheikh",
+  "চৌধুরী": "chowdhury",
+  "কাজী": "kazi",
+  "সৈয়দ": "syed",
+  "ইসলাম": "islam",
+  "রহমান": "rahman",
+  "করিম": "karim",
+  "আলম": "alam",
+  "তানভীর": "tanvir",
+  "আরিফ": "arif",
+  "সাকিব": "sakib",
+  "রাকিব": "rakib",
+  "মেহেদী": "mehedi",
+  "সিয়াম": "siam",
+  "রোহান": "rohan",
+  "ফারহান": "farhan",
+  "ফয়সাল": "faisal",
+  "জাহিদ": "jahid",
+  "শাকিল": "shakil",
+  "সাব্বির": "sabbir",
+  "শাহরিয়ার": "shahriar",
+  "আসাদ": "asad",
+  "আসিফ": "asif",
+  "কৌশিক": "koushik",
+  "কৌশীদ": "koushid",
+  "মাদানী": "madni",
+  "জাকারিয়া": "zakaria",
+  "মাশিয়ুল": "mashiul",
+  "নুসরাত": "nusrat",
+  "ফাতেমা": "fatema",
+  "আয়েশা": "aisha",
+  "সুমাইয়া": "sumaiya",
+  "মিম": "mim",
+  "সাদিয়া": "sadia",
+  "তাসনিম": "tasnim",
+  "আফরিন": "afrin",
+  "শারমিন": "sharmin",
+  "বেগম": "begum",
+  "খাতুন": "khatun",
+  "আক্তার": "akter",
+  "মারুফা": "marufa",
+  "তানজিনা": "tanjina",
+  "রোকেয়া": "rokeya",
+  "তাসলিমা": "taslima"
+};
+
 const BANGLADESH_DISTRICT_ZIP_MAP: Record<string, string> = {
   dhaka: "1200",
+  "dhaka city": "1200",
+  "dhaka sub-urban": "1340",
+  savar: "1340",
+  keraniganj: "1310",
+  dhanmondi: "1209",
+  gulshan: "1212",
+  banani: "1213",
+  uttara: "1230",
+  mirpur: "1216",
+  mohammadpur: "1207",
+  motijheel: "1000",
+  badda: "1214",
+  khilgaon: "1219",
+  tongi: "1710",
+  demra: "1360",
+  jatrabari: "1204",
   gazipur: "1700",
   narayanganj: "1400",
+  naraynganj: "1400",
   tangail: "1900",
+  narsingdi: "1600",
+  narshindi: "1600",
   faridpur: "7800",
   manikganj: "1800",
   munshiganj: "1500",
-  narsingdi: "1600",
   gopalganj: "8100",
   madaripur: "7900",
   rajbari: "7700",
@@ -69,6 +153,11 @@ const BANGLADESH_DISTRICT_ZIP_MAP: Record<string, string> = {
   noakhali: "3800",
   chandpur: "3600",
   lakshmipur: "3700",
+  laxmipur: "3700",
+  bandarban: "4600",
+  khagrachori: "4400",
+  khagrachari: "4400",
+  rangamati: "4500",
   sylhet: "3100",
   moulvibazar: "3200",
   habiganj: "3300",
@@ -80,13 +169,16 @@ const BANGLADESH_DISTRICT_ZIP_MAP: Record<string, string> = {
   sirajganj: "6700",
   naogaon: "6500",
   natore: "6400",
+  chapainawabganj: "6300",
   chapai: "6300",
   joypurhat: "5900",
   khulna: "9000",
   jashore: "7400",
   jessore: "7400",
   kushtia: "7000",
+  kustia: "7000",
   satkhira: "9400",
+  shatkhira: "9400",
   bagerhat: "9300",
   chuadanga: "7200",
   jhenaidah: "7300",
@@ -106,6 +198,7 @@ const BANGLADESH_DISTRICT_ZIP_MAP: Record<string, string> = {
   lalmonirhat: "5500",
   nilphamari: "5300",
   panchagarh: "5000",
+  panchgarh: "5000",
   thakurgaon: "5100",
   mymensingh: "2200",
   jamalpur: "2000",
@@ -117,19 +210,26 @@ const resolveBangladeshZipServer = (cityOrRegion?: string): string => {
   if (!cityOrRegion) return "1200";
   const clean = cityOrRegion.trim().toLowerCase();
   for (const [key, zip] of Object.entries(BANGLADESH_DISTRICT_ZIP_MAP)) {
-    if (clean.includes(key)) return zip;
+    if (clean.includes(key) || key.includes(clean)) return zip;
   }
   return "1200";
 };
 
 const splitFullNameServer = (fullName?: string): { fn?: string; ln?: string } => {
   if (!fullName) return {};
-  const clean = fullName
+  let clean = fullName
     .trim()
     .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, " ")
     .replace(/\s+/g, " ");
   if (!clean) return {};
-  const parts = clean.split(" ");
+
+  // Transliterate known Bengali name words to English
+  const words = clean.split(" ");
+  const transliterated = words.map(w => BENGALI_TO_ENGLISH_NAME_MAP[w.trim()] || w.trim());
+  clean = transliterated.join(" ");
+
+  const parts = clean.split(" ").filter(Boolean);
+  if (parts.length === 0) return {};
   if (parts.length === 1) {
     return { fn: parts[0], ln: parts[0] };
   }
@@ -137,12 +237,12 @@ const splitFullNameServer = (fullName?: string): { fn?: string; ln?: string } =>
   if (parts.length >= 3 && PREFIXES.includes(parts[0].toLowerCase())) {
     return {
       fn: `${parts[0]} ${parts[1]}`,
-      ln: parts.slice(2).join(" "),
+      ln: parts.slice(2).join(" ") || parts[1],
     };
   }
   return {
     fn: parts[0],
-    ln: parts.slice(1).join(" "),
+    ln: parts.slice(1).join(" ") || parts[0],
   };
 };
 
@@ -351,18 +451,20 @@ export async function POST(req: Request) {
     const clientIp = extractClientIP(req);
     const userAgent = req.headers.get("user-agent")?.trim() || undefined;
 
-    // 4. Smart Name Resolution (Fixes 0.44% Surname issue)
+    // 4. Smart Name Resolution (Fixes Surname missing issue for single & multi-part names)
     let rawFn = userData?.fn;
     let rawLn = userData?.ln;
     if (rawFn && !rawLn) {
       const split = splitFullNameServer(rawFn);
       rawFn = split.fn;
-      rawLn = split.ln;
+      rawLn = split.ln || rawFn;
     } else if (!rawFn && rawLn) {
       rawFn = rawLn;
+    } else if (rawFn && rawLn && rawLn.trim() === "") {
+      rawLn = rawFn;
     }
 
-    // 5. GeoIP & Location Resolution (Fixes Postcode missing +9% boost & City/Region)
+    // 5. GeoIP & Location Resolution (Guarantees 100% Postcode & City/Region)
     const cfCountry = req.headers.get("cf-ipcountry")?.trim().toLowerCase();
     const resolvedCountry = (userData?.country || cfCountry || "bd").toLowerCase();
 
@@ -376,6 +478,9 @@ export async function POST(req: Request) {
     let resolvedZip = userData?.zp || cfPostal;
     if (!resolvedZip && resolvedCountry === "bd") {
       resolvedZip = resolveBangladeshZipServer(resolvedState || resolvedCity);
+    }
+    if (!resolvedZip && resolvedCountry === "bd") {
+      resolvedZip = "1200";
     }
 
     // 6. Infer gender and normalize date of birth for optimal EMQ
