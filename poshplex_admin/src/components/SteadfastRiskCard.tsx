@@ -454,16 +454,16 @@ export const OrderCardRiskBadge: React.FC<OrderCardRiskBadgeProps> = ({
           </svg>
         </div>
 
-        {/* Right Info: Delivery rate line + 2 volume/report chips */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0, flex: 1 }}>
-          {/* Row 1: Delivery & Cancelled metrics */}
+        {/* Right Info: Delivery rate line */}
+        <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1, justifyContent: "center" }}>
+          {/* Delivery & Cancelled metrics */}
           <div
             style={{
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
               fontSize: 10,
-              lineHeight: "13px"
+              lineHeight: "14px"
             }}
           >
             {isNewCustomer ? (
@@ -484,57 +484,6 @@ export const OrderCardRiskBadge: React.FC<OrderCardRiskBadgeProps> = ({
                 </span>
               </>
             )}
-          </div>
-
-          {/* Row 2: Steadfast Parcel Volume & Merchant Reports chips */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 4
-            }}
-          >
-            <div
-              style={{
-                fontSize: 8.5,
-                fontWeight: 700,
-                color: "#d97706",
-                background: "rgba(245, 158, 11, 0.12)",
-                border: "1px solid rgba(245, 158, 11, 0.25)",
-                padding: "2px 4px",
-                borderRadius: 4,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                lineHeight: "12px"
-              }}
-            >
-              <span>📦 VOL</span>
-              <strong style={{ color: "#f59e0b", fontSize: 10 }}>{totalParcels}</strong>
-            </div>
-
-            <div
-              style={{
-                fontSize: 8.5,
-                fontWeight: 700,
-                color: totalReports > 0 ? "#ef4444" : "#9ca3af",
-                background: totalReports > 0 ? "rgba(239, 68, 68, 0.22)" : "rgba(255, 255, 255, 0.05)",
-                border: totalReports > 0
-                  ? "1px solid rgba(239, 68, 68, 0.45)"
-                  : "1px solid rgba(255, 255, 255, 0.08)",
-                padding: "2px 4px",
-                borderRadius: 4,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                lineHeight: "12px"
-              }}
-            >
-              <span>🛡️ REP</span>
-              <strong style={{ color: totalReports > 0 ? "#ef4444" : "#e2e8f0", fontSize: 10 }}>
-                {totalReports}
-              </strong>
-            </div>
           </div>
         </div>
       </div>
