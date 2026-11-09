@@ -2,6 +2,33 @@
 
 This document contains rules, architecture details, and deployment best practices for agents working on the Poshplex codebase. **All future Antigravity agents MUST read and adhere to these guidelines before making changes.**
 
+## Mandatory Agent Protocol for Every Task & Command
+Because Poshplex is a **live e-commerce platform actively serving paying customers**, every agent MUST execute the following strict 5-step operational protocol for every user request:
+
+1. **Step 1: Deep Requirement Comprehension**
+   - Read the user prompt, attachments, screenshots, and referenced files thoroughly before taking any action.
+   - Never assume or guess behavior; inspect the live context first.
+
+2. **Step 2: Structural Analysis of the Existing Architecture**
+   - Trace existing models, API routes, database schemas, and frontend components before modifying code.
+   - Identify all downstream dependencies (e.g. Meta Catalog sync, CAPI, inventory, RBAC permissions, variant pricing) to ensure zero unintended side effects.
+
+3. **Step 3: Formal Implementation Plan**
+   - Create and present a clear, step-by-step implementation plan (using artifacts for complex tasks) detailing the root cause, target files, exact modifications, and safety boundaries.
+
+4. **Step 4: Surgical & Non-Disruptive Execution**
+   - Apply specific, minimal changes without hampering running VPS services, active customer sessions, or local development environments.
+   - **Code Standards & Comment Preservation:**
+     - Preserve all existing comments, docstrings, and type annotations.
+     - Maintain clean, modular architecture with line-by-line comments explaining complex business logic.
+     - Never shadow variables or import modules inside functions that cause `UnboundLocalError`.
+     - Always place static API routes before parameterized routes to avoid 405 Method Not Allowed conflicts.
+
+5. **Step 5: End-to-End Verification & Health Confirmation**
+   - Verify code compiles and passes type-checks locally.
+   - Run automated verification against the backend/VPS to confirm HTTP 200 OK responses and database consistency.
+   - Ensure all containers and background workers remain healthy.
+
 ## System Architecture & Stack
 - **Frontend (Storefront):** Next.js App Router (Runs on port 3000 locally, `poshplexbd.com` in production).
 - **Frontend (Admin):** Next.js or React SPA (Runs on port 3001 locally, `admin.poshplexbd.com` in production).
