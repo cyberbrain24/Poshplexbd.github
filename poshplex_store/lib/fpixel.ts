@@ -460,12 +460,13 @@ export const getEnrichedUserData = (explicitUserData: FBUserData = {}): FBUserDa
 export const trackEvent = (
   eventName: string,
   eventData: Record<string, any> = {},
-  userData: FBUserData = {}
-) => {
-  // Generate a random UUID for deduplication
-  const eventId = typeof crypto !== "undefined" && crypto.randomUUID 
+  userData: FBUserData = {},
+  customEventId?: string
+): string => {
+  // Generate a random UUID for deduplication or reuse provided event ID
+  const eventId = customEventId || (typeof crypto !== "undefined" && crypto.randomUUID 
     ? crypto.randomUUID() 
-    : `evt_${new Date().getTime()}_${Math.random().toString(36).substring(2, 9)}`;
+    : `evt_${new Date().getTime()}_${Math.random().toString(36).substring(2, 9)}`);
     
   const currentUrl = typeof window !== "undefined" ? window.location.href : "";
   const finalUserData = getEnrichedUserData(userData);
@@ -484,6 +485,8 @@ export const trackEvent = (
 
   // 2. Fire Server-Side CAPI
   sendServerEvent(eventName, eventData, finalUserData, eventId, currentUrl);
+
+  return eventId;
 };
 
 // Fire API request to our CAPI route

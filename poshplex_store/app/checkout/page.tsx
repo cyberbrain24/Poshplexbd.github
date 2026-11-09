@@ -150,6 +150,13 @@ export default function CheckoutPage() {
   const [appliedPromo, setAppliedPromo] = useState("");
   const [isCheckingPromo, setIsCheckingPromo] = useState(false);
   const hasTrackedInitiateCheckout = useRef(false);
+  const initiateCheckoutEventId = useRef<string>(
+    typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `evt_init_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+  );
+  const lastEnrichedFingerprint = useRef<string>("");
+  const enrichDebounceTimer = useRef<NodeJS.Timeout | null>(null);
   
   const [formData, setFormData] = useState({
     name: "",
@@ -166,7 +173,88 @@ export default function CheckoutPage() {
     dob: ""
   });
 
+  // Mid-funnel CAPI Re-Enrichment for InitiateCheckout:
+  // When visitors enter contact info (phone, email, name, location), fire an updated CAPI payload
+  // with the exact same initiateCheckoutEventId so Meta's 48-hr deduplication window enriches the event.
+  const reEnrichInitiateCheckout = (latestData: typeof formData) => {
+    if (!hasTrackedInitiateCheckout.current) return;
+    const cleanPhone = (latestData.phone || "").replace(/\D/g, "");
+    const cleanEmail = (latestData.email || "").trim();
+    const cleanName = (latestData.name || "").trim();
+    const cleanDistrict = (latestData.district || "").trim();
+    const cleanThana = (latestData.thana || "").trim();
+
+    const fingerprint = `${cleanPhone}|${cleanEmail}|${cleanName}|${cleanDistrict}|${cleanThana}`;
+    if (fingerprint === lastEnrichedFingerprint.current) return;
+
+    if (enrichDebounceTimer.current) {
+      clearTimeout(enrichDebounceTimer.current);
+    }
+
+    enrichDebounceTimer.current = setTimeout(() => {
+      lastEnrichedFingerprint.current = fingerprint;
+      const { fn, ln } = fpixel.splitFullName(cleanName);
+      const resolvedZip = fpixel.resolveBangladeshZip(cleanDistrict || cleanThana) || "1200";
+      const inferredGe = latestData.gender || fpixel.inferGenderFromName(fn || cleanName);
+
+      const enrichedUser = fpixel.getEnrichedUserData({
+        fn: fn || undefined,
+        ln: ln || undefined,
+        ph: cleanPhone.length >= 10 ? cleanPhone : undefined,
+        em: cleanEmail.includes("@") ? cleanEmail : undefined,
+        st: cleanDistrict || "dhaka",
+        ct: cleanThana || "dhaka",
+        zp: resolvedZip,
+        country: "bd",
+        ge: inferredGe,
+        db: latestData.dob || undefined,
+        fbc: fpixel.getOrCreateFbc()
+      });
+
+      const allContentIds = Array.from(new Set(
+        cart.flatMap((item: any) => [item.product_sku, item.sku].filter(Boolean))
+      )) as string[];
+
+      fpixel.sendServerEvent(
+        "InitiateCheckout",
+        {
+          content_ids: allContentIds,
+          content_type: "product",
+          num_items: cart.length,
+          value: cartTotal,
+          currency: "BDT",
+          contents: cart.map((item: any) => ({
+            id: item.product_sku || item.sku,
+            quantity: item.quantity,
+            item_price: item.price
+          }))
+        },
+        enrichedUser,
+        initiateCheckoutEventId.current,
+        typeof window !== "undefined" ? window.location.href : ""
+      );
+    }, 600);
+  };
+
   useEffect(() => {
+    // 1. Auto-fill from cached guest profile in localStorage
+    try {
+      const cachedProfileRaw = localStorage.getItem("poshplex_user_profile");
+      if (cachedProfileRaw) {
+        const cached = JSON.parse(cachedProfileRaw);
+        setFormData(prev => ({
+          ...prev,
+          name: prev.name || [cached.fn, cached.ln].filter(Boolean).join(" ") || "",
+          phone: prev.phone || cached.ph || "",
+          email: prev.email || cached.em || "",
+          district: prev.district || cached.st || "",
+          thana: prev.thana || cached.ct || "",
+          gender: prev.gender || cached.ge || "",
+          dob: prev.dob || cached.db || ""
+        }));
+      }
+    } catch {}
+
     // Fetch payment methods
     fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/orders/payments/methods`)
       .then(res => res.json())
@@ -196,18 +284,31 @@ export default function CheckoutPage() {
       .then(data => {
         if (data.username) {
           const userPhone = data.phone && data.phone.startsWith("email_") ? "" : data.phone;
+          const updatedState = {
+            name: data.username,
+            phone: userPhone,
+            email: data.email || "",
+            address: data.address || "",
+            district: data.district_name || "",
+            districtId: data.district_id || 0,
+            thana: data.thana_name || "",
+            thanaId: data.thana_id || 0,
+            gender: data.gender || "",
+            dob: data.date_of_birth || "",
+          };
+
           setFormData(prev => ({
             ...prev,
-            name: data.username || prev.name,
-            phone: userPhone || prev.phone,
-            email: data.email || prev.email,
-            address: data.address || prev.address,
-            district: data.district_name || prev.district,
-            districtId: data.district_id || prev.districtId,
-            thana: data.thana_name || prev.thana,
-            thanaId: data.thana_id || prev.thanaId,
-            gender: data.gender || prev.gender,
-            dob: data.date_of_birth || prev.dob,
+            name: updatedState.name || prev.name,
+            phone: updatedState.phone || prev.phone,
+            email: updatedState.email || prev.email,
+            address: updatedState.address || prev.address,
+            district: updatedState.district || prev.district,
+            districtId: updatedState.districtId || prev.districtId,
+            thana: updatedState.thana || prev.thana,
+            thanaId: updatedState.thanaId || prev.thanaId,
+            gender: updatedState.gender || prev.gender,
+            dob: updatedState.dob || prev.dob,
           }));
 
           // Cache known customer data for Meta CAPI
@@ -223,13 +324,16 @@ export default function CheckoutPage() {
             ge: data.gender,
             db: data.date_of_birth,
           });
+
+          // Enrich InitiateCheckout immediately if already fired
+          reEnrichInitiateCheckout({ ...formData, ...updatedState });
         }
       })
       .catch(err => console.error("Failed to auto-fill customer profile", err));
     }
   }, []);
 
-  // Track InitiateCheckout once when cart is loaded
+  // Track InitiateCheckout once when cart is loaded with full customer parameters
   useEffect(() => {
     if (cart.length > 0 && !hasTrackedInitiateCheckout.current) {
       hasTrackedInitiateCheckout.current = true;
@@ -237,7 +341,38 @@ export default function CheckoutPage() {
         cart.flatMap((item: any) => [item.product_sku, item.sku].filter(Boolean))
       )) as string[];
 
+      // Read any previously cached user identity
+      let cached: any = {};
+      try {
+        const raw = localStorage.getItem("poshplex_user_profile");
+        if (raw) cached = JSON.parse(raw);
+      } catch {}
+
+      const activeName = formData.name || [cached.fn, cached.ln].filter(Boolean).join(" ");
+      const { fn, ln } = fpixel.splitFullName(activeName);
+      const activePhone = formData.phone || cached.ph;
+      const activeEmail = formData.email || cached.em;
+      const activeDistrict = formData.district || cached.st || "dhaka";
+      const activeThana = formData.thana || cached.ct || "dhaka";
+      const resolvedZip = fpixel.resolveBangladeshZip(activeDistrict || activeThana) || "1200";
+      const activeGender = formData.gender || cached.ge || fpixel.inferGenderFromName(fn || activeName);
+      const activeDob = formData.dob || cached.db;
       const fbc = fpixel.getOrCreateFbc();
+
+      const initialUserData: fpixel.FBUserData = {
+        fn: fn || undefined,
+        ln: ln || undefined,
+        ph: activePhone || undefined,
+        em: activeEmail || undefined,
+        st: activeDistrict,
+        ct: activeThana,
+        zp: resolvedZip,
+        country: "bd",
+        ge: activeGender || undefined,
+        db: activeDob || undefined,
+        fbc: fbc || undefined
+      };
+
       fpixel.trackEvent("InitiateCheckout", {
         content_ids: allContentIds,
         content_type: "product",
@@ -249,9 +384,9 @@ export default function CheckoutPage() {
           quantity: item.quantity,
           item_price: item.price
         }))
-      }, fbc ? { fbc } : {});
+      }, initialUserData, initiateCheckoutEventId.current);
     }
-  }, [cart, cartTotal]);
+  }, [cart, cartTotal, formData]);
 
   // Fetch thanas when district changes
   useEffect(() => {
@@ -320,7 +455,8 @@ export default function CheckoutPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const updated = { ...formData, [name]: value };
+    setFormData(updated);
     if (["phone", "email", "name"].includes(name) && value.trim().length >= 3) {
       if (name === "name") {
         const { fn, ln } = fpixel.splitFullName(value);
@@ -330,6 +466,7 @@ export default function CheckoutPage() {
       } else if (name === "email") {
         fpixel.saveUserData({ em: value });
       }
+      reEnrichInitiateCheckout(updated);
     }
   };
 
@@ -524,11 +661,23 @@ export default function CheckoutPage() {
                 <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
                   <div>
                     <label style={labelStyle}>Full Name *</label>
-                    <input required type="text" name="name" value={formData.name} onChange={handleChange} style={inputStyle} placeholder="John Doe" />
+                    <input required type="text" name="name" value={formData.name} onChange={handleChange} onBlur={() => reEnrichInitiateCheckout(formData)} style={inputStyle} placeholder="John Doe" />
                   </div>
                   <div>
                     <label style={labelStyle}>Phone Number *</label>
-                    <input required type="tel" name="phone" value={formData.phone} onChange={handleChange} style={inputStyle} placeholder="017XXXXXXXX" />
+                    <input required type="tel" name="phone" value={formData.phone} onChange={handleChange} onBlur={() => reEnrichInitiateCheckout(formData)} style={inputStyle} placeholder="017XXXXXXXX" />
+                  </div>
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <label style={labelStyle}>Email Address (Optional — for order confirmation & tracking)</label>
+                    <input 
+                      type="email" 
+                      name="email" 
+                      value={formData.email} 
+                      onChange={handleChange} 
+                      onBlur={() => reEnrichInitiateCheckout(formData)} 
+                      style={inputStyle} 
+                      placeholder="name@example.com" 
+                    />
                   </div>
                   <div style={{ zIndex: 20 }}>
                     <label style={labelStyle}>District *</label>
@@ -537,9 +686,11 @@ export default function CheckoutPage() {
                       value={formData.district}
                       placeholder="Select District"
                       onChange={(name, id) => {
-                        setFormData(prev => ({ ...prev, district: name, districtId: id }));
+                        const updated = { ...formData, district: name, districtId: id };
+                        setFormData(updated);
                         const zip = fpixel.resolveBangladeshZip(name);
                         fpixel.saveUserData({ st: name, zp: zip });
+                        reEnrichInitiateCheckout(updated);
                       }}
                     />
                   </div>
@@ -551,12 +702,14 @@ export default function CheckoutPage() {
                       placeholder={formData.districtId ? "Select Area" : "Select District First"}
                       disabled={!formData.districtId}
                       onChange={(name, id) => {
-                        setFormData(prev => ({ ...prev, thana: name, thanaId: id }));
+                        const updated = { ...formData, thana: name, thanaId: id };
+                        setFormData(updated);
                         fpixel.saveUserData({ ct: name });
                         const selectedThana = thanas.find(t => t.id === id);
                         if (selectedThana) {
                           setShippingCost(Number(selectedThana.shipping_cost) || 0);
                         }
+                        reEnrichInitiateCheckout(updated);
                       }}
                     />
                   </div>
