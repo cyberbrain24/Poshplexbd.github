@@ -454,8 +454,47 @@ export default function ProfilePage() {
       });
       const data = await res.json();
       if (res.ok) {
-        localStorage.setItem("poshplex_token", data.token);
-        setToken(data.token);
+        const authToken = data.access_token || data.token;
+        localStorage.setItem("poshplex_access_token", authToken);
+        localStorage.setItem("poshplex_token", authToken);
+        if (data.user) {
+          localStorage.setItem("poshplex_user", JSON.stringify(data.user));
+        }
+        setToken(authToken);
+
+        // Fire Meta CompleteRegistration and cache user profile
+        const isEmail = regPhone.includes("@");
+        const { fn: regFn, ln: regLn } = fpixel.splitFullName(regFullName || data.user?.username);
+        const cleanDob = regBirthdate ? regBirthdate.replace(/-/g, "") : undefined;
+
+        fpixel.saveUserData({
+          em: isEmail ? regPhone : data.user?.email,
+          ph: !isEmail ? regPhone : undefined,
+          fn: regFn,
+          ln: regLn,
+          country: "bd",
+          st: "dhaka",
+          ct: "dhaka",
+          zp: "1200",
+          db: cleanDob,
+          external_id: String(data.user?.id || ""),
+        });
+
+        fpixel.trackEvent("CompleteRegistration", {
+          status: "success",
+          content_name: "Customer Account (Profile)",
+        }, {
+          em: isEmail ? regPhone : data.user?.email,
+          ph: !isEmail ? regPhone : undefined,
+          fn: regFn,
+          ln: regLn,
+          country: "bd",
+          st: "dhaka",
+          ct: "dhaka",
+          zp: "1200",
+          db: cleanDob,
+          external_id: String(data.user?.id || ""),
+        });
       } else {
         setAuthError(data.detail || "Login failed");
       }
@@ -484,8 +523,47 @@ export default function ProfilePage() {
       });
       const data = await res.json();
       if (res.ok) {
-        localStorage.setItem("poshplex_token", data.token);
-        setToken(data.token);
+        const authToken = data.access_token || data.token;
+        localStorage.setItem("poshplex_access_token", authToken);
+        localStorage.setItem("poshplex_token", authToken);
+        if (data.user) {
+          localStorage.setItem("poshplex_user", JSON.stringify(data.user));
+        }
+        setToken(authToken);
+
+        // Fire Meta CompleteRegistration and cache user profile
+        const isEmail = regPhone.includes("@");
+        const { fn: regFn, ln: regLn } = fpixel.splitFullName(regFullName || data.user?.username);
+        const cleanDob = regBirthdate ? regBirthdate.replace(/-/g, "") : undefined;
+
+        fpixel.saveUserData({
+          em: isEmail ? regPhone : data.user?.email,
+          ph: !isEmail ? regPhone : undefined,
+          fn: regFn,
+          ln: regLn,
+          country: "bd",
+          st: "dhaka",
+          ct: "dhaka",
+          zp: "1200",
+          db: cleanDob,
+          external_id: String(data.user?.id || ""),
+        });
+
+        fpixel.trackEvent("CompleteRegistration", {
+          status: "success",
+          content_name: "Customer Account (Profile)",
+        }, {
+          em: isEmail ? regPhone : data.user?.email,
+          ph: !isEmail ? regPhone : undefined,
+          fn: regFn,
+          ln: regLn,
+          country: "bd",
+          st: "dhaka",
+          ct: "dhaka",
+          zp: "1200",
+          db: cleanDob,
+          external_id: String(data.user?.id || ""),
+        });
       } else {
         setAuthError(data.detail || "Registration failed");
       }

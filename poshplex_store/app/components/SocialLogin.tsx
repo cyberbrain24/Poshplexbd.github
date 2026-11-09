@@ -67,13 +67,34 @@ export default function SocialLogin() {
           fn: socialFn || data.user?.username,
           ln: socialLn || data.user?.last_name,
           country: "bd",
-          st: data.user?.district,
-          ct: data.user?.thana,
-          zp: data.user?.postal_code || fpixel.resolveBangladeshZip(data.user?.district || data.user?.thana),
+          st: data.user?.district || "dhaka",
+          ct: data.user?.thana || "dhaka",
+          zp: data.user?.postal_code || fpixel.resolveBangladeshZip(data.user?.district || data.user?.thana) || "1200",
           ge: data.user?.gender,
           db: data.user?.date_of_birth,
           external_id: String(data.user?.id || ""),
         });
+
+        // Fire Meta CompleteRegistration for new social registrations
+        if (data.is_new_user) {
+          fpixel.trackEvent("CompleteRegistration", {
+            status: "success",
+            content_name: "Customer Account (Social)",
+            method: provider,
+          }, {
+            em: data.user?.email,
+            ph: data.user?.phone || data.user?.phone_number,
+            fn: socialFn || data.user?.username,
+            ln: socialLn || data.user?.last_name,
+            country: "bd",
+            st: data.user?.district || "dhaka",
+            ct: data.user?.thana || "dhaka",
+            zp: data.user?.postal_code || fpixel.resolveBangladeshZip(data.user?.district || data.user?.thana) || "1200",
+            ge: data.user?.gender,
+            db: data.user?.date_of_birth,
+            external_id: String(data.user?.id || ""),
+          });
+        }
 
         window.dispatchEvent(new Event("storage"));
         router.push(nextUrl);

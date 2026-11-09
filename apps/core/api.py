@@ -122,6 +122,7 @@ class CustomerRegisterSchema(Schema):
     full_name: str
     phone_or_email: str
     birthdate: Optional[str] = None
+    gender: Optional[str] = "unspecified"
     password: str
 
 class TokenResponseSchema(Schema):
@@ -311,7 +312,9 @@ def social_login(request, data: SocialLoginSchema, response: HttpResponse):
         # Create or Get user
         with transaction.atomic():
             user = User.objects.filter(email=email).first()
+            is_new = False
             if not user:
+                is_new = True
                 user = User.objects.create_user(
                     username=f"social_{uuid.uuid4().hex[:8]}",
                     first_name=full_name,
@@ -337,6 +340,7 @@ def social_login(request, data: SocialLoginSchema, response: HttpResponse):
         
         return {
             "access_token": tokens['access_token'],
+            "is_new_user": is_new,
             "user": {
                 "id": user.id,
                 "username": user.first_name or user.username,
@@ -412,7 +416,7 @@ def customer_register(request, data: CustomerRegisterSchema, response: HttpRespo
                 user=user,
                 phone=f"email_{uuid.uuid4().hex[:8]}" if is_email else data.phone_or_email,
                 email=data.phone_or_email if is_email else "",
-                gender='unspecified',
+                gender=data.gender if data.gender in ('male', 'female', 'other') else 'unspecified',
                 birthdate=bdate,
                 membership_tier_id=1
             )

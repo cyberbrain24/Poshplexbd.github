@@ -14,6 +14,8 @@ function RegisterContent() {
   const [phoneOrEmail, setPhoneOrEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [gender, setGender] = useState<"male" | "female" | "">("");
+  const [birthdate, setBirthdate] = useState("");
   
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -61,7 +63,9 @@ function RegisterContent() {
         body: JSON.stringify({ 
           full_name: fullName, 
           phone_or_email: formattedInput, 
-          password
+          password,
+          gender: gender || undefined,
+          birthdate: birthdate || undefined,
         }),
       });
 
@@ -72,6 +76,9 @@ function RegisterContent() {
 
         // Cache customer data for Meta CAPI
         const { fn: regFn, ln: regLn } = fpixel.splitFullName(fullName || data.user?.username);
+        const cleanDob = birthdate ? birthdate.replace(/-/g, "") : undefined;
+        const normalizedGender = gender ? (gender === "male" ? "m" : "f") : undefined;
+
         fpixel.saveUserData({
           em: isEmail ? formattedInput : data.user?.email,
           ph: !isEmail ? formattedInput : undefined,
@@ -81,6 +88,8 @@ function RegisterContent() {
           st: "dhaka",
           ct: "dhaka",
           zp: "1200",
+          ge: normalizedGender,
+          db: cleanDob,
           external_id: String(data.user?.id || ""),
         });
 
@@ -97,6 +106,9 @@ function RegisterContent() {
           st: "dhaka",
           ct: "dhaka",
           zp: "1200",
+          ge: normalizedGender,
+          db: cleanDob,
+          external_id: String(data.user?.id || ""),
         });
 
         window.dispatchEvent(new Event("storage"));
@@ -235,6 +247,57 @@ function RegisterContent() {
               <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} style={{ position: "absolute", right: 16, top: 15, background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: 0 }}>
                 {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
+            </div>
+          </div>
+
+          {/* Optional Gender & Birthday for Personalization & Meta Match Quality */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>Gender</label>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                <button
+                  type="button"
+                  onClick={() => setGender(gender === "male" ? "" : "male")}
+                  style={{
+                    padding: "10px 8px",
+                    border: gender === "male" ? "1px solid var(--text-main)" : "1px solid var(--border-glass)",
+                    background: gender === "male" ? "var(--text-main)" : "var(--bg-secondary)",
+                    color: gender === "male" ? "var(--bg-primary)" : "var(--text-main)",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease"
+                  }}
+                >
+                  Male
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGender(gender === "female" ? "" : "female")}
+                  style={{
+                    padding: "10px 8px",
+                    border: gender === "female" ? "1px solid var(--text-main)" : "1px solid var(--border-glass)",
+                    background: gender === "female" ? "var(--text-main)" : "var(--bg-secondary)",
+                    color: gender === "female" ? "var(--bg-primary)" : "var(--text-main)",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease"
+                  }}
+                >
+                  Female
+                </button>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>Birthday (Optional)</label>
+              <input
+                type="date"
+                value={birthdate}
+                onChange={(e) => setBirthdate(e.target.value)}
+                style={{ width: "100%", background: "var(--bg-secondary)", border: "1px solid var(--border-glass)", color: "var(--text-main)", padding: "9px 12px", fontSize: 12, outline: "none" }}
+              />
             </div>
           </div>
 

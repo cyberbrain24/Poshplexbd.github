@@ -146,6 +146,35 @@ const splitFullNameServer = (fullName?: string): { fn?: string; ln?: string } =>
   };
 };
 
+const inferGenderFromNameServer = (name?: string): "m" | "f" | undefined => {
+  if (!name) return undefined;
+  const clean = name.trim().toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, " ");
+  const tokens = clean.split(/\s+/).filter(Boolean);
+
+  const MALE_TOKENS = [
+    "md", "mohammad", "mohammed", "muhammad", "khan", "ahmed", "ahmad", "hasan", 
+    "hassan", "hossain", "hussain", "ali", "sheikh", "sk", "mahir", "nahid", 
+    "rohan", "siam", "tanvir", "arif", "sabbir", "jahid", "shakil", "rayhan", 
+    "asif", "rakib", "alif", "mehedi", "saad", "farhan", "faisal", "shahriar",
+    "kazi", "syed", "mir", "chowdhury"
+  ];
+
+  const FEMALE_TOKENS = [
+    "mst", "most", "begum", "khatun", "akter", "akther", "jannat", "fatema", 
+    "fatima", "nusrat", "tanjina", "marufa", "aisha", "sumaiya", "mim", 
+    "sadia", "tasnim", "afroza", "sharmin", "nargis", "ruma", "shirin", 
+    "shila", "farzana", "parvin", "sabina", "sultana", "rokeya", "taslima"
+  ];
+
+  for (const t of tokens) {
+    if (FEMALE_TOKENS.includes(t)) return "f";
+  }
+  for (const t of tokens) {
+    if (MALE_TOKENS.includes(t)) return "m";
+  }
+  return undefined;
+};
+
 /**
  * Check if an IP address belongs to private, loopback, or reserved subnets
  */
@@ -349,7 +378,19 @@ export async function POST(req: Request) {
       resolvedZip = resolveBangladeshZipServer(resolvedState || resolvedCity);
     }
 
-    // 6. Securely Hash Advanced Matching User Data strictly per Meta specs
+    // 6. Infer gender and normalize date of birth for optimal EMQ
+    let resolvedGender = userData?.ge;
+    if (!resolvedGender || (resolvedGender !== "m" && resolvedGender !== "f")) {
+      resolvedGender = inferGenderFromNameServer(rawFn || rawLn);
+    }
+
+    let resolvedDob = userData?.db;
+    if (resolvedDob) {
+      resolvedDob = String(resolvedDob).replace(/\D/g, "");
+      if (resolvedDob.length !== 8) resolvedDob = undefined;
+    }
+
+    // 7. Securely Hash Advanced Matching User Data strictly per Meta specs
     const hashedUserData: Record<string, string | undefined> = {
       client_ip_address: clientIp,
       client_user_agent: userAgent,
@@ -363,8 +404,8 @@ export async function POST(req: Request) {
       ln: hashData(rawLn, "alpha"),
       em: hashData(userData?.em),
       ph: hashData(userData?.ph, "phone"),
-      ge: hashData(userData?.ge, "gender"),
-      db: hashData(userData?.db, "dob"),
+      ge: hashData(resolvedGender, "gender"),
+      db: hashData(resolvedDob, "dob"),
       // Meta Events Manager explicitly specifies external_id as "Not hashed - no hash required"
       external_id: external_id,
     };

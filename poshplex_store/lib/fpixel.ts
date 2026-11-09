@@ -151,6 +151,39 @@ export const splitFullName = (fullName?: string): { fn?: string; ln?: string } =
 };
 
 /**
+ * Infer gender ('m' or 'f') from Bengali / South Asian personal names
+ * Boosts Meta Event Match Quality (EMQ) when gender is unprovided or optional.
+ */
+export const inferGenderFromName = (name?: string): "m" | "f" | undefined => {
+  if (!name) return undefined;
+  const clean = name.trim().toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, " ");
+  const tokens = clean.split(/\s+/).filter(Boolean);
+
+  const MALE_TOKENS = [
+    "md", "mohammad", "mohammed", "muhammad", "khan", "ahmed", "ahmad", "hasan", 
+    "hassan", "hossain", "hussain", "ali", "sheikh", "sk", "mahir", "nahid", 
+    "rohan", "siam", "tanvir", "arif", "sabbir", "jahid", "shakil", "rayhan", 
+    "asif", "rakib", "alif", "mehedi", "saad", "farhan", "faisal", "shahriar",
+    "kazi", "syed", "mir", "chowdhury"
+  ];
+
+  const FEMALE_TOKENS = [
+    "mst", "most", "begum", "khatun", "akter", "akther", "jannat", "fatema", 
+    "fatima", "nusrat", "tanjina", "marufa", "aisha", "sumaiya", "mim", 
+    "sadia", "tasnim", "afroza", "sharmin", "nargis", "ruma", "shirin", 
+    "shila", "farzana", "parvin", "sabina", "sultana", "rokeya", "taslima"
+  ];
+
+  for (const t of tokens) {
+    if (FEMALE_TOKENS.includes(t)) return "f";
+  }
+  for (const t of tokens) {
+    if (MALE_TOKENS.includes(t)) return "m";
+  }
+  return undefined;
+};
+
+/**
  * Extract root domain for cookie setting (e.g. .poshplexbd.com)
  * Allows cookies to be shared across subdomains and avoids host-only cookie isolation.
  */
@@ -383,6 +416,19 @@ export const getEnrichedUserData = (explicitUserData: FBUserData = {}): FBUserDa
   const fbc = explicitUserData.fbc || getOrCreateFbc();
   const external_id = explicitUserData.external_id || cached.external_id || getOrCreateExternalId();
 
+  // Clean date of birth to YYYYMMDD per Meta standard
+  let rawDb = explicitUserData.db || cached.db;
+  if (rawDb) {
+    rawDb = String(rawDb).replace(/\D/g, "");
+    if (rawDb.length !== 8) rawDb = undefined;
+  }
+
+  // Infer gender if not explicitly supplied
+  let rawGe = explicitUserData.ge || cached.ge;
+  if (!rawGe || (rawGe !== "m" && rawGe !== "f")) {
+    rawGe = inferGenderFromName(fn);
+  }
+
   const result: FBUserData = {
     country,
     external_id,
@@ -395,8 +441,8 @@ export const getEnrichedUserData = (explicitUserData: FBUserData = {}): FBUserDa
     ct: ct || undefined,
     st: st || undefined,
     zp: zp || undefined,
-    ge: explicitUserData.ge || cached.ge || undefined,
-    db: explicitUserData.db || cached.db || undefined,
+    ge: rawGe || undefined,
+    db: rawDb || undefined,
   };
 
   // Remove empty/whitespace-only values
