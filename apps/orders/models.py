@@ -68,6 +68,12 @@ class Order(AuditedModelMixin):
     risk_level = models.CharField(max_length=20, default='low')
     risk_reasons = models.JSONField(default=list, blank=True)
     
+    # OrderPulse Analytics & Root Causes
+    delay_reason = models.CharField(max_length=100, blank=True, null=True)
+    delay_notes = models.TextField(blank=True, null=True)
+    cancellation_reason = models.CharField(max_length=100, blank=True, null=True)
+    cancellation_type = models.CharField(max_length=30, blank=True, null=True)
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -107,6 +113,10 @@ class OrderItem(models.Model):
     returned_quantity = models.PositiveIntegerField(default=0)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     fulfillment_status = models.CharField(max_length=30, choices=FULFILLMENT_STATUS_CHOICES, default='pending')
+    
+    # OrderPulse return diagnostics
+    return_reason = models.CharField(max_length=100, blank=True, null=True)
+    rejection_notes = models.TextField(blank=True, null=True)
 
     class Meta:
         indexes = [

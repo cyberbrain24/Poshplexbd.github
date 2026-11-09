@@ -5,7 +5,9 @@ from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.db.models import Sum, F, Q
+from django.db.models import Sum, F, Q, Count
+from django.utils import timezone
+from datetime import timedelta
 from ninja import Router, Schema
 from ninja.errors import HttpError
 
@@ -73,6 +75,8 @@ class OrderItemSchema(Schema):
     returned_quantity: int
     price: Decimal
     fulfillment_status: str
+    return_reason: Optional[str] = None
+    rejection_notes: Optional[str] = None
 
 class PaymentSchema(Schema):
     id: int
@@ -129,6 +133,14 @@ class OrderResponseSchema(Schema):
     is_ready: Optional[bool] = False
     is_print_ready: Optional[bool] = False
     
+    # OrderPulse Analytics fields
+    delay_reason: Optional[str] = None
+    delay_notes: Optional[str] = None
+    cancellation_reason: Optional[str] = None
+    cancellation_type: Optional[str] = None
+    delay_hours: Optional[int] = 0
+    is_delayed: Optional[bool] = False
+    
     risk_level: str
     risk_reasons: List[str]
     
@@ -141,6 +153,24 @@ class OrderResponseSchema(Schema):
 class PaginatedOrdersResponse(Schema):
     count: int
     results: List[OrderResponseSchema]
+
+class OrderPulseUpdateSchema(Schema):
+    delay_reason: Optional[str] = None
+    delay_notes: Optional[str] = None
+    cancellation_reason: Optional[str] = None
+    cancellation_type: Optional[str] = None
+    internal_notes: Optional[str] = None
+
+class PartialSplitItemSchema(Schema):
+    item_id: int
+    fulfilled_quantity: int
+    returned_quantity: int
+    return_reason: Optional[str] = None
+    rejection_notes: Optional[str] = None
+
+class PartialSplitInputSchema(Schema):
+    items: List[PartialSplitItemSchema]
+    notes: Optional[str] = None
 
 class RecordPaymentInputSchema(Schema):
     amount: Decimal
@@ -220,7 +250,9 @@ def compile_order_response(order: Order, sku_to_details: dict = None) -> dict:
         "fulfilled_quantity": item.fulfilled_quantity,
         "returned_quantity": item.returned_quantity,
         "price": item.price,
-        "fulfillment_status": item.fulfillment_status
+        "fulfillment_status": item.fulfillment_status,
+        "return_reason": getattr(item, 'return_reason', None),
+        "rejection_notes": getattr(item, 'rejection_notes', None),
     } for item in order.items.all()]
 
     payments = [{
@@ -250,6 +282,15 @@ def compile_order_response(order: Order, sku_to_details: dict = None) -> dict:
         "notes": h.notes
     } for h in order.status_history.all()]
 
+    # Calculate delay metrics
+    is_unshipped = order.status in ['placed', 'review', 'pending', 'hold', 'approval_pending']
+    delay_hours = 0
+    is_delayed = False
+    if order.created_at and is_unshipped:
+        delta = timezone.now() - order.created_at
+        delay_hours = max(0, int(delta.total_seconds() // 3600))
+        is_delayed = (delay_hours >= 24)
+
     return {
         "id": order.id,
         "created_at": order.created_at,
@@ -278,6 +319,12 @@ def compile_order_response(order: Order, sku_to_details: dict = None) -> dict:
         "issue_status": getattr(order, 'issue_status', 'None'),
         "is_ready": getattr(order, 'is_ready', False),
         "is_print_ready": getattr(order, 'is_print_ready', False),
+        "delay_reason": getattr(order, 'delay_reason', None),
+        "delay_notes": getattr(order, 'delay_notes', None),
+        "cancellation_reason": getattr(order, 'cancellation_reason', None),
+        "cancellation_type": getattr(order, 'cancellation_type', None),
+        "delay_hours": delay_hours,
+        "is_delayed": is_delayed,
         "risk_level": order.risk_level,
         "risk_reasons": order.risk_reasons or [],
         "items": items,
@@ -297,14 +344,128 @@ def get_order_counts(request):
     total_all = 0
     statuses = [s[0] for s in Order.ORDER_STATUS_CHOICES]
     
-    # Query all counts in one go for efficiency if possible, or just iterate
     for status in statuses:
         count = Order.objects.filter(status=status).count()
         counts[status] = count
         total_all += count
         
     counts["all"] = total_all
+    
+    # OrderPulse: Delayed (>24h unshipped) count
+    cutoff_24h = timezone.now() - timedelta(hours=24)
+    counts["delayed"] = Order.objects.filter(
+        status__in=['placed', 'review', 'pending', 'hold', 'approval_pending'],
+        created_at__lt=cutoff_24h
+    ).count()
+
     return counts
+
+@router.get("/analytics/pulse", auth=BearerAuth())
+def get_orderpulse_analytics(request):
+    """Aggregates high-impact analytics for Hub Delays, Cancellations, and Partial Deliveries."""
+    enforce_permission(request, "orders", "view_orders")
+    
+    now = timezone.now()
+    cutoff_24h = now - timedelta(hours=24)
+    cutoff_48h = now - timedelta(hours=48)
+    cutoff_72h = now - timedelta(hours=72)
+    
+    total_orders = Order.objects.count()
+    unshipped_statuses = ['placed', 'review', 'pending', 'hold', 'approval_pending']
+    
+    # 1. Hub Delayed Orders breakdown
+    delayed_qs = Order.objects.filter(status__in=unshipped_statuses, created_at__lt=cutoff_24h)
+    delayed_count = delayed_qs.count()
+    
+    # Aging buckets
+    aging_24_to_48 = Order.objects.filter(status__in=unshipped_statuses, created_at__lt=cutoff_24h, created_at__gte=cutoff_48h).count()
+    aging_48_to_72 = Order.objects.filter(status__in=unshipped_statuses, created_at__lt=cutoff_48h, created_at__gte=cutoff_72h).count()
+    aging_over_72 = Order.objects.filter(status__in=unshipped_statuses, created_at__lt=cutoff_72h).count()
+    
+    delay_reasons = {}
+    for row in delayed_qs.values('delay_reason').annotate(count=Count('id')).order_by('-count'):
+        key = row['delay_reason'] or 'unassigned'
+        delay_reasons[key] = row['count']
+        
+    # 2. Cancellations (Pre-dispatch vs Post-dispatch)
+    cancelled_pre_qs = Order.objects.filter(status='manually_cancelled')
+    cancelled_post_qs = Order.objects.filter(status__in=['cancelled', 'returned', 'rto'])
+    
+    cancelled_pre_count = cancelled_pre_qs.count()
+    cancelled_post_count = cancelled_post_qs.count()
+    
+    cancellation_reasons_pre = {}
+    for row in cancelled_pre_qs.values('cancellation_reason').annotate(count=Count('id')).order_by('-count'):
+        key = row['cancellation_reason'] or 'unassigned'
+        cancellation_reasons_pre[key] = row['count']
+        
+    cancellation_reasons_post = {}
+    for row in cancelled_post_qs.values('cancellation_reason').annotate(count=Count('id')).order_by('-count'):
+        key = row['cancellation_reason'] or 'unassigned'
+        cancellation_reasons_post[key] = row['count']
+        
+    # 3. Partial Deliveries & SKU return analysis
+    partial_qs = Order.objects.filter(status='partially_delivered')
+    partial_count = partial_qs.count()
+    
+    returned_items_qs = OrderItem.objects.filter(returned_quantity__gt=0)
+    
+    partial_return_reasons = {}
+    for row in returned_items_qs.values('return_reason').annotate(count=Sum('returned_quantity')).order_by('-count'):
+        key = row['return_reason'] or 'unassigned'
+        partial_return_reasons[key] = row['count'] or 0
+        
+    # Top returned SKUs
+    top_returned_skus = []
+    top_skus_raw = (
+        returned_items_qs.values('sku')
+        .annotate(total_returned=Sum('returned_quantity'))
+        .order_by('-total_returned')[:10]
+    )
+    
+    from apps.catalog.models import ProductVariant
+    for row in top_skus_raw:
+        sku = row['sku']
+        v = ProductVariant.objects.filter(sku=sku).select_related('product').first()
+        prod_title = v.product.title if v and v.product else sku
+        img = v.images[0] if (v and v.images) else (v.product.primary_image if (v and v.product) else "")
+        
+        primary_reason_row = (
+            returned_items_qs.filter(sku=sku)
+            .values('return_reason')
+            .annotate(cnt=Count('id'))
+            .order_by('-cnt')
+            .first()
+        )
+        primary_reason = primary_reason_row['return_reason'] if primary_reason_row else 'unassigned'
+        
+        top_returned_skus.append({
+            "sku": sku,
+            "product_name": prod_title,
+            "image": img,
+            "returned_count": row['total_returned'],
+            "primary_reason": primary_reason
+        })
+        
+    return {
+        "kpi": {
+            "total_orders": total_orders,
+            "delayed_hub_count": delayed_count,
+            "cancelled_pre_dispatch_count": cancelled_pre_count,
+            "cancelled_post_dispatch_count": cancelled_post_count,
+            "partially_delivered_count": partial_count
+        },
+        "delay_aging": {
+            "24_to_48h": aging_24_to_48,
+            "48_to_72h": aging_48_to_72,
+            "over_72h": aging_over_72
+        },
+        "delay_reasons": delay_reasons,
+        "cancellation_reasons_pre": cancellation_reasons_pre,
+        "cancellation_reasons_post": cancellation_reasons_post,
+        "partial_return_reasons": partial_return_reasons,
+        "top_returned_skus": top_returned_skus
+    }
 
 @router.get("", response=PaginatedOrdersResponse, auth=BearerAuth())
 def list_orders(
@@ -334,7 +495,14 @@ def list_orders(
         ).distinct()
 
     if status:
-        qs = qs.filter(status=status)
+        if status == "delayed":
+            cutoff_24h = timezone.now() - timedelta(hours=24)
+            qs = qs.filter(
+                status__in=['placed', 'review', 'pending', 'hold', 'approval_pending'],
+                created_at__lt=cutoff_24h
+            )
+        else:
+            qs = qs.filter(status=status)
     if payment_status:
         qs = qs.filter(payment_status=payment_status)
     if payment_method:
@@ -691,6 +859,103 @@ def update_order_notes_endpoint(request, order_id: int, data: OrderNotesUpdateSc
     order.save(update_fields=["internal_notes"])
     return compile_order_response(order)
 
+@router.patch("/{int:order_id}/pulse", response=OrderResponseSchema, auth=BearerAuth())
+def update_order_pulse_endpoint(request, order_id: int, data: OrderPulseUpdateSchema):
+    """Update OrderPulse operational delay blocker or cancellation root cause."""
+    enforce_permission(request, "orders", "edit_orders")
+    order = get_object_or_404(Order, id=order_id)
+    
+    update_fields = []
+    log_notes = []
+
+    if data.delay_reason is not None:
+        order.delay_reason = data.delay_reason
+        update_fields.append("delay_reason")
+        log_notes.append(f"Delay Blocker: {data.delay_reason}")
+    if data.delay_notes is not None:
+        order.delay_notes = data.delay_notes
+        update_fields.append("delay_notes")
+        if data.delay_notes:
+            log_notes.append(f"Delay Note: {data.delay_notes}")
+            
+    if data.cancellation_reason is not None:
+        order.cancellation_reason = data.cancellation_reason
+        update_fields.append("cancellation_reason")
+        log_notes.append(f"Cancellation Reason: {data.cancellation_reason}")
+    if data.cancellation_type is not None:
+        order.cancellation_type = data.cancellation_type
+        update_fields.append("cancellation_type")
+        
+    if data.internal_notes:
+        existing = order.internal_notes or ""
+        order.internal_notes = f"{existing}\n{data.internal_notes}".strip() if existing else data.internal_notes
+        update_fields.append("internal_notes")
+        
+    if update_fields:
+        order.save(update_fields=update_fields)
+        if log_notes:
+            admin_user = getattr(request.auth, 'username', 'Admin') if request.auth else 'Admin'
+            OrderStatusHistory.objects.create(
+                order=order,
+                status=order.status,
+                admin_username=admin_user,
+                notes="; ".join(log_notes)
+            )
+
+    return compile_order_response(order)
+
+@router.post("/{int:order_id}/partial-split", response=OrderResponseSchema, auth=BearerAuth())
+def resolve_partial_delivery_endpoint(request, order_id: int, data: PartialSplitInputSchema):
+    """Resolve a partially delivered order by splitting kept vs returned items with root causes."""
+    enforce_permission(request, "orders", "edit_orders")
+    order = get_object_or_404(Order, id=order_id)
+    
+    with transaction.atomic():
+        total_returned_qty = 0
+        total_fulfilled_qty = 0
+        split_summary = []
+        
+        for item_data in data.items:
+            item = get_object_or_404(OrderItem, id=item_data.item_id, order=order)
+            item.fulfilled_quantity = item_data.fulfilled_quantity
+            item.returned_quantity = item_data.returned_quantity
+            item.return_reason = item_data.return_reason or ""
+            item.rejection_notes = item_data.rejection_notes or ""
+            
+            if item_data.returned_quantity > 0 and item_data.fulfilled_quantity == 0:
+                item.fulfillment_status = 'returned'
+            elif item_data.fulfilled_quantity > 0 and item_data.returned_quantity == 0:
+                item.fulfillment_status = 'delivered'
+            else:
+                item.fulfillment_status = 'delivered' # split line
+                
+            item.save(update_fields=['fulfilled_quantity', 'returned_quantity', 'return_reason', 'rejection_notes', 'fulfillment_status'])
+            total_returned_qty += item_data.returned_quantity
+            total_fulfilled_qty += item_data.fulfilled_quantity
+            
+            if item_data.returned_quantity > 0:
+                split_summary.append(f"{item.sku} Returned ({item_data.returned_quantity}x, Reason: {item_data.return_reason or 'None'})")
+            if item_data.fulfilled_quantity > 0:
+                split_summary.append(f"{item.sku} Kept ({item_data.fulfilled_quantity}x)")
+                
+        order.status = 'partially_delivered'
+        if data.notes:
+            existing = order.internal_notes or ""
+            order.internal_notes = f"{existing}\n[Partial Split] {data.notes}".strip() if existing else f"[Partial Split] {data.notes}"
+            order.save(update_fields=['status', 'internal_notes', 'updated_at'])
+        else:
+            order.save(update_fields=['status', 'updated_at'])
+            
+        admin_user = getattr(request.auth, 'username', 'Admin') if request.auth else 'Admin'
+        OrderStatusHistory.objects.create(
+            order=order,
+            status='partially_delivered',
+            admin_username=admin_user,
+            notes=f"Partial Delivery Split: {'; '.join(split_summary)}"
+        )
+        
+    return compile_order_response(order)
+
 @router.put("/{int:order_id}", response=OrderResponseSchema, auth=BearerAuth())
 def update_order_endpoint(request, order_id: int, data: OrderCreateInputSchema):
     """Edit order recipient details, shipping address, or line items (Admin only)."""
@@ -1038,7 +1303,14 @@ def list_fulfillment_queue(
     qs = Order.objects.filter(status__in=active_statuses).prefetch_related('items', 'payments', 'returns', 'status_history').select_related('user')
     
     if status:
-        qs = qs.filter(status=status)
+        if status == "delayed":
+            cutoff_24h = timezone.now() - timedelta(hours=24)
+            qs = qs.filter(
+                status__in=['placed', 'review', 'pending', 'hold', 'approval_pending'],
+                created_at__lt=cutoff_24h
+            )
+        else:
+            qs = qs.filter(status=status)
     if search:
         qs = qs.filter(
             Q(order_number__icontains=search) |

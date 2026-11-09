@@ -5,11 +5,14 @@ import {
 } from "antd";
 import {
   ShoppingCartOutlined, CheckCircleOutlined, CarOutlined, 
-  PrinterOutlined, PlusOutlined, ShoppingOutlined, EyeOutlined, SyncOutlined, DeleteOutlined, GiftOutlined, CloseCircleOutlined, EditOutlined, WhatsAppOutlined, SaveOutlined, PhoneOutlined, WarningOutlined, SafetyCertificateOutlined
+  PrinterOutlined, PlusOutlined, ShoppingOutlined, EyeOutlined, SyncOutlined, DeleteOutlined, GiftOutlined, CloseCircleOutlined, EditOutlined, WhatsAppOutlined, SaveOutlined, PhoneOutlined, WarningOutlined, SafetyCertificateOutlined, ThunderboltOutlined
 } from "@ant-design/icons";
 import axios from "axios";
 import { getOrderLocationZone } from "../utils/orderUtils";
 import { SteadfastRiskCard, OrderCardRiskBadge } from "../components/SteadfastRiskCard";
+import { OrderPulseTag } from "../components/OrderPulseTag";
+import { PartialSplitModal } from "../components/PartialSplitModal";
+import { OrderPulseDrawer } from "../components/OrderPulseDrawer";
 
 const API_URL = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/orders";
 const CATALOG_API_URL = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/catalog";
@@ -74,6 +77,10 @@ export const Orders: React.FC = () => {
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+  // OrderPulse states
+  const [isPulseDrawerOpen, setIsPulseDrawerOpen] = useState(false);
+  const [isSplitModalOpen, setIsSplitModalOpen] = useState(false);
+  const [splitSelectedOrder, setSplitSelectedOrder] = useState<any>(null);
 
   // Drawer editing state
   const [draftItems, setDraftItems] = useState<any[]>([]);
@@ -759,7 +766,23 @@ export const Orders: React.FC = () => {
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "var(--text-main)" }}>Orders & Fulfillment</h1>
           <p style={{ margin: "4px 0 0", color: "var(--text-muted)", fontSize: 13 }}>Manage orders, payments, and courier dispatches.</p>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Button 
+            style={{ 
+              borderRadius: 6, 
+              whiteSpace: 'nowrap',
+              backgroundColor: '#4338ca', 
+              borderColor: '#6366f1', 
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6
+            }} 
+            icon={<ThunderboltOutlined style={{ color: '#a5b4fc' }} />}
+            onClick={() => setIsPulseDrawerOpen(true)}
+          >
+            OrderPulse Analytics
+          </Button>
           <Button icon={<SyncOutlined />} onClick={handleSyncAllCouriers} style={{ borderRadius: 6, whiteSpace: 'nowrap' }}>
             Sync Steadfast
           </Button>
@@ -800,9 +823,11 @@ export const Orders: React.FC = () => {
           { label: <span>Placed <Badge count={orderCounts.placed || 0} overflowCount={99999} showZero color="gold" /></span>, key: "placed" },
           { label: <span>Review <Badge count={orderCounts.review || 0} overflowCount={99999} showZero color="cyan" /></span>, key: "review" },
           { label: <span>Pending <Badge count={orderCounts.pending || 0} overflowCount={99999} showZero color="orange" /></span>, key: "pending" },
+          { label: <span>Delayed <Badge count={orderCounts.delayed || 0} overflowCount={99999} showZero color="#ff4d4f" /></span>, key: "delayed" },
           { label: <span>Hold <Badge count={orderCounts.hold || 0} overflowCount={99999} showZero color="volcano" /></span>, key: "hold" },
           { label: <span>Approval Pending <Badge count={orderCounts.approval_pending || 0} overflowCount={99999} showZero color="blue" /></span>, key: "approval_pending" },
           { label: <span>Delivered <Badge count={orderCounts.delivered || 0} overflowCount={99999} showZero color="green" /></span>, key: "delivered" },
+          { label: <span>Partially Delivered <Badge count={orderCounts.partially_delivered || 0} overflowCount={99999} showZero color="#fa8c16" /></span>, key: "partially_delivered" },
           { label: <span>Returned <Badge count={orderCounts.returned || 0} overflowCount={99999} showZero color="purple" /></span>, key: "returned" },
           { label: <span>Cancelled <Badge count={orderCounts.cancelled || 0} overflowCount={99999} showZero color="red" /></span>, key: "cancelled" },
           { label: <span>Manually Cancelled <Badge count={orderCounts.manually_cancelled || 0} overflowCount={99999} showZero color="#eb2f96" /></span>, key: "manually_cancelled" },
@@ -917,6 +942,17 @@ export const Orders: React.FC = () => {
                   {getPaymentStatusTag(order.payment_status)}
                   <Tag color="default">Web Order</Tag>
                 </div>
+
+                {/* OrderPulse Blocker & Root Cause Diagnostics */}
+                <OrderPulseTag
+                  order={order}
+                  apiUrl={API_URL}
+                  onRefresh={fetchOrders}
+                  onOpenSplitModal={(o) => {
+                    setSplitSelectedOrder(o);
+                    setIsSplitModalOpen(true);
+                  }}
+                />
 
                 {/* Payment Method & Location */}
                 <div style={{ fontSize: 11, color: '#888', marginBottom: 2 }}>{order.payments?.[0]?.method || 'Cash on Delivery'}</div>
@@ -1885,6 +1921,22 @@ export const Orders: React.FC = () => {
           </Form.Item>
         </Form>
       </Modal>
+
+      {/* OrderPulse Analytics Drawer */}
+      <OrderPulseDrawer
+        visible={isPulseDrawerOpen}
+        onClose={() => setIsPulseDrawerOpen(false)}
+        apiUrl={API_URL}
+      />
+
+      {/* Partial Delivery SKU Split Resolver Modal */}
+      <PartialSplitModal
+        visible={isSplitModalOpen}
+        order={splitSelectedOrder}
+        apiUrl={API_URL}
+        onClose={() => setIsSplitModalOpen(false)}
+        onSuccess={fetchOrders}
+      />
 
     </Space>
   );
