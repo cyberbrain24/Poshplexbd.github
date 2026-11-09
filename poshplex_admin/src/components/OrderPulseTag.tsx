@@ -221,3 +221,4 @@ export const OrderPulseTag: React.FC<OrderPulseTagProps> = ({
     </div>
   );
 };
+
