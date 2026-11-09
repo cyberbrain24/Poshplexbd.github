@@ -280,20 +280,20 @@ export const OrderCardRiskBadge: React.FC<OrderCardRiskBadgeProps> = ({
     return (
       <div
         style={{
-          background: "rgba(239, 68, 68, 0.05)",
-          border: "1px solid rgba(239, 68, 68, 0.2)",
+          background: "rgba(255, 255, 255, 0.02)",
+          border: "1px dashed rgba(255, 255, 255, 0.1)",
           borderRadius: 6,
-          padding: "3px 8px",
+          padding: "4px 8px",
           marginBottom: 8,
           fontSize: 10,
-          color: "#ef4444",
+          color: "#6b7280",
           display: "flex",
           alignItems: "center",
-          gap: 4,
+          gap: 5,
           lineHeight: "14px"
         }}
       >
-        <WarningOutlined style={{ fontSize: 10 }} />
+        <WarningOutlined style={{ fontSize: 10, color: "#9ca3af" }} />
         <span>No / Invalid Phone</span>
       </div>
     );
@@ -303,7 +303,7 @@ export const OrderCardRiskBadge: React.FC<OrderCardRiskBadgeProps> = ({
     return (
       <div
         style={{
-          background: "rgba(255, 255, 255, 0.03)",
+          background: "rgba(255, 255, 255, 0.02)",
           border: "1px dashed rgba(255, 255, 255, 0.12)",
           borderRadius: 6,
           padding: "5px 8px",
@@ -349,11 +349,6 @@ export const OrderCardRiskBadge: React.FC<OrderCardRiskBadgeProps> = ({
         ? "rgba(56, 189, 248, 0.04)"
         : (deliveryRatio >= 80 ? "rgba(16, 185, 129, 0.05)" : "rgba(239, 68, 68, 0.06)"));
 
-  // Micro Circular SVG Meter Calculation (r=10, circumference ≈ 62.83)
-  const radius = 10;
-  const circumference = 2 * Math.PI * radius;
-  const strokeOffset = circumference - ((isNewCustomer ? 100 : deliveryRatio) / 100) * circumference;
-
   return (
     <Popover
       trigger={["hover", "click"]}
@@ -389,143 +384,157 @@ export const OrderCardRiskBadge: React.FC<OrderCardRiskBadgeProps> = ({
         style={{
           background: bgGlow,
           border: `1px solid ${borderColor}`,
-          borderRadius: 6,
-          padding: "3px 6px",
+          borderRadius: 8,
+          padding: "5px 7px",
           marginBottom: 8,
           cursor: "pointer",
           display: "flex",
           alignItems: "center",
           gap: 6,
           transition: "all 0.2s ease",
-          userSelect: "none"
+          userSelect: "none",
+          boxShadow: totalReports > 0 ? "0 0 10px rgba(239, 68, 68, 0.2)" : "none"
         }}
       >
-        {/* Micro Gauge Circle */}
+        {/* Semi-circular Gauge Arc (matching Steadfast official design) */}
         <div
           style={{
             position: "relative",
-            width: 26,
-            height: 26,
+            width: 44,
+            height: 28,
             flexShrink: 0,
             display: "flex",
-            alignItems: "center",
-            justifyContent: "center"
+            alignItems: "flex-end",
+            justifyContent: "center",
+            overflow: "hidden"
           }}
         >
-          <svg width="26" height="26" viewBox="0 0 26 26">
-            <circle
-              cx="13"
-              cy="13"
-              r={radius}
+          <svg width="44" height="28" viewBox="0 0 44 28">
+            {/* Background semi-circle arc */}
+            <path
+              d="M 6 25 A 16 16 0 0 1 38 25"
               fill="none"
-              stroke="rgba(255, 255, 255, 0.1)"
-              strokeWidth="3"
+              stroke="rgba(255, 255, 255, 0.12)"
+              strokeWidth="4"
+              strokeLinecap="round"
             />
-            <circle
-              cx="13"
-              cy="13"
-              r={radius}
+            {/* Active colored arc */}
+            <path
+              d="M 6 25 A 16 16 0 0 1 38 25"
               fill="none"
               stroke={statusColor}
-              strokeWidth="3"
-              strokeDasharray={circumference}
-              strokeDashoffset={strokeOffset}
+              strokeWidth="4"
               strokeLinecap="round"
-              transform="rotate(-90 13 13)"
+              strokeDasharray="50.27"
+              strokeDashoffset={50.27 * (1 - (isNewCustomer ? 100 : deliveryRatio) / 100)}
               style={{ transition: "stroke-dashoffset 0.6s ease" }}
             />
+            <text
+              x="22"
+              y="18"
+              textAnchor="middle"
+              fill={statusColor}
+              fontSize="9.5"
+              fontWeight="900"
+              fontFamily="system-ui, -apple-system, sans-serif"
+            >
+              {isNewCustomer ? "NEW" : `${deliveryRatio}%`}
+            </text>
+            <text
+              x="22"
+              y="25"
+              textAnchor="middle"
+              fill="#9ca3af"
+              fontSize="6"
+              fontWeight="600"
+              fontFamily="system-ui, -apple-system, sans-serif"
+            >
+              {isNewCustomer ? "Client" : "Delivered"}
+            </text>
           </svg>
-          <span
-            style={{
-              position: "absolute",
-              fontSize: 8,
-              fontWeight: 900,
-              color: statusColor,
-              letterSpacing: "-0.2px"
-            }}
-          >
-            {isNewCustomer ? "NEW" : `${deliveryRatio}%`}
-          </span>
         </div>
 
-        {/* Right Info: 2 compact rows */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0, flex: 1 }}>
+        {/* Right Info: Delivery rate line + 2 volume/report chips */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0, flex: 1 }}>
           {/* Row 1: Delivery & Cancelled metrics */}
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 3,
+              justifyContent: "space-between",
               fontSize: 10,
-              lineHeight: "13px",
-              whiteSpace: "nowrap"
+              lineHeight: "13px"
             }}
           >
             {isNewCustomer ? (
-              <span style={{ color: "#38bdf8", fontWeight: 700 }}>New Customer</span>
+              <span style={{ color: "#38bdf8", fontWeight: 700, fontSize: 10 }}>New Customer</span>
             ) : (
               <>
-                <span style={{ color: "#10b981", fontWeight: 800 }}>{deliveryRatio}%</span>
-                <span style={{ color: "#059669", fontWeight: 600 }}>Del ({deliveredCount})</span>
-                <span style={{ color: "#6b7280" }}>·</span>
+                <span style={{ color: "#10b981", fontWeight: 800 }}>
+                  {deliveryRatio}% <span style={{ color: "#34d399", fontWeight: 600 }}>({deliveredCount})</span>
+                </span>
                 <span
                   style={{
-                    color: cancelledCount > 0 ? "#ef4444" : "#6b7280",
-                    fontWeight: cancelledCount > 0 ? 700 : 400
+                    color: cancelledCount > 0 ? "#ef4444" : "#9ca3af",
+                    fontWeight: cancelledCount > 0 ? 800 : 500,
+                    fontSize: 9.5
                   }}
                 >
-                  {cancelledCount} Can
+                  {cancellationRatio}% Can ({cancelledCount})
                 </span>
               </>
             )}
           </div>
 
-          {/* Row 2: Parcel Volume & Merchant Reports */}
+          {/* Row 2: Steadfast Parcel Volume & Merchant Reports chips */}
           <div
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 4,
-              marginTop: 1,
-              whiteSpace: "nowrap"
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 4
             }}
           >
-            <span
+            <div
               style={{
-                fontSize: 9,
+                fontSize: 8.5,
                 fontWeight: 700,
                 color: "#d97706",
                 background: "rgba(245, 158, 11, 0.12)",
                 border: "1px solid rgba(245, 158, 11, 0.25)",
-                padding: "0 4px",
-                borderRadius: 3,
-                display: "inline-flex",
+                padding: "2px 4px",
+                borderRadius: 4,
+                display: "flex",
                 alignItems: "center",
-                gap: 2,
+                justifyContent: "space-between",
                 lineHeight: "12px"
               }}
             >
-              📦 {totalParcels} Vol
-            </span>
-            <span
+              <span>📦 VOL</span>
+              <strong style={{ color: "#f59e0b", fontSize: 10 }}>{totalParcels}</strong>
+            </div>
+
+            <div
               style={{
-                fontSize: 9,
+                fontSize: 8.5,
                 fontWeight: 700,
                 color: totalReports > 0 ? "#ef4444" : "#9ca3af",
-                background: totalReports > 0 ? "rgba(239, 68, 68, 0.2)" : "rgba(255, 255, 255, 0.05)",
+                background: totalReports > 0 ? "rgba(239, 68, 68, 0.22)" : "rgba(255, 255, 255, 0.05)",
                 border: totalReports > 0
-                  ? "1px solid rgba(239, 68, 68, 0.4)"
+                  ? "1px solid rgba(239, 68, 68, 0.45)"
                   : "1px solid rgba(255, 255, 255, 0.08)",
-                padding: "0 4px",
-                borderRadius: 3,
-                display: "inline-flex",
+                padding: "2px 4px",
+                borderRadius: 4,
+                display: "flex",
                 alignItems: "center",
-                gap: 2,
+                justifyContent: "space-between",
                 lineHeight: "12px"
               }}
             >
-              🛡️ {totalReports} Rep
-            </span>
+              <span>🛡️ REP</span>
+              <strong style={{ color: totalReports > 0 ? "#ef4444" : "#e2e8f0", fontSize: 10 }}>
+                {totalReports}
+              </strong>
+            </div>
           </div>
         </div>
       </div>

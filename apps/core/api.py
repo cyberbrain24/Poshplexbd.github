@@ -91,7 +91,9 @@ def enforce_permission(request, module_name: str, action: str):
     if method == 'GET':
         action = 'view'
     elif method == 'POST':
-        action = 'create'
+        # Preserve explicitly requested 'view' queries using POST (e.g. batch checks, lookups)
+        if not (action and (action == 'view' or action.startswith('view_'))):
+            action = 'create'
     elif method in ('PUT', 'PATCH'):
         action = 'edit'
     elif method == 'DELETE':
