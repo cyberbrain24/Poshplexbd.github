@@ -40,10 +40,23 @@ function LoginContent() {
 
         // Cache customer credentials for Meta CAPI
         const isEmail = phoneOrEmail.includes("@");
+        const rawName = data.user?.first_name 
+          ? `${data.user.first_name} ${data.user.last_name || ""}`.trim() 
+          : (data.user?.username || "");
+        const { fn: loginFn, ln: loginLn } = fpixel.splitFullName(rawName);
+        const resolvedZip = data.user?.postal_code || fpixel.resolveBangladeshZip(data.user?.district || data.user?.thana);
+
         fpixel.saveUserData({
           em: isEmail ? phoneOrEmail : data.user?.email,
-          ph: !isEmail ? phoneOrEmail : undefined,
-          fn: data.user?.username,
+          ph: !isEmail ? phoneOrEmail : (data.user?.phone || data.user?.phone_number),
+          fn: loginFn || data.user?.username,
+          ln: loginLn || data.user?.last_name,
+          st: data.user?.district,
+          ct: data.user?.thana,
+          zp: resolvedZip,
+          country: "bd",
+          ge: data.user?.gender,
+          db: data.user?.date_of_birth,
           external_id: String(data.user?.id || ""),
         });
 

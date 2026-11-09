@@ -230,6 +230,25 @@ export default function ProfilePage() {
       if (res.ok) {
         setProfSuccessMsg("Profile details updated successfully!");
         setUserProfile(data);
+
+        const { fn: profFn, ln: profLn } = fpixel.splitFullName(profName);
+        const selDistrictObj = districts.find((d: any) => String(d.id) === String(selectedDistrict));
+        const districtName = selDistrictObj?.name;
+        const selThanaObj = thanas.find((t: any) => String(t.id) === String(selectedThana));
+        const thanaName = selThanaObj?.name;
+
+        fpixel.saveUserData({
+          fn: profFn || profName,
+          ln: profLn,
+          em: profEmail,
+          ge: profGender,
+          db: birthdate ? birthdate.replace(/-/g, "") : undefined,
+          st: districtName,
+          ct: thanaName,
+          zp: fpixel.resolveBangladeshZip(districtName || thanaName),
+          country: "bd",
+        });
+
         setTimeout(() => {
           setIsEditingProfile(false);
           setProfSuccessMsg("");

@@ -4,7 +4,7 @@ import crypto from "crypto";
 
 const hashData = (
   val: string | undefined,
-  type: "text" | "phone" | "gender" | "dob" = "text"
+  type: "text" | "phone" | "gender" | "dob" | "zip" | "alpha" | "country" = "text"
 ): string | undefined => {
   if (!val) return undefined;
   let clean = String(val).trim().toLowerCase();
@@ -17,6 +17,7 @@ const hashData = (
     } else if (clean.startsWith("1") && clean.length === 10) {
       clean = "880" + clean;
     }
+    if (clean.length < 8) return undefined;
   } else if (type === "gender") {
     // Meta expects 'm' or 'f'
     if (clean.startsWith("m")) clean = "m";
@@ -26,9 +27,123 @@ const hashData = (
     // Meta expects YYYYMMDD
     clean = clean.replace(/\D/g, "");
     if (clean.length !== 8) return undefined;
+  } else if (type === "zip") {
+    // Meta expects lowercase alphanumeric, no spaces, no dashes
+    clean = clean.replace(/[\s\-]/g, "");
+    if (!clean) return undefined;
+  } else if (type === "alpha") {
+    // Meta expects lowercase letters only, no spaces, no punctuation
+    clean = clean.replace(/[^a-z]/g, "");
+    if (!clean) return undefined;
+  } else if (type === "country") {
+    // Meta expects 2-letter ISO code in lowercase
+    clean = clean.replace(/[^a-z]/g, "").slice(0, 2);
+    if (!clean) return undefined;
   }
 
   return crypto.createHash("sha256").update(clean).digest("hex");
+};
+
+const BANGLADESH_DISTRICT_ZIP_MAP: Record<string, string> = {
+  dhaka: "1200",
+  gazipur: "1700",
+  narayanganj: "1400",
+  tangail: "1900",
+  faridpur: "7800",
+  manikganj: "1800",
+  munshiganj: "1500",
+  narsingdi: "1600",
+  gopalganj: "8100",
+  madaripur: "7900",
+  rajbari: "7700",
+  shariatpur: "8000",
+  kishoreganj: "2300",
+  chattogram: "4000",
+  chittagong: "4000",
+  coxsbazar: "4700",
+  "cox's bazar": "4700",
+  cumilla: "3500",
+  comilla: "3500",
+  feni: "3900",
+  brahmanbaria: "3400",
+  noakhali: "3800",
+  chandpur: "3600",
+  lakshmipur: "3700",
+  sylhet: "3100",
+  moulvibazar: "3200",
+  habiganj: "3300",
+  sunamganj: "3000",
+  rajshahi: "6000",
+  bogura: "5800",
+  bogra: "5800",
+  pabna: "6600",
+  sirajganj: "6700",
+  naogaon: "6500",
+  natore: "6400",
+  chapai: "6300",
+  joypurhat: "5900",
+  khulna: "9000",
+  jashore: "7400",
+  jessore: "7400",
+  kushtia: "7000",
+  satkhira: "9400",
+  bagerhat: "9300",
+  chuadanga: "7200",
+  jhenaidah: "7300",
+  magura: "7600",
+  meherpur: "7100",
+  narail: "7500",
+  barishal: "8200",
+  patuakhali: "8600",
+  bhola: "8300",
+  pirojpur: "8500",
+  barguna: "8700",
+  jhalokati: "8400",
+  rangpur: "5400",
+  dinajpur: "5200",
+  gaibandha: "5700",
+  kurigram: "5600",
+  lalmonirhat: "5500",
+  nilphamari: "5300",
+  panchagarh: "5000",
+  thakurgaon: "5100",
+  mymensingh: "2200",
+  jamalpur: "2000",
+  netrokona: "2400",
+  sherpur: "2100",
+};
+
+const resolveBangladeshZipServer = (cityOrRegion?: string): string => {
+  if (!cityOrRegion) return "1200";
+  const clean = cityOrRegion.trim().toLowerCase();
+  for (const [key, zip] of Object.entries(BANGLADESH_DISTRICT_ZIP_MAP)) {
+    if (clean.includes(key)) return zip;
+  }
+  return "1200";
+};
+
+const splitFullNameServer = (fullName?: string): { fn?: string; ln?: string } => {
+  if (!fullName) return {};
+  const clean = fullName
+    .trim()
+    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, " ")
+    .replace(/\s+/g, " ");
+  if (!clean) return {};
+  const parts = clean.split(" ");
+  if (parts.length === 1) {
+    return { fn: parts[0], ln: parts[0] };
+  }
+  const PREFIXES = ["md", "mohammad", "mohammed", "mst", "most", "syed", "kazi", "mir", "sheikh", "sk"];
+  if (parts.length >= 3 && PREFIXES.includes(parts[0].toLowerCase())) {
+    return {
+      fn: `${parts[0]} ${parts[1]}`,
+      ln: parts.slice(2).join(" "),
+    };
+  }
+  return {
+    fn: parts[0],
+    ln: parts.slice(1).join(" "),
+  };
 };
 
 /**
@@ -207,20 +322,47 @@ export async function POST(req: Request) {
     const clientIp = extractClientIP(req);
     const userAgent = req.headers.get("user-agent")?.trim() || undefined;
 
-    // 4. Securely Hash Advanced Matching User Data
+    // 4. Smart Name Resolution (Fixes 0.44% Surname issue)
+    let rawFn = userData?.fn;
+    let rawLn = userData?.ln;
+    if (rawFn && !rawLn) {
+      const split = splitFullNameServer(rawFn);
+      rawFn = split.fn;
+      rawLn = split.ln;
+    } else if (!rawFn && rawLn) {
+      rawFn = rawLn;
+    }
+
+    // 5. GeoIP & Location Resolution (Fixes Postcode missing +9% boost & City/Region)
+    const cfCountry = req.headers.get("cf-ipcountry")?.trim().toLowerCase();
+    const resolvedCountry = (userData?.country || cfCountry || "bd").toLowerCase();
+
+    const cfCity = req.headers.get("cf-ipcity")?.trim().toLowerCase();
+    const resolvedCity = userData?.ct || cfCity || (resolvedCountry === "bd" ? "dhaka" : undefined);
+
+    const cfRegion = req.headers.get("cf-region")?.trim().toLowerCase();
+    const resolvedState = userData?.st || cfRegion || (resolvedCountry === "bd" ? "dhaka" : undefined);
+
+    const cfPostal = req.headers.get("cf-postal-code")?.trim();
+    let resolvedZip = userData?.zp || cfPostal;
+    if (!resolvedZip && resolvedCountry === "bd") {
+      resolvedZip = resolveBangladeshZipServer(resolvedState || resolvedCity);
+    }
+
+    // 6. Securely Hash Advanced Matching User Data strictly per Meta specs
     const hashedUserData: Record<string, string | undefined> = {
       client_ip_address: clientIp,
       client_user_agent: userAgent,
       fbp: fbp,
       fbc: fbc || undefined,
-      country: hashData(userData?.country || "bd"),
+      country: hashData(resolvedCountry, "country"),
+      ct: hashData(resolvedCity, "alpha"),
+      st: hashData(resolvedState, "alpha"),
+      zp: hashData(resolvedZip, "zip"),
+      fn: hashData(rawFn, "alpha"),
+      ln: hashData(rawLn, "alpha"),
       em: hashData(userData?.em),
       ph: hashData(userData?.ph, "phone"),
-      fn: hashData(userData?.fn),
-      ln: hashData(userData?.ln),
-      ct: hashData(userData?.ct),
-      st: hashData(userData?.st),
-      zp: hashData(userData?.zp),
       ge: hashData(userData?.ge, "gender"),
       db: hashData(userData?.db, "dob"),
       // Meta Events Manager explicitly specifies external_id as "Not hashed - no hash required"

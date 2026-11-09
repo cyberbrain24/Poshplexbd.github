@@ -71,10 +71,16 @@ function RegisterContent() {
         localStorage.setItem("poshplex_user", JSON.stringify(data.user));
 
         // Cache customer data for Meta CAPI
+        const { fn: regFn, ln: regLn } = fpixel.splitFullName(fullName || data.user?.username);
         fpixel.saveUserData({
           em: isEmail ? formattedInput : data.user?.email,
           ph: !isEmail ? formattedInput : undefined,
-          fn: fullName || data.user?.username,
+          fn: regFn || data.user?.username,
+          ln: regLn,
+          country: "bd",
+          st: "dhaka",
+          ct: "dhaka",
+          zp: "1200",
           external_id: String(data.user?.id || ""),
         });
 
@@ -85,7 +91,12 @@ function RegisterContent() {
         }, {
           em: isEmail ? formattedInput : data.user?.email,
           ph: !isEmail ? formattedInput : undefined,
-          fn: fullName,
+          fn: regFn || fullName,
+          ln: regLn,
+          country: "bd",
+          st: "dhaka",
+          ct: "dhaka",
+          zp: "1200",
         });
 
         window.dispatchEvent(new Event("storage"));

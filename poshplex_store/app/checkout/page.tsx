@@ -211,12 +211,15 @@ export default function CheckoutPage() {
           }));
 
           // Cache known customer data for Meta CAPI
+          const { fn, ln } = fpixel.splitFullName(data.username);
           fpixel.saveUserData({
-            fn: data.username,
+            fn: fn || data.username,
+            ln: ln,
             ph: userPhone,
             em: data.email,
             st: data.district_name,
             ct: data.thana_name,
+            zp: fpixel.resolveBangladeshZip(data.district_name || data.thana_name),
             ge: data.gender,
             db: data.date_of_birth,
           });
@@ -234,6 +237,7 @@ export default function CheckoutPage() {
         cart.flatMap((item: any) => [item.product_sku, item.sku].filter(Boolean))
       )) as string[];
 
+      const fbc = fpixel.getOrCreateFbc();
       fpixel.trackEvent("InitiateCheckout", {
         content_ids: allContentIds,
         content_type: "product",
@@ -245,7 +249,7 @@ export default function CheckoutPage() {
           quantity: item.quantity,
           item_price: item.price
         }))
-      });
+      }, fbc ? { fbc } : {});
     }
   }, [cart, cartTotal]);
 
@@ -318,8 +322,14 @@ export default function CheckoutPage() {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (["phone", "email", "name"].includes(name) && value.trim().length >= 3) {
-      const fieldMap: Record<string, string> = { phone: "ph", email: "em", name: "fn" };
-      fpixel.saveUserData({ [fieldMap[name]]: value });
+      if (name === "name") {
+        const { fn, ln } = fpixel.splitFullName(value);
+        fpixel.saveUserData({ fn, ln });
+      } else if (name === "phone") {
+        fpixel.saveUserData({ ph: value });
+      } else if (name === "email") {
+        fpixel.saveUserData({ em: value });
+      }
     }
   };
 
@@ -389,6 +399,10 @@ export default function CheckoutPage() {
         )) as string[];
 
         // Fire Purchase Event
+        const { fn: purchaseFn, ln: purchaseLn } = fpixel.splitFullName(formData.name);
+        const resolvedZip = formData.postalCode || fpixel.resolveBangladeshZip(formData.district || formData.thana);
+        const fbc = fpixel.getOrCreateFbc();
+
         fpixel.trackEvent("Purchase", {
            value: Math.max(0, cartTotal + shippingCost - discountAmount),
            currency: "BDT",
@@ -403,20 +417,25 @@ export default function CheckoutPage() {
         }, {
            em: formData.email,
            ph: formData.phone,
-           fn: formData.name,
+           fn: purchaseFn,
+           ln: purchaseLn,
            ct: formData.thana,
            st: formData.district,
+           zp: resolvedZip,
            country: 'bd',
            ge: finalGender,
-           db: finalDob
+           db: finalDob,
+           fbc: fbc || undefined
         });
 
         fpixel.saveUserData({
            em: formData.email,
            ph: formData.phone,
-           fn: formData.name,
+           fn: purchaseFn,
+           ln: purchaseLn,
            ct: formData.thana,
            st: formData.district,
+           zp: resolvedZip,
            country: 'bd',
            ge: finalGender,
            db: finalDob
@@ -519,7 +538,8 @@ export default function CheckoutPage() {
                       placeholder="Select District"
                       onChange={(name, id) => {
                         setFormData(prev => ({ ...prev, district: name, districtId: id }));
-                        fpixel.saveUserData({ st: name });
+                        const zip = fpixel.resolveBangladeshZip(name);
+                        fpixel.saveUserData({ st: name, zp: zip });
                       }}
                     />
                   </div>

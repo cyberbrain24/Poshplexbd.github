@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
+import * as fpixel from "@/lib/fpixel";
 
 export default function SocialLogin() {
   const router = useRouter();
@@ -55,6 +56,25 @@ export default function SocialLogin() {
         const data = await res.json();
         localStorage.setItem("poshplex_access_token", data.access_token);
         localStorage.setItem("poshplex_user", JSON.stringify(data.user));
+
+        const rawName = data.user?.first_name 
+          ? `${data.user.first_name} ${data.user.last_name || ""}`.trim() 
+          : (data.user?.username || "");
+        const { fn: socialFn, ln: socialLn } = fpixel.splitFullName(rawName);
+        fpixel.saveUserData({
+          em: data.user?.email,
+          ph: data.user?.phone || data.user?.phone_number,
+          fn: socialFn || data.user?.username,
+          ln: socialLn || data.user?.last_name,
+          country: "bd",
+          st: data.user?.district,
+          ct: data.user?.thana,
+          zp: data.user?.postal_code || fpixel.resolveBangladeshZip(data.user?.district || data.user?.thana),
+          ge: data.user?.gender,
+          db: data.user?.date_of_birth,
+          external_id: String(data.user?.id || ""),
+        });
+
         window.dispatchEvent(new Event("storage"));
         router.push(nextUrl);
       } else {

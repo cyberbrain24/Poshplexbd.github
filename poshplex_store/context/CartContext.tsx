@@ -60,6 +60,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Fire FB AddToCart event with both product_sku (for Meta Catalog match) and variant sku
     const contentIds = Array.from(new Set([item.product_sku, item.sku].filter(Boolean))) as string[];
+    const fbc = fpixel.getOrCreateFbc();
     fpixel.trackEvent("AddToCart", {
       content_ids: contentIds,
       content_name: item.name,
@@ -71,7 +72,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         quantity: item.quantity,
         item_price: item.price
       }]
-    });
+    }, fbc ? { fbc } : {});
 
     // Show toast then open drawer
     setToastItem(item);
