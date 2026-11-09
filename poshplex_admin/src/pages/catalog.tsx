@@ -18,7 +18,8 @@ import {
   arrayMove,
   useSortable,
   horizontalListSortingStrategy,
-  verticalListSortingStrategy
+  verticalListSortingStrategy,
+  rectSortingStrategy
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -53,7 +54,7 @@ const DraggableUploadListItem = ({ originNode, file }: DraggableUploadListItemPr
   );
 };
 
-interface SortableFeaturedRowProps {
+interface SortableFeaturedCardProps {
   product: any;
   index: number;
   onRemove: (id: number) => void;
@@ -61,7 +62,7 @@ interface SortableFeaturedRowProps {
   onEdit: (product: any) => void;
 }
 
-const SortableFeaturedRow: React.FC<SortableFeaturedRowProps> = ({
+const SortableFeaturedCard: React.FC<SortableFeaturedCardProps> = ({
   product,
   index,
   onRemove,
@@ -81,104 +82,169 @@ const SortableFeaturedRow: React.FC<SortableFeaturedRowProps> = ({
     transform: CSS.Transform.toString(transform),
     transition,
     zIndex: isDragging ? 9999 : "auto",
-    opacity: isDragging ? 0.6 : 1,
-    background: isDragging ? "rgba(30, 27, 75, 0.9)" : "rgba(17, 17, 26, 0.8)",
-    border: isDragging ? "1px solid #7c3aed" : "1px solid var(--border-glass, rgba(255,255,255,0.08))",
-    borderRadius: 6,
-    marginBottom: 8,
-    padding: "10px 14px",
+    opacity: isDragging ? 0.45 : 1,
+    background: isDragging ? "rgba(30, 27, 75, 0.95)" : "rgba(17, 17, 26, 0.85)",
+    border: isDragging ? "2px dashed #7c3aed" : "1px solid var(--border-glass, rgba(255,255,255,0.08))",
+    borderRadius: 8,
+    padding: "10px",
     display: "flex",
-    alignItems: "center",
+    flexDirection: "column",
     justifyContent: "space-between",
-    boxShadow: isDragging ? "0 8px 24px rgba(0,0,0,0.5)" : "none",
+    boxShadow: isDragging ? "0 12px 32px rgba(124, 58, 237, 0.4)" : "0 2px 8px rgba(0,0,0,0.25)",
     userSelect: "none",
+    position: "relative",
+    backdropFilter: "blur(8px)",
   };
 
   const main = product.images?.find((img: any) => img.is_main) || product.images?.[0];
   const prices = product.variants?.map((v: any) => v.selling_price) || [];
   const minPrice = prices.length ? Math.min(...prices) : product.base_price || 0;
 
+  // Rank badge color logic: #1 Gold, #2-3 Purple, #4+ Glass Dark
+  const rankBg = index === 0 
+    ? "linear-gradient(135deg, #f59e0b, #d97706)" 
+    : index < 3 
+      ? "#7c3aed" 
+      : "rgba(255,255,255,0.12)";
+  const rankColor = index === 0 ? "#000" : "#fff";
+
   return (
     <div ref={setNodeRef} style={style}>
-      <Space size="middle" align="center" style={{ flex: 1, minWidth: 0 }}>
-        {/* Mouse Drag Handle */}
-        <div
-          {...attributes}
-          {...listeners}
-          style={{
-            cursor: "grab",
-            padding: "6px 8px",
-            borderRadius: 4,
-            background: "rgba(255,255,255,0.06)",
-            display: "flex",
-            alignItems: "center",
-            touchAction: "none",
-          }}
-          title="Drag up or down with mouse to change homepage serial rank"
-        >
-          <HolderOutlined style={{ fontSize: 18, color: "var(--text-muted, #9ca3af)" }} />
-        </div>
-
-        {/* Serial Rank Badge */}
-        <div
-          style={{
-            minWidth: 38,
-            height: 26,
-            borderRadius: 4,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontWeight: 800,
-            fontSize: 12,
-            background: index === 0 ? "#faad14" : (index < 3 ? "#7c3aed" : "rgba(255,255,255,0.1)"),
-            color: index === 0 ? "#000" : "#fff",
-            letterSpacing: 0.5
-          }}
-          title={`Homepage Serial Rank #${index + 1}`}
-        >
-          #{index + 1}
-        </div>
-
-        {/* Main Thumbnail */}
-        {main ? (
-          <img
-            src={main.url}
-            alt={product.name}
-            style={{ width: 44, height: 44, objectFit: "cover", borderRadius: 4, border: "1px solid rgba(255,255,255,0.1)" }}
-          />
-        ) : (
-          <div style={{ width: 44, height: 44, borderRadius: 4, background: "#1f2937", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#9ca3af" }}>
-            No Img
+      <div>
+        {/* Top Bar: Drag Grip and Serial Rank Badge */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <div
+            {...attributes}
+            {...listeners}
+            style={{
+              cursor: "grab",
+              padding: "4px 6px",
+              borderRadius: 4,
+              background: "rgba(255,255,255,0.06)",
+              display: "flex",
+              alignItems: "center",
+              touchAction: "none",
+            }}
+            title="Drag with mouse to reorder homepage featured rank"
+          >
+            <HolderOutlined style={{ fontSize: 14, color: "var(--text-muted, #9ca3af)" }} />
           </div>
-        )}
 
-        {/* Product Details */}
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 600, fontSize: 14, color: "#fff", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 360 }}>{product.name}</span>
-            <Tag color={product.product_type === "variable" ? "purple" : "blue"} style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px" }}>
+          <div
+            style={{
+              minWidth: 32,
+              height: 22,
+              padding: "0 6px",
+              borderRadius: 4,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontWeight: 800,
+              fontSize: 11,
+              background: rankBg,
+              color: rankColor,
+              letterSpacing: 0.5,
+              boxShadow: index === 0 ? "0 2px 8px rgba(245, 158, 11, 0.4)" : "none",
+            }}
+            title={`Homepage Serial Rank #${index + 1}`}
+          >
+            #{index + 1}
+          </div>
+        </div>
+
+        {/* Thumbnail with overlay tags */}
+        <div style={{ position: "relative", width: "100%", aspectRatio: "1 / 1", borderRadius: 6, overflow: "hidden", background: "#111827", marginBottom: 8 }}>
+          {main ? (
+            <img
+              src={main.url}
+              alt={product.name}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              loading="lazy"
+            />
+          ) : (
+            <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#6b7280" }}>
+              No Img
+            </div>
+          )}
+
+          {/* Type Badge & Sold Out */}
+          <div style={{ position: "absolute", bottom: 4, left: 4, display: "flex", gap: 4, flexWrap: "wrap" }}>
+            <Tag color={product.product_type === "variable" ? "purple" : "blue"} style={{ fontSize: 9, lineHeight: "14px", padding: "0 4px", margin: 0, border: "none" }}>
               {product.product_type?.toUpperCase()}
             </Tag>
-            {product.is_sold_out && <Tag color="error" style={{ fontSize: 10, lineHeight: "16px", padding: "0 4px" }}>SOLD OUT</Tag>}
-          </div>
-          <div style={{ fontSize: 12, color: "var(--text-muted, #9ca3af)", marginTop: 2, display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <span>SKU: <code style={{ color: "#e5e7eb" }}>{product.sku}</code></span>
-            <span>Price: <strong style={{ color: "#34d399" }}>৳{Math.round(minPrice)}</strong></span>
-            {product.categories?.length > 0 && (
-              <span>Category: {product.categories.map((c: any) => c.name).join(", ")}</span>
+            {product.is_sold_out && (
+              <Tag color="error" style={{ fontSize: 9, lineHeight: "14px", padding: "0 4px", margin: 0, border: "none" }}>
+                SOLD OUT
+              </Tag>
             )}
           </div>
         </div>
-      </Space>
 
-      {/* Action Buttons */}
-      <Space size="small">
+        {/* Product Title clamped to 2 lines with tooltip */}
+        <Tooltip title={product.name} placement="topLeft">
+          <div
+            style={{
+              fontWeight: 600,
+              fontSize: 12.5,
+              color: "#fff",
+              lineHeight: "17px",
+              height: 34,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              marginBottom: 4,
+            }}
+          >
+            {product.name}
+          </div>
+        </Tooltip>
+
+        {/* SKU & Category */}
+        <div style={{ fontSize: 11, color: "var(--text-muted, #9ca3af)", marginBottom: 2 }}>
+          SKU: <code style={{ color: "#d1d5db" }}>{product.sku}</code>
+        </div>
+        {product.categories && product.categories.length > 0 && (
+          <div
+            style={{
+              fontSize: 10.5,
+              color: "#9ca3af",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              marginBottom: 4,
+            }}
+            title={product.categories.map((c: any) => c.name).join(", ")}
+          >
+            {product.categories.map((c: any) => c.name).join(", ")}
+          </div>
+        )}
+
+        {/* Price */}
+        <div style={{ fontWeight: 700, fontSize: 13.5, color: "#34d399", marginBottom: 6 }}>
+          ৳{Math.round(minPrice)}
+        </div>
+      </div>
+
+      {/* Action Footer Bar */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderTop: "1px solid rgba(255,255,255,0.06)",
+          paddingTop: 6,
+          marginTop: 4,
+        }}
+      >
         <Tooltip title="Preview on Storefront">
           <Button
             type="text"
             size="small"
             icon={<EyeOutlined />}
             onClick={() => onPreview(product.slug)}
+            style={{ color: "#9ca3af", padding: "0 4px" }}
           />
         </Tooltip>
         <Tooltip title="Edit Drop Entry">
@@ -187,26 +253,28 @@ const SortableFeaturedRow: React.FC<SortableFeaturedRowProps> = ({
             size="small"
             icon={<EditOutlined />}
             onClick={() => onEdit(product)}
+            style={{ color: "#9ca3af", padding: "0 4px" }}
           />
         </Tooltip>
         <Popconfirm
-          title="Remove from Featured Drops?"
-          description="This product will no longer appear on the homepage featured drops."
+          title="Remove from Featured?"
+          description="Remove this product from homepage featured drops?"
           okText="Remove"
           cancelText="Cancel"
           okButtonProps={{ danger: true }}
           onConfirm={() => onRemove(product.id)}
         >
-          <Button
-            danger
-            type="text"
-            size="small"
-            icon={<DeleteOutlined />}
-          >
-            Remove
-          </Button>
+          <Tooltip title="Remove from Featured">
+            <Button
+              danger
+              type="text"
+              size="small"
+              icon={<DeleteOutlined />}
+              style={{ padding: "0 4px" }}
+            />
+          </Tooltip>
         </Popconfirm>
-      </Space>
+      </div>
     </div>
   );
 };
@@ -722,27 +790,167 @@ export const Catalog: React.FC = () => {
     }
   };
 
-  // Format Category Tree
+  // Format Category Tree with drag handle visual cue and actions
   const formatTreeData = (nodes: any[]): any[] => {
     return nodes.map((node) => ({
       title: (
-        <span style={{ display: 'flex', justifyContent: 'space-between', width: '330px', alignItems: 'center' }}>
-          <span>
-            {node.name}
-            {!node.is_active && <Tag color="default" style={{ marginLeft: 8 }}>Inactive</Tag>}
+        <span style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: 500, alignItems: 'center' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <HolderOutlined style={{ color: "var(--text-muted, #9ca3af)", fontSize: 13, cursor: "grab" }} title="Drag with mouse to reorder or move under another category" />
+            <span style={{ fontWeight: 500 }}>{node.name}</span>
+            {!node.is_active && <Tag color="default" style={{ marginLeft: 4, fontSize: 10 }}>Inactive</Tag>}
           </span>
-          <Space>
+          <Space size="small">
              <Switch checked={node.is_active} size="small" onChange={(checked, e) => { e.stopPropagation(); toggleCategoryActive(node, checked); }} />
-             <EditOutlined onClick={(e) => { e.stopPropagation(); openEditCategory(node); }} style={{ color: 'var(--ant-primary-color)', cursor: 'pointer' }} />
-             <Popconfirm title="Delete this category?" onConfirm={(e) => { e?.stopPropagation(); handleGenericDelete(`/categories/${node.id}`); }} onCancel={(e) => e?.stopPropagation()}><DeleteOutlined onClick={(e) => e.stopPropagation()} style={{ color: 'red', cursor: 'pointer' }} /></Popconfirm>
+             <Tooltip title="Edit Category">
+               <EditOutlined onClick={(e) => { e.stopPropagation(); openEditCategory(node); }} style={{ color: 'var(--ant-primary-color)', cursor: 'pointer' }} />
+             </Tooltip>
+             <Popconfirm title="Delete this category?" onConfirm={(e) => { e?.stopPropagation(); handleGenericDelete(`/categories/${node.id}`); }} onCancel={(e) => e?.stopPropagation()}>
+               <DeleteOutlined onClick={(e) => e.stopPropagation()} style={{ color: 'red', cursor: 'pointer' }} />
+             </Popconfirm>
           </Space>
         </span>
       ),
       key: node.id,
+      categoryNode: node,
       children: node.children && node.children.length ? formatTreeData(node.children) : [],
     }));
   };
   const treeData = formatTreeData(categories);
+
+  // Handle Category Tree mouse drag-and-drop reordering
+  const handleTreeDrop = async (info: any) => {
+    const dropKey = Number(info.node.key);
+    const dragKey = Number(info.dragNode.key);
+    const dropPos = (info.node.pos as string).split('-');
+    const dropPosition = info.dropPosition - Number(dropPos[dropPos.length - 1]);
+
+    // Helper: check if targetKey is a descendant of node to prevent cyclic references
+    const isDescendant = (node: any, targetKey: number): boolean => {
+      if (!node.children || !node.children.length) return false;
+      for (const child of node.children) {
+        if (child.id === targetKey) return true;
+        if (isDescendant(child, targetKey)) return true;
+      }
+      return false;
+    };
+
+    // Deep clone categories to manipulate
+    const data = JSON.parse(JSON.stringify(categories));
+
+    // Find drag node and remove it from its current position
+    let dragObj: any = null;
+    const findAndRemove = (list: any[], key: number): boolean => {
+      for (let i = 0; i < list.length; i++) {
+        if (list[i].id === key) {
+          dragObj = list[i];
+          list.splice(i, 1);
+          return true;
+        }
+        if (list[i].children && list[i].children.length) {
+          if (findAndRemove(list[i].children, key)) return true;
+        }
+      }
+      return false;
+    };
+
+    findAndRemove(data, dragKey);
+
+    if (!dragObj) return;
+
+    // Cycle check: Cannot drop into self or descendants
+    if (dragKey === dropKey || isDescendant(dragObj, dropKey)) {
+      message.warning("Cannot drop a category into its own subcategory hierarchy.");
+      return;
+    }
+
+    if (!info.dropToGap) {
+      // Dropped directly on node -> becomes child of dropKey
+      const insertAsChild = (list: any[], key: number): boolean => {
+        for (let i = 0; i < list.length; i++) {
+          if (list[i].id === key) {
+            list[i].children = list[i].children || [];
+            dragObj.parent_id = list[i].id;
+            list[i].children.push(dragObj);
+            return true;
+          }
+          if (list[i].children && list[i].children.length) {
+            if (insertAsChild(list[i].children, key)) return true;
+          }
+        }
+        return false;
+      };
+      insertAsChild(data, dropKey);
+    } else {
+      // Dropped into gap between nodes: before or after dropKey
+      let targetArr: any[] = [];
+      let targetIndex = -1;
+      let targetParentId: number | null = null;
+
+      const findTarget = (list: any[], key: number, parentId: number | null): boolean => {
+        for (let i = 0; i < list.length; i++) {
+          if (list[i].id === key) {
+            targetArr = list;
+            targetIndex = i;
+            targetParentId = parentId;
+            return true;
+          }
+          if (list[i].children && list[i].children.length) {
+            if (findTarget(list[i].children, key, list[i].id)) return true;
+          }
+        }
+        return false;
+      };
+
+      findTarget(data, dropKey, null);
+
+      if (targetIndex !== -1) {
+        dragObj.parent_id = targetParentId;
+        if (dropPosition === -1) {
+          // Drop before target
+          targetArr.splice(targetIndex, 0, dragObj);
+        } else {
+          // Drop after target
+          targetArr.splice(targetIndex + 1, 0, dragObj);
+        }
+      }
+    }
+
+    // Traverse new tree to assign sequential listing_order (0, 1, 2...) for all categories
+    const updates: Array<{ id: number; parent_id: number | null; listing_order: number }> = [];
+    const assignOrders = (list: any[], parentId: number | null) => {
+      list.forEach((item: any, idx: number) => {
+        item.parent_id = parentId;
+        item.listing_order = idx;
+        updates.push({
+          id: item.id,
+          parent_id: parentId,
+          listing_order: idx,
+        });
+        if (item.children && item.children.length) {
+          assignOrders(item.children, item.id);
+        }
+      });
+    };
+
+    assignOrders(data, null);
+
+    // Optimistically update local categories state
+    setCategories(data);
+
+    // Persist new ordering to backend API
+    try {
+      const token = getAuthToken();
+      await axios.post(`${API_URL}/categories/reorder`, { items: updates }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      message.success("Category tree ordering updated successfully!");
+    } catch (err: any) {
+      console.error("Failed to persist category order:", err);
+      message.error(err.response?.data?.message || err.response?.data?.detail || "Failed to update category order.");
+      loadMetadata(); // Revert back to server state on error
+    }
+  };
 
   // Duplicate product
   const handleDuplicate = async (id: number) => {
@@ -2149,22 +2357,31 @@ export const Catalog: React.FC = () => {
                 >
                   <SortableContext
                     items={featuredProducts.map(p => p.id)}
-                    strategy={verticalListSortingStrategy}
+                    strategy={rectSortingStrategy}
                   >
-                    <div style={{ maxWidth: 1000, margin: "0 auto", padding: "8px 0" }}>
-                      {featuredProducts.map((prod, idx) => (
-                        <SortableFeaturedRow
-                          key={prod.id}
-                          product={prod}
-                          index={idx}
-                          onRemove={(id) => handleToggleFeatured(id, false)}
-                          onPreview={(slug) => {
-                            const storeUrl = window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:3000';
-                            window.open(`${storeUrl}/product/${slug}`, "_blank");
-                          }}
-                          onEdit={(prodToEdit) => openEditModal(prodToEdit)}
-                        />
-                      ))}
+                    <div style={{ width: "100%", overflowX: "auto", padding: "8px 0" }}>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(6, minmax(160px, 1fr))",
+                          gap: 12,
+                          minWidth: 1020,
+                        }}
+                      >
+                        {featuredProducts.map((prod, idx) => (
+                          <SortableFeaturedCard
+                            key={prod.id}
+                            product={prod}
+                            index={idx}
+                            onRemove={(id) => handleToggleFeatured(id, false)}
+                            onPreview={(slug) => {
+                              const storeUrl = window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:3000';
+                              window.open(`${storeUrl}/product/${slug}`, "_blank");
+                            }}
+                            onEdit={(prodToEdit) => openEditModal(prodToEdit)}
+                          />
+                        ))}
+                      </div>
                     </div>
                   </SortableContext>
                 </DndContext>
@@ -2176,19 +2393,34 @@ export const Catalog: React.FC = () => {
         /* TAB 2: Categories tree hierarchy */
         { label: <span><FolderOpenOutlined /> Structure Tree</span>, key: "2", children: (
           <Card 
-            title="Structural Categories Tree"
+            title={
+              <Space>
+                <span>Structural Categories Tree</span>
+                <Tag color="purple" style={{ fontSize: 11, borderRadius: 4, border: "none" }}>
+                  <HolderOutlined style={{ marginRight: 4 }} /> Drag & Drop Reordering
+                </Tag>
+              </Space>
+            }
             extra={
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingCategory(null); categoryForm.resetFields(); setIsCategoryModalOpen(true); }} style={{ borderRadius: 0 }}>
-                Create Category
-              </Button>
+              <Space>
+                <Button icon={<ReloadOutlined />} onClick={loadMetadata} style={{ borderRadius: 0 }}>
+                  Refresh
+                </Button>
+                <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingCategory(null); categoryForm.resetFields(); setIsCategoryModalOpen(true); }} style={{ borderRadius: 0 }}>
+                  Create Category
+                </Button>
+              </Space>
             }
           >
             {treeData.length ? (
               <Tree
                 showLine
+                draggable
+                blockNode
                 defaultExpandAll
                 treeData={treeData}
-                style={{ background: "transparent", color: "var(--text-main)", fontSize: 16 }}
+                onDrop={handleTreeDrop}
+                style={{ background: "transparent", color: "var(--text-main)", fontSize: 15 }}
               />
             ) : (
               <span style={{ color: "var(--text-muted)" }}>No Category configurations defined.</span>

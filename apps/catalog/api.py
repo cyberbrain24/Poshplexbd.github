@@ -1000,6 +1000,36 @@ class CategoryInputSchema(Schema):
     is_active: Optional[bool] = True
     listing_order: int = 0
 
+class CategoryReorderItemSchema(Schema):
+    id: int
+    parent_id: Optional[int] = None
+    listing_order: int
+
+class CategoryReorderSchema(Schema):
+    items: List[CategoryReorderItemSchema]
+
+@router.post("/categories/reorder", auth=BearerAuth())
+@router.post("/categories/reorder/", auth=BearerAuth())
+def reorder_categories(request, data: CategoryReorderSchema):
+    """
+    Batch update category ordering and parent-child hierarchy from drag-and-drop tree.
+    Protected by RBAC 'edit_catalog' permission.
+    """
+    enforce_permission(request, "catalog", "edit_catalog")
+    with transaction.atomic():
+        for item in data.items:
+            Category.objects.filter(id=item.id).update(
+                parent_id=item.parent_id,
+                listing_order=item.listing_order
+            )
+    # Invalidate cached category tree hierarchies and product listings
+    from apps.catalog.services import cache
+    cache.delete("category_tree")
+    cache.delete("category_tree_all")
+    if hasattr(cache, 'delete_pattern'):
+        cache.delete_pattern("products_list_*")
+    return {"success": True, "updated_count": len(data.items)}
+
 @router.post("/categories", auth=BearerAuth())
 def create_category(request, data: CategoryInputSchema):
     enforce_permission(request, "catalog", "edit_catalog")
@@ -1013,6 +1043,9 @@ def create_category(request, data: CategoryInputSchema):
             is_active=data.is_active,
             listing_order=data.listing_order
         )
+        from apps.catalog.services import cache
+        cache.delete("category_tree")
+        cache.delete("category_tree_all")
         return {"id": cat.id}
     except (ValidationError, IntegrityError) as e:
         msg = e.message if hasattr(e, "message") else str(e)
@@ -1035,6 +1068,9 @@ def update_category(request, cat_id: int, data: CategoryInputSchema):
         cat.is_active = data.is_active
         cat.listing_order = data.listing_order
         cat.save()
+        from apps.catalog.services import cache
+        cache.delete("category_tree")
+        cache.delete("category_tree_all")
         return {"success": True}
     except (ValidationError, IntegrityError) as e:
         msg = e.message if hasattr(e, "message") else str(e)
@@ -1048,6 +1084,9 @@ def delete_category(request, cat_id: int):
     cat = get_object_or_404(Category, id=cat_id)
     try:
         cat.delete()
+        from apps.catalog.services import cache
+        cache.delete("category_tree")
+        cache.delete("category_tree_all")
         return {"success": True}
     except (ValidationError, IntegrityError) as e:
         msg = e.message if hasattr(e, "message") else str(e)
