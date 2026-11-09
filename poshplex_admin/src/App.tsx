@@ -38,6 +38,7 @@ const MetaAgentPage = React.lazy(() => import("./pages/marketing").then(m => ({ 
 const CompetitorSpyPage = React.lazy(() => import("./pages/marketing").then(m => ({ default: m.CompetitorSpyPage })));
 const ApiIntegrationPage = React.lazy(() => import("./pages/marketing").then(m => ({ default: m.ApiIntegrationPage })));
 const FitCheckPage = React.lazy(() => import("./pages/fit-check"));
+const OrderAnalyticsPage = React.lazy(() => import("./pages/order-analytics"));
 
 
 
@@ -137,6 +138,7 @@ export const App: React.FC = () => {
                   <Route path="/fit-check" element={<FitCheckPage />} />
                   <Route path="/reports" element={<ReportsPage />} />
                   <Route path="/orders" element={<Orders />} />
+                  <Route path="/order-analytics" element={<OrderAnalyticsPage />} />
                   <Route path="/fulfillment" element={<Fulfillment />} />
                   <Route path="/promo-codes" element={<PromoCodes />} />
                   <Route path="/catalog" element={<Catalog />} />

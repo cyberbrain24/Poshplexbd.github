@@ -57,6 +57,7 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
     { key: "/", icon: <DashboardOutlined />, label: "Dashboard", module: null },
     { key: "/reports", icon: <BarChartOutlined />, label: "Sales Reports", module: "report" },
     { key: "/orders", icon: <ShoppingCartOutlined />, label: "Orders Queue", module: "orders" },
+    { key: "/order-analytics", icon: <ThunderboltOutlined style={{ color: "#a855f7" }} />, label: "Order Analytics", module: "orders" },
     { key: "/printing", icon: <PrinterOutlined />, label: "Printing Queue", module: "orders" },
     { key: "/fulfillment", icon: <CarOutlined />, label: "Fulfillment Queue", module: "orders" },
     { key: "/crm", icon: <TeamOutlined />, label: "CRM Profiles", module: "crm" },

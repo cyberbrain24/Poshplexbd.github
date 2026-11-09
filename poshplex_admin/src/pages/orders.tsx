@@ -8,6 +8,7 @@ import {
   PrinterOutlined, PlusOutlined, ShoppingOutlined, EyeOutlined, SyncOutlined, DeleteOutlined, GiftOutlined, CloseCircleOutlined, EditOutlined, WhatsAppOutlined, SaveOutlined, PhoneOutlined, WarningOutlined, SafetyCertificateOutlined, ThunderboltOutlined
 } from "@ant-design/icons";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import { getOrderLocationZone } from "../utils/orderUtils";
 import { SteadfastRiskCard, OrderCardRiskBadge } from "../components/SteadfastRiskCard";
 import { OrderPulseTag } from "../components/OrderPulseTag";
@@ -26,6 +27,7 @@ const isValidPhone = (phone: string | undefined | null) => {
 };
 
 export const Orders: React.FC = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("placed");
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -779,7 +781,7 @@ export const Orders: React.FC = () => {
               gap: 6
             }} 
             icon={<ThunderboltOutlined style={{ color: '#a5b4fc' }} />}
-            onClick={() => setIsPulseDrawerOpen(true)}
+            onClick={() => navigate("/order-analytics")}
           >
             OrderPulse Analytics
           </Button>
