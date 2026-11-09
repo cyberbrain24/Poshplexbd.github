@@ -388,6 +388,21 @@ def list_customers_endpoint(request, search: Optional[str] = None):
     return results
 
 
+class DeliveryRiskBatchInputSchema(Schema):
+    phones: List[str]
+
+
+@router.post("/delivery-risk/batch", auth=BearerAuth())
+def get_delivery_risk_batch_endpoint(request, data: DeliveryRiskBatchInputSchema):
+    """
+    Check Steadfast delivery risk and fraud scores for multiple customer phone numbers
+    in a single batch call. Results are cached in Redis/cache and returned as a phone-keyed map.
+    """
+    enforce_permission(request, "orders", "view_orders")
+    from apps.orders.services import check_steadfast_delivery_risk_batch
+    return check_steadfast_delivery_risk_batch(data.phones)
+
+
 @router.get("/delivery-risk/{phone}", auth=BearerAuth())
 def get_delivery_risk_endpoint(request, phone: str):
     """

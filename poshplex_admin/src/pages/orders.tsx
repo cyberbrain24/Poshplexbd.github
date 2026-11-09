@@ -9,7 +9,7 @@ import {
 } from "@ant-design/icons";
 import axios from "axios";
 import { getOrderLocationZone } from "../utils/orderUtils";
-import { SteadfastRiskCard } from "../components/SteadfastRiskCard";
+import { SteadfastRiskCard, OrderCardRiskBadge } from "../components/SteadfastRiskCard";
 
 const API_URL = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/orders";
 const CATALOG_API_URL = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/catalog";
@@ -44,6 +44,10 @@ export const Orders: React.FC = () => {
   
   // Active Phone WhatsApp toggles
   const [activePhones, setActivePhones] = useState<Record<number, boolean>>({});
+
+  // Steadfast Delivery Risk scores cache for current orders
+  const [deliveryRiskMap, setDeliveryRiskMap] = useState<Record<string, any>>({});
+  const [loadingRiskMap, setLoadingRiskMap] = useState<boolean>(false);
 
   const handleSaveCallNote = async (id: number) => {
     const note = callNotes[id];
@@ -171,6 +175,37 @@ export const Orders: React.FC = () => {
       console.error("Failed loading metadata", err);
     }
   };
+
+  // Batch fetch Steadfast delivery risk for orders on the current page
+  useEffect(() => {
+    if (!orders || orders.length === 0) return;
+
+    const phonesToFetch: string[] = [];
+    orders.forEach((o: any) => {
+      let ph = (o.shipping_phone || o.customer_phone || "").replace(/\D/g, "");
+      if (ph.startsWith("8801") && ph.length === 13) ph = ph.slice(2);
+      else if (ph.startsWith("008801") && ph.length === 15) ph = ph.slice(4);
+      if (ph.length >= 10 && !deliveryRiskMap[ph] && !phonesToFetch.includes(ph)) {
+        phonesToFetch.push(ph);
+      }
+    });
+
+    if (phonesToFetch.length === 0) return;
+
+    setLoadingRiskMap(true);
+    const token = localStorage.getItem("poshplex_access_token") || localStorage.getItem("poshplex_token") || "admin_imran";
+    axios.post(`${API_URL}/delivery-risk/batch`, { phones: phonesToFetch }, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).then(res => {
+      if (res.data) {
+        setDeliveryRiskMap(prev => ({ ...prev, ...res.data }));
+      }
+    }).catch(err => {
+      console.error("Batch delivery risk fetch error:", err);
+    }).finally(() => {
+      setLoadingRiskMap(false);
+    });
+  }, [orders]);
 
   // Search CRM customers
   const fetchCrmCustomers = async (search: string) => {
@@ -623,59 +658,21 @@ export const Orders: React.FC = () => {
     {
       title: "Delivery Risk",
       key: "delivery_risk",
-      width: 130,
+      width: 140,
       render: (_: any, rec: any) => {
         const ph = rec.shipping_phone || rec.customer_phone;
         if (!ph) return <span style={{ color: "#9ca3af" }}>-</span>;
+        let clean = ph.replace(/\D/g, "");
+        if (clean.startsWith("8801") && clean.length === 13) clean = clean.slice(2);
+        else if (clean.startsWith("008801") && clean.length === 15) clean = clean.slice(4);
+        const risk = deliveryRiskMap[clean];
+
         return (
-          <Popover
-            trigger="hover"
-            placement="rightTop"
-            mouseEnterDelay={0.15}
-            mouseLeaveDelay={0.2}
-            overlayInnerStyle={{
-              background: "#121212",
-              border: "1px solid #2e2e2e",
-              borderRadius: 16,
-              padding: "12px 14px",
-              boxShadow: "0 12px 32px rgba(0,0,0,0.6)"
-            }}
-            content={
-              <div style={{ width: 440 }}>
-                <div style={{ 
-                  fontSize: 11, 
-                  fontWeight: 800, 
-                  color: "#9ca3af", 
-                  letterSpacing: "0.8px", 
-                  marginBottom: 8, 
-                  textTransform: "uppercase" 
-                }}>
-                  STEADFAST DELIVERY RISK & MERCHANT REPORTS
-                </div>
-                <SteadfastRiskCard phone={ph} compact />
-              </div>
-            }
-          >
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: "#10b981",
-                backgroundColor: "rgba(16, 185, 129, 0.12)",
-                border: "1px solid rgba(16, 185, 129, 0.3)",
-                padding: "2px 8px",
-                borderRadius: 4,
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-                lineHeight: "16px",
-                userSelect: "none"
-              }}
-            >
-              <SafetyCertificateOutlined style={{ fontSize: 11 }} /> Risk Check
-            </span>
-          </Popover>
+          <OrderCardRiskBadge
+            phone={ph}
+            data={risk}
+            loading={loadingRiskMap && !risk}
+          />
         );
       }
     },
@@ -844,7 +841,7 @@ export const Orders: React.FC = () => {
                 <div style={{ fontSize: 13, marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {order.shipping_name || order.customer_name}
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 'bold', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: 13, fontWeight: 'bold', marginBottom: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <span>{order.customer_phone}</span>
                     {!isValidPhone(order.shipping_phone || order.customer_phone) && (
@@ -854,57 +851,6 @@ export const Orders: React.FC = () => {
                     )}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {(order.shipping_phone || order.customer_phone) && (
-                      <Popover
-                        trigger="hover"
-                        placement="rightTop"
-                        mouseEnterDelay={0.15}
-                        mouseLeaveDelay={0.2}
-                        overlayInnerStyle={{
-                          background: "#121212",
-                          border: "1px solid #2e2e2e",
-                          borderRadius: 16,
-                          padding: "12px 14px",
-                          boxShadow: "0 12px 32px rgba(0,0,0,0.6)"
-                        }}
-                        content={
-                          <div style={{ width: 440 }}>
-                            <div style={{ 
-                              fontSize: 11, 
-                              fontWeight: 800, 
-                              color: "#9ca3af", 
-                              letterSpacing: "0.8px", 
-                              marginBottom: 8, 
-                              textTransform: "uppercase" 
-                            }}>
-                              STEADFAST DELIVERY RISK & MERCHANT REPORTS
-                            </div>
-                            <SteadfastRiskCard phone={order.shipping_phone || order.customer_phone} compact />
-                          </div>
-                        }
-                      >
-                        <span
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 700,
-                            color: "#10b981",
-                            backgroundColor: "rgba(16, 185, 129, 0.12)",
-                            border: "1px solid rgba(16, 185, 129, 0.3)",
-                            padding: "1px 6px",
-                            borderRadius: 4,
-                            cursor: "pointer",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 3,
-                            lineHeight: "15px",
-                            whiteSpace: "nowrap",
-                            userSelect: "none"
-                          }}
-                        >
-                          <SafetyCertificateOutlined style={{ fontSize: 10 }} /> Risk Check
-                        </span>
-                      </Popover>
-                    )}
                     {activePhones[order.id] ? (
                       <PhoneOutlined 
                         style={{ color: '#25D366', cursor: 'pointer', fontSize: 15 }} 
@@ -918,6 +864,20 @@ export const Orders: React.FC = () => {
                     )}
                   </div>
                 </div>
+
+                {/* Embedded Steadfast Delivery Risk Box */}
+                {(() => {
+                  let ph = (order.shipping_phone || order.customer_phone || "").replace(/\D/g, "");
+                  if (ph.startsWith("8801") && ph.length === 13) ph = ph.slice(2);
+                  else if (ph.startsWith("008801") && ph.length === 15) ph = ph.slice(4);
+                  return (
+                    <OrderCardRiskBadge 
+                      phone={order.shipping_phone || order.customer_phone} 
+                      data={deliveryRiskMap[ph]} 
+                      loading={loadingRiskMap && !deliveryRiskMap[ph]} 
+                    />
+                  );
+                })()}
 
                 {order.customer_notes && (
                   <Tooltip title={order.customer_notes} placement="top">

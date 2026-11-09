@@ -90,6 +90,7 @@ export default function ProductDetailClient({
       const priceVal = parseFloat(product.selling_price || product.price || product.base_price || 0);
 
       const fireViewContent = () => {
+        const fbc = fpixel.getOrCreateFbc();
         fpixel.trackEvent("ViewContent", {
           content_name: product.name,
           content_ids: [catalogId],
@@ -101,7 +102,7 @@ export default function ProductDetailClient({
             quantity: 1,
             item_price: priceVal
           }]
-        });
+        }, fbc ? { fbc } : {});
       };
 
       if (typeof window !== "undefined" && "requestIdleCallback" in window) {

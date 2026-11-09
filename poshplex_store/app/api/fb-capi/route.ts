@@ -166,19 +166,35 @@ export async function POST(req: Request) {
       newCookies.push({ name: "_fbp", value: fbp, maxAge: 31536000 });
     }
 
-    // Fallback: Extract fbclid from eventSourceUrl to construct valid _fbc
-    if (!fbc && eventSourceUrl) {
-      try {
-        const parsedUrl = new URL(eventSourceUrl);
-        const fbclid = parsedUrl.searchParams.get("fbclid");
-        if (fbclid) {
-          // Meta requires creation time in milliseconds (13 digits)
-          fbc = `fb.1.${Date.now()}.${fbclid}`;
-          newCookies.push({ name: "_fbc", value: fbc, maxAge: 7776000 });
-        }
-      } catch {
-        // ignore malformed URL
+    // Fallback: Extract fbclid from eventSourceUrl or Referer header to construct valid _fbc
+    if (!fbc) {
+      let fbclidFromUrl: string | null = null;
+      if (eventSourceUrl) {
+        try {
+          const parsedUrl = new URL(eventSourceUrl);
+          fbclidFromUrl = parsedUrl.searchParams.get("fbclid");
+        } catch {}
       }
+      if (!fbclidFromUrl) {
+        const referer = req.headers.get("referer");
+        if (referer) {
+          try {
+            const parsedRef = new URL(referer);
+            fbclidFromUrl = parsedRef.searchParams.get("fbclid");
+          } catch {}
+        }
+      }
+      if (fbclidFromUrl) {
+        // Meta requires creation time in milliseconds (13 digits)
+        fbc = `fb.1.${Date.now()}.${fbclidFromUrl}`;
+        newCookies.push({ name: "_fbc", value: fbc, maxAge: 7776000 });
+      }
+    }
+
+    // Clean and validate fbc format: must start with fb.1.
+    if (fbc && !fbc.startsWith("fb.")) {
+      fbc = `fb.1.${Date.now()}.${fbc}`;
+      newCookies.push({ name: "_fbc", value: fbc, maxAge: 7776000 });
     }
 
     // Fallback: Generate persistent external_id if missing
@@ -258,6 +274,7 @@ export async function POST(req: Request) {
         path: "/",
         maxAge: c.maxAge,
         sameSite: "lax",
+        httpOnly: false,
       });
     }
 

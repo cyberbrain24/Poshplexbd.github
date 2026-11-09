@@ -457,3 +457,66 @@ def check_steadfast_delivery_risk(phone: str) -> dict:
             "fraud_categories": {},
             "reasons": []
         }
+
+
+def check_steadfast_delivery_risk_batch(phones: list) -> dict:
+    """
+    Check Steadfast delivery risk and fraud scores for multiple customer phone numbers
+    in a single batch call. Results are cached in Redis/cache and returned as a phone-keyed map.
+    """
+    import re
+    import concurrent.futures
+    import logging
+    from django.core.cache import cache
+
+    logger = logging.getLogger(__name__)
+    results = {}
+    missing_phones = []
+
+    for raw_phone in phones:
+        if not raw_phone:
+            continue
+        cleaned = re.sub(r'\D', '', str(raw_phone))
+        if cleaned.startswith('8801') and len(cleaned) == 13:
+            cleaned = cleaned[2:]
+        elif cleaned.startswith('008801') and len(cleaned) == 15:
+            cleaned = cleaned[4:]
+        if not cleaned:
+            continue
+
+        cache_key = f"steadfast_risk_score_{cleaned}"
+        cached = cache.get(cache_key)
+        if cached is not None:
+            results[cleaned] = cached
+        else:
+            if cleaned not in missing_phones:
+                missing_phones.append(cleaned)
+
+    if missing_phones:
+        # Fetch misses concurrently (up to 5 workers)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            future_to_phone = {
+                executor.submit(check_steadfast_delivery_risk, phone): phone
+                for phone in missing_phones
+            }
+            for future in concurrent.futures.as_completed(future_to_phone):
+                phone = future_to_phone[future]
+                try:
+                    res = future.result()
+                    results[phone] = res
+                except Exception as e:
+                    logger.error(f"Error fetching batch delivery risk for {phone}: {e}")
+                    results[phone] = {
+                        "success": False,
+                        "phone": phone,
+                        "error": str(e),
+                        "delivery_ratio": None,
+                        "cancellation_ratio": None,
+                        "delivered_count": 0,
+                        "cancelled_count": 0,
+                        "total_parcels": 0,
+                        "total_reports": 0
+                    }
+
+    return results
+

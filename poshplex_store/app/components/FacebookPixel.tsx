@@ -21,22 +21,11 @@ const FacebookPixel: React.FC<Props> = ({ fbPixelId }) => {
   }, [fbPixelId]);
 
   useEffect(() => {
-    // Check for fbclid parameter immediately on navigation
-    let currentFbc: string | undefined;
-    const fbclid =
-      searchParams?.get("fbclid") ||
-      (typeof window !== "undefined"
-        ? new URLSearchParams(window.location.search).get("fbclid")
-        : null);
-
-    if (fbclid) {
-      // Format: fb.1.${creationTimeInMilliseconds}.${fbclid}
-      currentFbc = `fb.1.${Date.now()}.${fbclid}`;
-      fpixel.setCookie("_fbc", currentFbc, 90 * 24 * 60 * 60);
-    }
+    // Parameter Builder Click ID Engine: detects and guarantees fbc across all storage layers
+    const fbc = fpixel.getOrCreateFbc();
 
     // This fires on every route change, including the initial load
-    fpixel.trackEvent("PageView", {}, currentFbc ? { fbc: currentFbc } : {});
+    fpixel.trackEvent("PageView", {}, fbc ? { fbc } : {});
   }, [pathname, searchParams]);
 
   if (!fbPixelId) return null;

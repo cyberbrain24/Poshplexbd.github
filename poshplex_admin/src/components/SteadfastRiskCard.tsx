@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Spin, Tooltip, Tag, Space, Alert } from "antd";
+import { Spin, Tooltip, Tag, Space, Alert, Popover } from "antd";
 import {
   InboxOutlined,
   SafetyCertificateOutlined,
@@ -11,19 +11,21 @@ import {
 } from "@ant-design/icons";
 import axios from "axios";
 
-interface SteadfastRiskCardProps {
+export interface SteadfastRiskCardProps {
   phone: string;
   apiUrl?: string;
   compact?: boolean;
+  initialData?: any;
 }
 
 export const SteadfastRiskCard: React.FC<SteadfastRiskCardProps> = ({
   phone,
   apiUrl,
-  compact = false
+  compact = false,
+  initialData = null
 }) => {
   const [loading, setLoading] = useState<boolean>(false);
-  const [riskData, setRiskData] = useState<any>(null);
+  const [riskData, setRiskData] = useState<any>(initialData || null);
   const [unmasked, setUnmasked] = useState<boolean>(false);
 
   const baseUrl = apiUrl || ((import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/orders");
@@ -46,8 +48,12 @@ export const SteadfastRiskCard: React.FC<SteadfastRiskCardProps> = ({
   };
 
   useEffect(() => {
-    fetchRiskScore();
-  }, [phone]);
+    if (initialData) {
+      setRiskData(initialData);
+    } else {
+      fetchRiskScore();
+    }
+  }, [phone, initialData]);
 
   if (!phone) {
     return (
@@ -255,4 +261,276 @@ export const SteadfastRiskCard: React.FC<SteadfastRiskCardProps> = ({
     </div>
   );
 };
+
+export interface OrderCardRiskBadgeProps {
+  phone: string;
+  data?: any;
+  loading?: boolean;
+}
+
+export const OrderCardRiskBadge: React.FC<OrderCardRiskBadgeProps> = ({
+  phone,
+  data,
+  loading = false
+}) => {
+  const cleanPhone = (phone || "").replace(/\D/g, "");
+  const isValid = cleanPhone.length >= 10;
+
+  if (!isValid) {
+    return (
+      <div
+        style={{
+          background: "rgba(239, 68, 68, 0.05)",
+          border: "1px solid rgba(239, 68, 68, 0.2)",
+          borderRadius: 6,
+          padding: "3px 8px",
+          marginBottom: 8,
+          fontSize: 10,
+          color: "#ef4444",
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+          lineHeight: "14px"
+        }}
+      >
+        <WarningOutlined style={{ fontSize: 10 }} />
+        <span>No / Invalid Phone</span>
+      </div>
+    );
+  }
+
+  if (loading && !data) {
+    return (
+      <div
+        style={{
+          background: "rgba(255, 255, 255, 0.03)",
+          border: "1px dashed rgba(255, 255, 255, 0.12)",
+          borderRadius: 6,
+          padding: "5px 8px",
+          marginBottom: 8,
+          fontSize: 10,
+          color: "#9ca3af",
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          lineHeight: "14px"
+        }}
+      >
+        <Spin size="small" />
+        <span>Checking delivery risk...</span>
+      </div>
+    );
+  }
+
+  const deliveryRatio = data?.delivery_ratio ?? 100;
+  const cancellationRatio = data?.cancellation_ratio ?? 0;
+  const deliveredCount = data?.delivered_count ?? 0;
+  const cancelledCount = data?.cancelled_count ?? 0;
+  const totalParcels = data?.total_parcels ?? (deliveredCount + cancelledCount);
+  const totalReports = data?.total_reports ?? 0;
+  const isNewCustomer = totalParcels === 0;
+
+  // Status Color Logic
+  const statusColor = isNewCustomer
+    ? "#38bdf8"
+    : (deliveryRatio >= 80 ? "#10b981" : (deliveryRatio >= 60 ? "#f59e0b" : "#ef4444"));
+
+  const borderColor = totalReports > 0
+    ? "rgba(239, 68, 68, 0.55)"
+    : (isNewCustomer
+        ? "rgba(56, 189, 248, 0.25)"
+        : (deliveryRatio >= 80
+            ? "rgba(16, 185, 129, 0.3)"
+            : (deliveryRatio >= 60 ? "rgba(245, 158, 11, 0.3)" : "rgba(239, 68, 68, 0.4)")));
+
+  const bgGlow = totalReports > 0
+    ? "rgba(239, 68, 68, 0.08)"
+    : (isNewCustomer
+        ? "rgba(56, 189, 248, 0.04)"
+        : (deliveryRatio >= 80 ? "rgba(16, 185, 129, 0.05)" : "rgba(239, 68, 68, 0.06)"));
+
+  // Micro Circular SVG Meter Calculation (r=10, circumference ≈ 62.83)
+  const radius = 10;
+  const circumference = 2 * Math.PI * radius;
+  const strokeOffset = circumference - ((isNewCustomer ? 100 : deliveryRatio) / 100) * circumference;
+
+  return (
+    <Popover
+      trigger={["hover", "click"]}
+      placement="rightTop"
+      mouseEnterDelay={0.15}
+      mouseLeaveDelay={0.2}
+      overlayInnerStyle={{
+        background: "#121212",
+        border: "1px solid #2e2e2e",
+        borderRadius: 16,
+        padding: "12px 14px",
+        boxShadow: "0 12px 32px rgba(0,0,0,0.6)"
+      }}
+      content={
+        <div style={{ width: 440 }}>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 800,
+              color: "#9ca3af",
+              letterSpacing: "0.8px",
+              marginBottom: 8,
+              textTransform: "uppercase"
+            }}
+          >
+            STEADFAST DELIVERY RISK & MERCHANT REPORTS
+          </div>
+          <SteadfastRiskCard phone={phone} initialData={data} compact />
+        </div>
+      }
+    >
+      <div
+        style={{
+          background: bgGlow,
+          border: `1px solid ${borderColor}`,
+          borderRadius: 6,
+          padding: "3px 6px",
+          marginBottom: 8,
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          transition: "all 0.2s ease",
+          userSelect: "none"
+        }}
+      >
+        {/* Micro Gauge Circle */}
+        <div
+          style={{
+            position: "relative",
+            width: 26,
+            height: 26,
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center"
+          }}
+        >
+          <svg width="26" height="26" viewBox="0 0 26 26">
+            <circle
+              cx="13"
+              cy="13"
+              r={radius}
+              fill="none"
+              stroke="rgba(255, 255, 255, 0.1)"
+              strokeWidth="3"
+            />
+            <circle
+              cx="13"
+              cy="13"
+              r={radius}
+              fill="none"
+              stroke={statusColor}
+              strokeWidth="3"
+              strokeDasharray={circumference}
+              strokeDashoffset={strokeOffset}
+              strokeLinecap="round"
+              transform="rotate(-90 13 13)"
+              style={{ transition: "stroke-dashoffset 0.6s ease" }}
+            />
+          </svg>
+          <span
+            style={{
+              position: "absolute",
+              fontSize: 8,
+              fontWeight: 900,
+              color: statusColor,
+              letterSpacing: "-0.2px"
+            }}
+          >
+            {isNewCustomer ? "NEW" : `${deliveryRatio}%`}
+          </span>
+        </div>
+
+        {/* Right Info: 2 compact rows */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0, flex: 1 }}>
+          {/* Row 1: Delivery & Cancelled metrics */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 3,
+              fontSize: 10,
+              lineHeight: "13px",
+              whiteSpace: "nowrap"
+            }}
+          >
+            {isNewCustomer ? (
+              <span style={{ color: "#38bdf8", fontWeight: 700 }}>New Customer</span>
+            ) : (
+              <>
+                <span style={{ color: "#10b981", fontWeight: 800 }}>{deliveryRatio}%</span>
+                <span style={{ color: "#059669", fontWeight: 600 }}>Del ({deliveredCount})</span>
+                <span style={{ color: "#6b7280" }}>·</span>
+                <span
+                  style={{
+                    color: cancelledCount > 0 ? "#ef4444" : "#6b7280",
+                    fontWeight: cancelledCount > 0 ? 700 : 400
+                  }}
+                >
+                  {cancelledCount} Can
+                </span>
+              </>
+            )}
+          </div>
+
+          {/* Row 2: Parcel Volume & Merchant Reports */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              marginTop: 1,
+              whiteSpace: "nowrap"
+            }}
+          >
+            <span
+              style={{
+                fontSize: 9,
+                fontWeight: 700,
+                color: "#d97706",
+                background: "rgba(245, 158, 11, 0.12)",
+                border: "1px solid rgba(245, 158, 11, 0.25)",
+                padding: "0 4px",
+                borderRadius: 3,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 2,
+                lineHeight: "12px"
+              }}
+            >
+              📦 {totalParcels} Vol
+            </span>
+            <span
+              style={{
+                fontSize: 9,
+                fontWeight: 700,
+                color: totalReports > 0 ? "#ef4444" : "#9ca3af",
+                background: totalReports > 0 ? "rgba(239, 68, 68, 0.2)" : "rgba(255, 255, 255, 0.05)",
+                border: totalReports > 0
+                  ? "1px solid rgba(239, 68, 68, 0.4)"
+                  : "1px solid rgba(255, 255, 255, 0.08)",
+                padding: "0 4px",
+                borderRadius: 3,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 2,
+                lineHeight: "12px"
+              }}
+            >
+              🛡️ {totalReports} Rep
+            </span>
+          </div>
+        </div>
+      </div>
+    </Popover>
+  );
+};
+
 
