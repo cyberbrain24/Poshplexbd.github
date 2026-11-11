@@ -380,6 +380,16 @@ export const Orders: React.FC = () => {
     } catch (err: any) { if (err?.response?.status !== 403) message.error(err.response?.data?.message || "Bulk sync failed."); }
   };
 
+  // Auto-trigger Steadfast sync every 1 hour (24 times a day) while Orders Queue is open
+  useEffect(() => {
+    const ONE_HOUR_MS = 60 * 60 * 1000;
+    const interval = setInterval(() => {
+      console.log("[OrdersQueue] Auto-triggering hourly Steadfast sync (24x/day)...");
+      handleSyncAllCouriers();
+    }, ONE_HOUR_MS);
+    return () => clearInterval(interval);
+  }, []);
+
   // Bulk Steadfast sync
   const handleBulkCourierSync = async () => {
     setLoading(true);
@@ -785,6 +795,22 @@ export const Orders: React.FC = () => {
           >
             OrderPulse Analytics
           </Button>
+          <Tooltip title="Steadfast sync runs automatically every 1 hour (24 times a day) in the background via Celery Beat and live timers.">
+            <Tag
+              color="cyan"
+              style={{
+                fontSize: 11,
+                padding: "3px 8px",
+                borderRadius: 4,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                cursor: "pointer"
+              }}
+            >
+              <ClockCircleOutlined /> Auto: 1h (24x/day)
+            </Tag>
+          </Tooltip>
           <Button icon={<SyncOutlined />} onClick={handleSyncAllCouriers} style={{ borderRadius: 6, whiteSpace: 'nowrap' }}>
             Sync Steadfast
           </Button>

@@ -26,6 +26,10 @@ app.conf.beat_schedule = {
         'task': 'apps.marketing.tasks.poll_performance_metrics',
         'schedule': crontab(minute=0),  # Every hour
     },
+    'sync-steadfast-hourly': {
+        'task': 'apps.orders.tasks.sync_all_steadfast_orders_periodic_task',
+        'schedule': crontab(minute=0),  # Every hour, 24 times a day
+    },
     'evaluate-meta-rules-every-30min': {
         'task': 'apps.marketing.tasks.evaluate_automation_rules',
         'schedule': crontab(minute='*/30'),  # Every 30 mins

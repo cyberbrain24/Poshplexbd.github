@@ -121,6 +121,27 @@ def sync_steadfast_status_task(self, order_id: int):
             logger.error(f"Steadfast sync final failure for order {order_id} after {max_retries} attempts: {exc}")
             raise exc
 
+@shared_task
+def sync_all_steadfast_orders_periodic_task():
+    """
+    Periodic task to sync all active unshipped/shipped Steadfast orders.
+    Scheduled to run every 1 hour (24 times a day) via Celery Beat.
+    """
+    from apps.orders.models import Order
+    from apps.orders.tasks import sync_steadfast_status_task
+    
+    orders_to_sync = Order.objects.exclude(
+        status__in=['delivered', 'cancelled', 'returned', 'manually_cancelled']
+    ).exclude(tracking_number__isnull=True).exclude(tracking_number='')
+    
+    count = 0
+    for o in orders_to_sync:
+        sync_steadfast_status_task.delay(o.id)
+        count += 1
+        
+    logger.info(f"[Periodic Steadfast Sync] Dispatched status checks for {count} active shipments.")
+    return count
+
 @shared_task(bind=True, max_retries=2, default_retry_delay=60)
 def generate_invoice_pdf_task(self, order_id: int):
     """

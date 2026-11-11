@@ -49,6 +49,46 @@ export const OrderAnalyticsPage: React.FC = () => {
   const [isSplitModalOpen, setIsSplitModalOpen] = useState(false);
   const [selectedOrderForSplit, setSelectedOrderForSplit] = useState<any>(null);
 
+  // Steadfast Sync states
+  const [syncingCouriers, setSyncingCouriers] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
+
+  const handleSyncAllCouriers = async (silent = false) => {
+    setSyncingCouriers(true);
+    try {
+      const token = localStorage.getItem("poshplex_access_token");
+      const res = await axios.post(`${ORDERS_API_URL}/sync-couriers`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      setLastSyncTime(nowStr);
+      if (!silent) {
+        message.success(`Steadfast sync triggered for ${res.data.count || 0} active shipments.`);
+      }
+      setTimeout(() => {
+        fetchAnalytics();
+        fetchTabOrders(activeTab, currentPage);
+      }, 3000);
+    } catch (err: any) {
+      if (!silent && err?.response?.status !== 403) {
+        message.error(err.response?.data?.message || "Steadfast sync failed.");
+      }
+    } finally {
+      setSyncingCouriers(false);
+    }
+  };
+
+  // Auto-trigger Steadfast sync every 1 hour (24 times a day)
+  useEffect(() => {
+    const ONE_HOUR_MS = 60 * 60 * 1000; // 1 hour
+    const interval = setInterval(() => {
+      console.log("[OrderPulse] Executing scheduled hourly Steadfast sync (24x/day)...");
+      handleSyncAllCouriers(true);
+    }, ONE_HOUR_MS);
+
+    return () => clearInterval(interval);
+  }, [activeTab, currentPage]);
+
   const fetchAnalytics = async () => {
     setLoading(true);
     try {
@@ -269,18 +309,47 @@ export const OrderAnalyticsPage: React.FC = () => {
             Dedicated diagnostics module tracking Internal Hub Delays (&gt;24h), Full Cancellations, and Partially Delivered Split Items.
           </p>
         </div>
-        <Button
-          type="primary"
-          icon={<SyncOutlined />}
-          onClick={() => {
-            fetchAnalytics();
-            fetchTabOrders(activeTab, currentPage);
-          }}
-          loading={loading}
-          style={{ borderRadius: 6, backgroundColor: "#6366f1", borderColor: "#4f46e5" }}
-        >
-          Refresh Analytics
-        </Button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <Tooltip title="Steadfast sync runs automatically every 1 hour (24 times a day) in the background via Celery Beat and live timers. You can also click to sync immediately.">
+            <Tag
+              color="cyan"
+              style={{
+                fontSize: 11,
+                padding: "3px 8px",
+                borderRadius: 4,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                cursor: "pointer"
+              }}
+            >
+              <ClockCircleOutlined /> Auto-Sync: 1h (24x/day)
+              {lastSyncTime && <span style={{ opacity: 0.85 }}>· Last: {lastSyncTime}</span>}
+            </Tag>
+          </Tooltip>
+
+          <Button 
+            icon={<SyncOutlined spin={syncingCouriers} />} 
+            onClick={() => handleSyncAllCouriers(false)} 
+            loading={syncingCouriers}
+            style={{ borderRadius: 6, whiteSpace: 'nowrap' }}
+          >
+            Sync Steadfast
+          </Button>
+
+          <Button
+            type="primary"
+            icon={<SyncOutlined />}
+            onClick={() => {
+              fetchAnalytics();
+              fetchTabOrders(activeTab, currentPage);
+            }}
+            loading={loading}
+            style={{ borderRadius: 6, backgroundColor: "#6366f1", borderColor: "#4f46e5" }}
+          >
+            Refresh Analytics
+          </Button>
+        </div>
       </div>
 
       {/* Top 5 KPI Cards */}
@@ -624,3 +693,4 @@ export const OrderAnalyticsPage: React.FC = () => {
 };
 
 export default OrderAnalyticsPage;
+
