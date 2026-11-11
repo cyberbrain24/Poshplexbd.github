@@ -120,7 +120,7 @@ export const PartialSplitModal: React.FC<PartialSplitModalProps> = ({
       key: "fulfilled_quantity",
       width: 140,
       render: (val: number, record: any, index: number) => (
-        <Space orientation="horizontal" size="small">
+        <Space size="small">
           <InputNumber
             min={0}
             max={record.original_qty}
@@ -138,7 +138,7 @@ export const PartialSplitModal: React.FC<PartialSplitModalProps> = ({
       key: "returned_quantity",
       width: 150,
       render: (val: number, record: any, index: number) => (
-        <Space orientation="horizontal" size="small">
+        <Space size="small">
           <InputNumber
             min={0}
             max={record.original_qty}

@@ -295,7 +295,7 @@ export const OrderAnalyticsPage: React.FC = () => {
   ];
 
   return (
-    <Space direction="vertical" size="large" style={{ orientation: "vertical", width: "100%" }}>
+    <Space direction="vertical" size="large" style={{ width: "100%" }}>
       {/* Top Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
         <div>
