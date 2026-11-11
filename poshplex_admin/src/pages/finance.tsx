@@ -582,9 +582,9 @@ function BankReconciliationTab() {
         <Col><Button type="primary" icon={<PlusOutlined />} onClick={() => setBankModal(true)}>Add Account</Button></Col>
       </Row>
 
-      <Row gutter={[16, 16]}>
+      <Row gutter={[10, 10]}>
         {bankAccounts.map(ba => (
-          <Col xs={24} sm={12} md={8} key={ba.id}>
+          <Col xs={12} sm={12} md={8} key={ba.id}>
             <Card
               hoverable
               style={{ borderColor: selectedBank?.id === ba.id ? "#e11d48" : undefined }}

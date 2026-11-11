@@ -128,12 +128,12 @@ export const MediaLibrary: React.FC = () => {
               setSearchText(e.target.value);
               setVisibleCount(32);
             }}
-            style={{ width: 260, borderRadius: 0 }}
+            style={{ width: "min(260px, 100%)", borderRadius: 0 }}
             allowClear
           />
         }
       >
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "16px" }}>
+        <div className="posh-media-grid">
           {visibleAssets.map((record: any) => {
             const url = record.url || `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}/media/${record.file || ""}`;
             return (

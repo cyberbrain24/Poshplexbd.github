@@ -241,7 +241,7 @@ const PrintFilesLibrary: React.FC = () => {
         <Input.Search
           placeholder="Search by name or product..."
           allowClear
-          style={{ width: 320 }}
+          style={{ width: "min(320px, 100%)" }}
           onSearch={(v) => setSearchText(v)}
           onChange={(e) => { if (!e.target.value) setSearchText(""); }}
           prefix={<SearchOutlined />}
@@ -354,7 +354,7 @@ const PrintFilesLibrary: React.FC = () => {
             <span>{editingFile ? "Edit Printing File" : "Add New Printing File"}</span>
           </Space>
         }
-        width={560}
+        width="min(560px, 96vw)"
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         extra={
@@ -1139,7 +1139,7 @@ const PreparePrint: React.FC = () => {
             <span>Edit Print List</span>
           </Space>
         }
-        width={560}
+        width="min(560px, 96vw)"
         open={listDrawerOpen}
         onClose={() => { setListDrawerOpen(false); setEditingList(null); setBuildItems([]); }}
         extra={

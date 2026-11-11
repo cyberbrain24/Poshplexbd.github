@@ -363,7 +363,7 @@ export const OrderCardRiskBadge: React.FC<OrderCardRiskBadgeProps> = ({
         boxShadow: "0 12px 32px rgba(0,0,0,0.6)"
       }}
       content={
-        <div style={{ width: 440 }}>
+        <div style={{ width: "min(420px, 86vw)" }}>
           <div
             style={{
               fontSize: 11,
@@ -381,6 +381,7 @@ export const OrderCardRiskBadge: React.FC<OrderCardRiskBadgeProps> = ({
       }
     >
       <div
+        className="posh-risk-badge-mini"
         style={{
           background: bgGlow,
           border: `1px solid ${borderColor}`,
@@ -398,6 +399,7 @@ export const OrderCardRiskBadge: React.FC<OrderCardRiskBadgeProps> = ({
       >
         {/* Semi-circular Gauge Arc (matching Steadfast official design) */}
         <div
+          className="posh-risk-badge-mini-gauge"
           style={{
             position: "relative",
             width: 44,
@@ -458,6 +460,7 @@ export const OrderCardRiskBadge: React.FC<OrderCardRiskBadgeProps> = ({
         <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1, justifyContent: "center" }}>
           {/* Delivery & Cancelled metrics */}
           <div
+            className="posh-risk-badge-mini-metrics"
             style={{
               display: "flex",
               alignItems: "center",

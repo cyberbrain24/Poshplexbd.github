@@ -753,7 +753,7 @@ export const CampaignList: React.FC = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onPressEnter={fetchCampaigns}
-            style={{ width: 240, fontSize: 11.5 }}
+            style={{ width: "min(240px, 100%)", fontSize: 11.5 }}
           />
           <Select
             size="small"
@@ -761,7 +761,7 @@ export const CampaignList: React.FC = () => {
             allowClear
             value={statusFilter}
             onChange={(v) => setStatusFilter(v)}
-            style={{ width: 150, fontSize: 11.5 }}
+            style={{ minWidth: 130, flex: "1 1 130px", fontSize: 11.5 }}
             options={[
               { label: "Active", value: "ACTIVE" },
               { label: "Draft", value: "DRAFT" },

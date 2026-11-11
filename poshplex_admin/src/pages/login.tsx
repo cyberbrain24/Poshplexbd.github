@@ -29,7 +29,7 @@ export const Login: React.FC = () => {
       <div style={{ position: "absolute", width: 300, height: 300, borderRadius: "50%", background: "var(--accent-purple)", filter: "blur(120px)", opacity: 0.15, top: "20%", left: "30%" }} />
       <div style={{ position: "absolute", width: 250, height: 250, borderRadius: "50%", background: "var(--accent-cyan)", filter: "blur(100px)", opacity: 0.12, bottom: "25%", right: "30%" }} />
       
-      <Card className="glass-card" style={{ width: 400, border: "1px solid var(--border-glass)" }}>
+      <Card className="glass-card" style={{ width: "min(400px, 92vw)", border: "1px solid var(--border-glass)" }}>
         <div style={{ textAlign: "center", marginBottom: 24 }}>
           <Title level={2} style={{ color: "var(--text-main)", margin: 0, fontWeight: 800 }}>POSHPLEX</Title>
           <Text style={{ color: "var(--text-muted)", fontSize: 13 }}>Administrative ERP Gate</Text>

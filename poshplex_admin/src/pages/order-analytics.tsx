@@ -353,8 +353,8 @@ export const OrderAnalyticsPage: React.FC = () => {
       </div>
 
       {/* Top 5 KPI Cards */}
-      <Row gutter={[12, 12]}>
-        <Col xs={12} sm={8} md={4} style={{ flex: 1 }}>
+      <Row gutter={[10, 10]}>
+        <Col xs={12} sm={8} md={4}>
           <Card styles={{ body: { padding: 14 } }} style={{ backgroundColor: "#111116", borderColor: "#27272a" }}>
             <Statistic
               title={<span style={{ color: "#a1a1aa", fontSize: 12 }}>Total Store Orders</span>}

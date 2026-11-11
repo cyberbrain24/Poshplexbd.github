@@ -295,6 +295,7 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
 
       <Drawer
         placement="left"
+        rootClassName="posh-mobile-nav-drawer"
         onClose={() => setMobileMenuOpen(false)}
         open={mobileMenuOpen}
         styles={{

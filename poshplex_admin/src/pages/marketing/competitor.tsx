@@ -305,8 +305,8 @@ export const CompetitorSpyPage: React.FC = () => {
       </div>
 
       {/* KPI Stat Cards */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={12} lg={6}>
+      <Row gutter={[10, 10]} style={{ marginBottom: 20 }}>
+        <Col xs={12} sm={12} lg={6}>
           <Card style={{ backgroundColor: "#141418", borderColor: "#27272a", borderRadius: 8 }}>
             <Space direction="vertical" size={2} style={{ width: "100%" }}>
               <Text type="secondary" style={{ fontSize: 13, textTransform: "uppercase", letterSpacing: "0.5px" }}>
@@ -323,7 +323,7 @@ export const CompetitorSpyPage: React.FC = () => {
           </Card>
         </Col>
 
-        <Col xs={24} sm={12} lg={6}>
+        <Col xs={12} sm={12} lg={6}>
           <Card style={{ backgroundColor: "#141418", borderColor: "#27272a", borderRadius: 8 }}>
             <Space direction="vertical" size={2} style={{ width: "100%" }}>
               <Text type="secondary" style={{ fontSize: 13, textTransform: "uppercase", letterSpacing: "0.5px" }}>
@@ -340,7 +340,7 @@ export const CompetitorSpyPage: React.FC = () => {
           </Card>
         </Col>
 
-        <Col xs={24} sm={12} lg={6}>
+        <Col xs={12} sm={12} lg={6}>
           <Card style={{ backgroundColor: "#141418", borderColor: "#27272a", borderRadius: 8 }}>
             <Space direction="vertical" size={2} style={{ width: "100%" }}>
               <Text type="secondary" style={{ fontSize: 13, textTransform: "uppercase", letterSpacing: "0.5px" }}>
@@ -357,7 +357,7 @@ export const CompetitorSpyPage: React.FC = () => {
           </Card>
         </Col>
 
-        <Col xs={24} sm={12} lg={6}>
+        <Col xs={12} sm={12} lg={6}>
           <Card style={{ backgroundColor: "#141418", borderColor: "#27272a", borderRadius: 8 }}>
             <Space direction="vertical" size={2} style={{ width: "100%" }}>
               <Text type="secondary" style={{ fontSize: 13, textTransform: "uppercase", letterSpacing: "0.5px" }}>

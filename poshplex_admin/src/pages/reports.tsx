@@ -180,23 +180,23 @@ export const ReportsPage: React.FC = () => {
         <Divider style={{ borderColor: 'var(--border-glass)' }} />
 
         <Title level={5} style={{ color: 'var(--text-main)' }}>Orders Snapshot</Title>
-        <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
+        <Row gutter={[10, 10]} style={{ marginBottom: 24 }}>
           <Col xs={12} sm={12} md={6}>
             <Card bordered={false} style={{ background: "var(--bg-secondary)", borderRadius: 8, border: "1px solid var(--border-glass)" }}>
               <Text type="secondary">Total Orders</Text>
-              <div style={{ fontSize: 24, fontWeight: 'bold' }}>{filteredSnapshot.orders_qty}</div>
+              <div className="posh-stat-num" style={{ fontSize: 24, fontWeight: 'bold' }}>{filteredSnapshot.orders_qty}</div>
             </Card>
           </Col>
           <Col xs={12} sm={12} md={6}>
             <Card bordered={false} style={{ background: "var(--bg-secondary)", borderRadius: 8, border: "1px solid var(--border-glass)" }}>
               <Text type="secondary">Total Products</Text>
-              <div style={{ fontSize: 24, fontWeight: 'bold' }}>{filteredSnapshot.product_qty}</div>
+              <div className="posh-stat-num" style={{ fontSize: 24, fontWeight: 'bold' }}>{filteredSnapshot.product_qty}</div>
             </Card>
           </Col>
           <Col xs={12} sm={12} md={6}>
             <Card bordered={false} style={{ background: "var(--bg-secondary)", borderRadius: 8, border: "1px solid var(--border-glass)" }}>
               <Text type="secondary">Total Amount</Text>
-              <div style={{ fontSize: 24, fontWeight: 'bold', color: 'var(--accent-purple)' }}>
+              <div className="posh-stat-num" style={{ fontSize: 24, fontWeight: 'bold', color: 'var(--accent-purple)' }}>
                 ৳{Math.round(filteredSnapshot.total_amount)}
               </div>
             </Card>
@@ -204,38 +204,38 @@ export const ReportsPage: React.FC = () => {
           <Col xs={12} sm={12} md={6}>
             <Card bordered={false} style={{ background: "var(--bg-secondary)", borderRadius: 8, border: "1px solid var(--border-glass)" }}>
               <Text type="secondary">Avg Order Value</Text>
-              <div style={{ fontSize: 24, fontWeight: 'bold', color: 'var(--accent-cyan)' }}>
+              <div className="posh-stat-num" style={{ fontSize: 24, fontWeight: 'bold', color: 'var(--accent-cyan)' }}>
                 ৳{Math.round(filteredSnapshot.avg_order)}
               </div>
             </Card>
           </Col>
         </Row>
-        <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
+        <Row gutter={[10, 10]} style={{ marginBottom: 24 }}>
           <Col xs={12} sm={12} md={8}>
             <Card bordered={false} style={{ background: "var(--bg-secondary)", borderRadius: 8, border: "1px solid var(--border-glass)" }}>
               <Text type="secondary">Product Costing</Text>
-              <div style={{ fontSize: 24, fontWeight: 'bold', color: '#faad14' }}>
+              <div className="posh-stat-num" style={{ fontSize: 24, fontWeight: 'bold', color: '#faad14' }}>
                 ৳{Math.round(filteredSnapshot.product_costing || 0)}
               </div>
             </Card>
           </Col>
           <Col xs={12} sm={12} md={8}>
             <Card bordered={false} style={{ background: "var(--bg-secondary)", borderRadius: 8, border: "1px solid var(--border-glass)" }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
                 <Text type="secondary">Total Profit</Text>
                 {!isEditingExpense ? (
-                  <Button type="link" size="small" onClick={() => setIsEditingExpense(true)}>Edit Expense</Button>
+                  <Button type="link" size="small" style={{ padding: 0 }} onClick={() => setIsEditingExpense(true)}>Edit Expense</Button>
                 ) : (
-                  <Space>
+                  <Space size="small">
                     <InputNumber size="small" value={fixedExpenseInput} onChange={(val) => setFixedExpenseInput(val || 0)} />
                     <Button type="primary" size="small" loading={savingExpense} onClick={handleSaveFixedExpense}>Save</Button>
                   </Space>
                 )}
               </div>
-              <div style={{ fontSize: 24, fontWeight: 'bold', color: '#52c41a' }}>
+              <div className="posh-stat-num" style={{ fontSize: 24, fontWeight: 'bold', color: '#52c41a' }}>
                 ৳{Math.round(filteredSnapshot.total_amount - (filteredSnapshot.product_costing || 0) - (data?.snapshot?.fixed_expense || 0))}
               </div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
                 After Fixed Exp: ৳{Math.round(data?.snapshot?.fixed_expense || 0)}
               </div>
             </Card>
@@ -243,16 +243,16 @@ export const ReportsPage: React.FC = () => {
         </Row>
 
         <Title level={5} style={{ color: 'var(--text-main)' }}>Order Status Breakdown</Title>
-        <Row gutter={[16, 16]}>
+        <Row gutter={[10, 10]}>
           {data?.status_report && Object.keys(data.status_report).map(statusKey => {
             const stats = data.status_report[statusKey];
             return (
-              <Col xs={24} sm={12} md={8} lg={6} key={statusKey}>
+              <Col xs={12} sm={12} md={8} lg={6} key={statusKey}>
                 <Card bordered={false} style={{ background: "var(--bg-secondary)", borderRadius: 8, border: "1px solid var(--border-glass)" }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
                       {statusIcons[statusKey] || <LineChartOutlined />}
-                      <Text strong style={{ fontSize: 16 }}>{formatStatus(statusKey)}</Text>
+                      <Text strong style={{ fontSize: 13 }} ellipsis>{formatStatus(statusKey)}</Text>
                     </div>
                     <Checkbox 
                       checked={activeStatuses.includes(statusKey)}

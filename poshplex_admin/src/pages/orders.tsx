@@ -861,7 +861,7 @@ export const Orders: React.FC = () => {
           { label: <span>Manually Cancelled <Badge count={orderCounts.manually_cancelled || 0} overflowCount={99999} showZero color="#eb2f96" /></span>, key: "manually_cancelled" },
         ]} />
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+        <div className="posh-orders-grid">
           {orders.map(order => {
             const total = Math.round(parseFloat(order.total_amount || 0));
             const paid = order.payment_status === 'paid' ? total : (order.payment_status === 'partially_paid' ? 'Partial' : 0);
@@ -869,9 +869,9 @@ export const Orders: React.FC = () => {
             const items = order.items || [];
             
             return (
-              <Card key={order.id} styles={{ body: { padding: '12px', display: 'flex', flexDirection: 'column', height: '100%' } }} style={{ borderRadius: 8, overflow: 'hidden', minWidth: 200 }}>
+              <Card key={order.id} className="posh-order-card" styles={{ body: { padding: '12px', display: 'flex', flexDirection: 'column', height: '100%' } }}>
                 {/* Images Top Section */}
-                <div style={{ margin: '-12px -12px 12px -12px', height: 160, display: 'flex', backgroundColor: '#f0f0f0' }}>
+                <div className="posh-order-card-img">
                   {items.length === 1 ? (
                     <img src={items[0].image ? (items[0].image.startsWith('http') ? items[0].image : `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}${items[0].image}`) : ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="product" />
                   ) : items.length > 1 ? (
@@ -885,16 +885,16 @@ export const Orders: React.FC = () => {
                 </div>
 
                 {/* PO & Date */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
+                <div className="posh-order-card-meta" style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
                   <strong>{order.order_number || `#${order.id}`}</strong>
                   <span style={{ color: '#888' }}>{order.created_at ? new Date(order.created_at).toLocaleString('en-US', { timeZone: 'Asia/Dhaka', month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : ''}</span>
                 </div>
 
                 {/* Customer Name & Phone */}
-                <div style={{ fontSize: 13, marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div className="posh-order-card-title" style={{ fontSize: 13, marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {order.shipping_name || order.customer_name}
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 'bold', marginBottom: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="posh-order-card-phone" style={{ fontSize: 13, fontWeight: 'bold', marginBottom: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <span>{order.customer_phone}</span>
                     {!isValidPhone(order.shipping_phone || order.customer_phone) && (
@@ -953,13 +953,13 @@ export const Orders: React.FC = () => {
                 )}
 
                 {/* Qty & Price */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                <div className="posh-order-card-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
                   <span>{items.reduce((acc: number, item: any) => acc + item.quantity, 0)} items</span>
                   <strong style={{ color: '#fff' }}>৳{total}</strong>
                 </div>
 
                 {/* Paid & Due */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 8 }}>
+                <div className="posh-order-card-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 8 }}>
                   <span style={{ color: '#888' }}>Paid: ৳{paid}</span>
                   <strong style={{ color: '#e11d48' }}>Due: ৳{due}</strong>
                 </div>
@@ -983,13 +983,13 @@ export const Orders: React.FC = () => {
                 />
 
                 {/* Payment Method & Location */}
-                <div style={{ fontSize: 11, color: '#888', marginBottom: 2 }}>{order.payments?.[0]?.method || 'Cash on Delivery'}</div>
-                <div style={{ fontSize: 11, color: '#10b981', fontWeight: 600, marginBottom: 12 }}>
+                <div className="posh-order-card-sub" style={{ fontSize: 11, color: '#888', marginBottom: 2 }}>{order.payments?.[0]?.method || 'Cash on Delivery'}</div>
+                <div className="posh-order-card-sub" style={{ fontSize: 11, color: '#10b981', fontWeight: 600, marginBottom: 12 }}>
                   Location: {getOrderLocationZone(order)}
                 </div>
 
                 {/* Actions */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <div className="posh-order-card-actions" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                   {!order.tracking_number ? (
                     <Button size="small" type="default" style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4 }} onClick={() => handleBookShipment(order.id)}>
                       <CarOutlined /> Ship
@@ -1090,7 +1090,7 @@ export const Orders: React.FC = () => {
           <Divider orientation="left">Customer Coordinates</Divider>
           
           <Row gutter={16}>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item label="Create Customer On the Fly?">
                 <Switch checked={createNewCustomer} onChange={setCreateNewCustomer} />
               </Form.Item>
@@ -1099,17 +1099,17 @@ export const Orders: React.FC = () => {
 
           {createNewCustomer ? (
             <Row gutter={16}>
-              <Col span={8}>
+              <Col xs={24} sm={12} md={8}>
                 <Form.Item name="customer_name" label="Full Name" rules={[{ required: true }]}>
                   <Input style={{ borderRadius: 0 }} />
                 </Form.Item>
               </Col>
-              <Col span={8}>
+              <Col xs={24} sm={12} md={8}>
                 <Form.Item name="customer_phone" label="Phone" rules={[{ required: true }]}>
                   <Input style={{ borderRadius: 0 }} />
                 </Form.Item>
               </Col>
-              <Col span={8}>
+              <Col xs={24} sm={24} md={8}>
                 <Form.Item name="customer_email" label="Email">
                   <Input style={{ borderRadius: 0 }} />
                 </Form.Item>
@@ -1155,12 +1155,12 @@ export const Orders: React.FC = () => {
           <Divider orientation="left">Shipping Address & Cost</Divider>
 
           <Row gutter={16}>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item name="shipping_name" label="Shipping Recipient Name">
                 <Input style={{ borderRadius: 0 }} />
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item name="shipping_phone" label="Shipping Recipient Phone">
                 <Input style={{ borderRadius: 0 }} />
               </Form.Item>
@@ -1168,21 +1168,21 @@ export const Orders: React.FC = () => {
           </Row>
 
           <Row gutter={16}>
-            <Col span={8}>
+            <Col xs={24} sm={12} md={8}>
               <Form.Item name="shipping_district" label="District (Division)" rules={[{ required: true }]}>
                 <Select placeholder="Select district" onChange={handleDistrictChange}>
                   {locationRates.map((d) => <Select.Option key={d.name} value={d.name}>{d.name}</Select.Option>)}
                 </Select>
               </Form.Item>
             </Col>
-            <Col span={8}>
+            <Col xs={24} sm={12} md={8}>
               <Form.Item name="shipping_thana" label="Thana (Area Hub)" rules={[{ required: true }]}>
                 <Select placeholder="Select thana">
                   {thanaOptions.map((t) => <Select.Option key={t} value={t}>{t}</Select.Option>)}
                 </Select>
               </Form.Item>
             </Col>
-            <Col span={8}>
+            <Col xs={24} sm={24} md={8}>
               <Form.Item name="shipping_cost" label="Shipping Cost override ($)" rules={[{ required: true }]}>
                 <InputNumber min={0} precision={2} style={{ width: "100%", borderRadius: 0 }} />
               </Form.Item>
@@ -1212,32 +1212,32 @@ export const Orders: React.FC = () => {
           />
 
           <Card size="small" style={{ marginBottom: 24, background: '#f9f9f9', borderColor: '#e5e5e5' }}>
-            <Row gutter={[16, 16]}>
-              <Col span={8}>
+            <Row gutter={[12, 12]}>
+              <Col xs={24} sm={12} md={8}>
                 <Select style={{ width: '100%' }} placeholder="Select Category" value={modalCategoryId} onChange={(val) => { setModalCategoryId(val); setModalSubcategoryId(null); }}>
                   {catalogCategories.map(c => <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>)}
                 </Select>
               </Col>
-              <Col span={8}>
+              <Col xs={24} sm={12} md={8}>
                 <Select style={{ width: '100%' }} placeholder="Select Subcategory" value={modalSubcategoryId} onChange={(val) => fetchModalCategoryProducts(val)} disabled={!modalCategoryId}>
                   {catalogCategories.find(c => c.id === modalCategoryId)?.children?.map((sub: any) => (
                     <Select.Option key={sub.id} value={sub.id}>{sub.name}</Select.Option>
                   ))}
                 </Select>
               </Col>
-              <Col span={8}>
+              <Col xs={24} sm={24} md={8}>
                 <Input.Search placeholder="Search product by name" onSearch={(val) => fetchModalCategoryProducts(modalSubcategoryId, val)} allowClear />
               </Col>
             </Row>
             {modalGridProducts.length > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginTop: 16, paddingBottom: 8, maxHeight: 400, overflowY: 'auto', paddingRight: 4 }}>
+              <div className="posh-modal-product-grid" style={{ marginTop: 12, paddingBottom: 8, maxHeight: 400, overflowY: 'auto', paddingRight: 4 }}>
                 {modalGridProducts.map(p => (
                   <Card 
                     key={p.id} 
                     hoverable 
                     size="small"
                     onClick={() => setModalSelectedProduct(p)}
-                    style={{ minWidth: 100, border: modalSelectedProduct?.id === p.id ? '2px solid var(--primary-color)' : '1px solid #d9d9d9' }}
+                    style={{ minWidth: 0, border: modalSelectedProduct?.id === p.id ? '2px solid var(--primary-color)' : '1px solid #d9d9d9' }}
                   >
                     <img src={p.images?.[0]?.url ? (p.images[0].url.startsWith('http') ? p.images[0].url : `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}${p.images[0].url}`) : ''} style={{ width: '100%', height: 60, objectFit: 'cover' }} alt="prod" />
                     <div style={{ fontSize: 10, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
@@ -1246,8 +1246,8 @@ export const Orders: React.FC = () => {
               </div>
             )}
             {modalSelectedProduct && (
-              <Row gutter={16} align="bottom" style={{ marginTop: 16 }}>
-                <Col span={10}>
+              <Row gutter={[10, 10]} align="bottom" style={{ marginTop: 12 }}>
+                <Col xs={24} md={10}>
                   <Select style={{ width: '100%' }} placeholder="Select Variant" value={modalVariantSku} onChange={setModalVariantSku}>
                     {modalSelectedProduct.variants.map((v: any) => {
                       const attrLabel = v.attributes && Object.keys(v.attributes).length > 0
@@ -1261,15 +1261,15 @@ export const Orders: React.FC = () => {
                     })}
                   </Select>
                 </Col>
-                <Col span={4}>
+                <Col xs={8} md={4}>
                   <label style={{ fontSize: 11, display: 'block' }}>Qty</label>
                   <InputNumber min={1} value={modalAddQty} onChange={(val) => setModalAddQty(val || 1)} style={{ width: '100%' }} />
                 </Col>
-                <Col span={6}>
+                <Col xs={10} md={6}>
                   <label style={{ fontSize: 11, display: 'block' }}>Override Price ($)</label>
                   <InputNumber min={0} precision={2} placeholder="Optional" value={modalOverridePrice} onChange={(val) => setModalOverridePrice(val !== null ? val : undefined)} style={{ width: '100%' }} />
                 </Col>
-                <Col span={4}>
+                <Col xs={6} md={4}>
                   <Button type="primary" onClick={handleAddModalDraftItem} block disabled={!modalVariantSku}>Add</Button>
                 </Col>
               </Row>
@@ -1278,23 +1278,23 @@ export const Orders: React.FC = () => {
 
           <Divider orientation="left">Ledger Billing Details</Divider>
           
-          <Row gutter={16}>
-            <Col span={8}>
+          <Row gutter={12}>
+            <Col xs={12} md={8}>
               <Form.Item name="promo_code" label="Promo Code (Optional)">
                 <Input placeholder="E.g. SUMMER20" style={{ borderRadius: 0 }} />
               </Form.Item>
             </Col>
-            <Col span={8}>
+            <Col xs={12} md={8}>
               <Form.Item name="discount_amount" label="Discount Value (৳)" initialValue={0}>
                 <InputNumber min={0} precision={2} style={{ width: "100%", borderRadius: 0 }} />
               </Form.Item>
             </Col>
-            <Col span={8}>
+            <Col xs={12} md={8}>
               <Form.Item name="payment_amount" label="Paid Amount (৳)" initialValue={0}>
                 <InputNumber min={0} precision={2} style={{ width: "100%", borderRadius: 0 }} />
               </Form.Item>
             </Col>
-            <Col span={8}>
+            <Col xs={12} md={8}>
               <Form.Item name="payment_method" label="Payment Option" initialValue="COD">
                 <Select>
                   <Select.Option value="COD">Cash on Delivery (COD)</Select.Option>
@@ -1353,10 +1353,10 @@ export const Orders: React.FC = () => {
           </div>
         ) : null}
       >
-        <div style={{ display: 'flex', height: '100%', width: isAddingProduct ? '100vw' : '100%', overflow: 'hidden' }}>
+        <div className={isAddingProduct ? "posh-drawer-split adding" : "posh-drawer-split"} style={{ display: 'flex', height: '100%', width: isAddingProduct ? '100vw' : '100%', overflow: 'hidden' }}>
           {isAddingProduct && (
-            <div style={{ flex: 1, background: '#141414', color: '#fff', display: 'flex', flexDirection: 'column', height: '100%', borderRight: '1px solid #333' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid #333', background: '#1f1f1f' }}>
+            <div style={{ flex: 1, minWidth: 0, background: '#141414', color: '#fff', display: 'flex', flexDirection: 'column', height: '100%', borderRight: '1px solid #333' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #333', background: '#1f1f1f' }}>
                 <span style={{ fontSize: 16, fontWeight: 600 }}>Product Catalog</span>
                 <Button type="text" onClick={() => setIsAddingProduct(false)} style={{ color: '#fff', fontSize: 16, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   X
@@ -1403,7 +1403,7 @@ export const Orders: React.FC = () => {
                 </Row>
 
                 {gridProducts.length > 0 ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 12 }}>
+                  <div className="posh-drawer-product-grid">
                     {gridProducts.map(p => (
                       <Card 
                         key={p.id} 
@@ -1525,8 +1525,8 @@ export const Orders: React.FC = () => {
             </div>
           )}
 
-          <div style={{ width: isAddingProduct ? 'min(750px, 100vw)' : '100%', height: '100%', overflowY: 'auto', background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: 24, flex: 1 }}>
+          <div className="posh-drawer-right-pane" style={{ width: isAddingProduct ? 'min(750px, 100vw)' : '100%', height: '100%', overflowY: 'auto', background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '16px', flex: 1 }}>
         {selectedOrder && (
           <Space direction="vertical" size="large" style={{ width: "100%" }}>
             
@@ -1546,8 +1546,8 @@ export const Orders: React.FC = () => {
 
             <div style={{ marginBottom: 24 }}>
               <h3 style={{ fontSize: 16, marginBottom: 16, fontWeight: 600 }}>Order Coordinates & Editable Details</h3>
-              <Row gutter={[16, 16]}>
-                <Col span={12}>
+              <Row gutter={[12, 12]}>
+                <Col xs={12} sm={12}>
                   <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Order Status</div>
                   <Select 
                     value={selectedOrder.status} 
@@ -1567,7 +1567,7 @@ export const Orders: React.FC = () => {
                     <Select.Option value="rto">RTO</Select.Option>
                   </Select>
                 </Col>
-                <Col span={12}>
+                <Col xs={12} sm={12}>
                   <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Payment Status</div>
                   <Select 
                     value={selectedOrder.payment_status} 
@@ -1582,15 +1582,15 @@ export const Orders: React.FC = () => {
                     <Select.Option value="failed">Failed</Select.Option>
                   </Select>
                 </Col>
-                <Col span={12}>
+                <Col xs={12} sm={12}>
                   <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Customer Name</div>
                   <Input value={selectedOrder.shipping_name || selectedOrder.customer_name} onChange={e => setSelectedOrder({...selectedOrder, shipping_name: e.target.value})} style={{ marginTop: 4 }} />
                 </Col>
-                <Col span={12}>
+                <Col xs={12} sm={12}>
                   <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Phone</div>
                   <Input value={selectedOrder.shipping_phone || selectedOrder.customer_phone} onChange={e => setSelectedOrder({...selectedOrder, shipping_phone: e.target.value})} style={{ marginTop: 4 }} />
                 </Col>
-                <Col span={8}>
+                <Col xs={12} sm={8}>
                   <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>District</div>
                   <Select
                     showSearch
@@ -1606,7 +1606,7 @@ export const Orders: React.FC = () => {
                     ))}
                   </Select>
                 </Col>
-                <Col span={8}>
+                <Col xs={12} sm={8}>
                   <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Thana</div>
                   <Select
                     showSearch
@@ -1619,7 +1619,7 @@ export const Orders: React.FC = () => {
                     ))}
                   </Select>
                 </Col>
-                <Col span={8}>
+                <Col xs={24} sm={8}>
                   <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Postal Code</div>
                   <Input value={selectedOrder.shipping_postal_code} onChange={e => setSelectedOrder({...selectedOrder, shipping_postal_code: e.target.value})} style={{ marginTop: 4 }} />
                 </Col>
@@ -1627,20 +1627,20 @@ export const Orders: React.FC = () => {
                   <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Detailed Address</div>
                   <Input.TextArea value={selectedOrder.shipping_address} onChange={e => setSelectedOrder({...selectedOrder, shipping_address: e.target.value})} style={{ marginTop: 4 }} />
                 </Col>
-                <Col span={12}>
+                <Col xs={12} sm={12}>
                   <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Courier Tracking</div>
                   <div style={{ fontWeight: 600 }}>{selectedOrder.courier_consignment_id || selectedOrder.tracking_number || "NOT DISPATCHED"}</div>
                   <div style={{ color: '#888', fontSize: 13 }}>{selectedOrder.courier_status || "PENDING"}</div>
                 </Col>
-                <Col span={12}>
+                <Col xs={12} sm={12}>
                   <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Shipping Cost Override</div>
                   <InputNumber min={0} value={selectedOrder.shipping_cost} onChange={v => setSelectedOrder({...selectedOrder, shipping_cost: v})} style={{ width: '100%', marginTop: 4 }} />
                 </Col>
-                <Col span={12}>
+                <Col xs={24} sm={12}>
                   <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Customer Notes</div>
                   <Input.TextArea value={selectedOrder.customer_notes} onChange={e => setSelectedOrder({...selectedOrder, customer_notes: e.target.value})} style={{ marginTop: 4 }} />
                 </Col>
-                <Col span={12}>
+                <Col xs={24} sm={12}>
                   <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Internal Notes</div>
                   <Input.TextArea value={selectedOrder.internal_notes} onChange={e => setSelectedOrder({...selectedOrder, internal_notes: e.target.value})} style={{ marginTop: 4 }} />
                 </Col>
@@ -1698,7 +1698,7 @@ export const Orders: React.FC = () => {
               ]}
             />
 
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 16, marginTop: 16 }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
                 <Button type="dashed" icon={<PlusOutlined />} onClick={handleOpenAddProduct}>
                   Add New Product
                 </Button>
@@ -1708,8 +1708,8 @@ export const Orders: React.FC = () => {
               </div>
 
             <Card size="small" style={{ marginTop: 16, borderColor: '#e5e5e5' }}>
-              <Row gutter={16}>
-                <Col span={12}>
+              <Row gutter={[12, 12]}>
+                <Col xs={24} sm={12}>
                   <label style={{ fontSize: 12, fontWeight: 600 }}>Discount Amount (৳)</label>
                   <InputNumber 
                     style={{ width: '100%' }} 
@@ -1718,7 +1718,7 @@ export const Orders: React.FC = () => {
                     onChange={(v) => setDraftDiscount(v || 0)} 
                   />
                 </Col>
-                <Col span={12}>
+                <Col xs={24} sm={12}>
                   <label style={{ fontSize: 12, fontWeight: 600 }}>Promo Code (Optional)</label>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <Input 

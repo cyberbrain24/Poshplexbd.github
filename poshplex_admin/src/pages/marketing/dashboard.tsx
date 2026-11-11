@@ -256,8 +256,8 @@ export const MarketingDashboard: React.FC = () => {
       ) : (
         <>
           {/* KPI Cards Row */}
-          <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-            <Col xs={24} sm={12} lg={4}>
+          <Row gutter={[10, 10]} style={{ marginBottom: 20 }}>
+            <Col xs={12} sm={12} lg={4}>
               <Card style={{ backgroundColor: "#111116", borderColor: "rgba(255,255,255,0.08)", borderRadius: 10 }}>
                 <Statistic
                   title={<span style={{ color: "#9ca3af", fontSize: 12 }}>Total Ad Spend</span>}
@@ -268,7 +268,7 @@ export const MarketingDashboard: React.FC = () => {
                 />
               </Card>
             </Col>
-            <Col xs={24} sm={12} lg={5}>
+            <Col xs={12} sm={12} lg={5}>
               <Card style={{ backgroundColor: "#111116", borderColor: "rgba(255,255,255,0.08)", borderRadius: 10 }}>
                 <Statistic
                   title={<span style={{ color: "#9ca3af", fontSize: 12 }}>Attributed Revenue</span>}
@@ -279,7 +279,7 @@ export const MarketingDashboard: React.FC = () => {
                 />
               </Card>
             </Col>
-            <Col xs={24} sm={12} lg={5}>
+            <Col xs={12} sm={12} lg={5}>
               <Card style={{ backgroundColor: "#111116", borderColor: "rgba(255,255,255,0.08)", borderRadius: 10 }}>
                 <Statistic
                   title={<span style={{ color: "#9ca3af", fontSize: 12 }}>Blended ROAS</span>}
@@ -289,7 +289,7 @@ export const MarketingDashboard: React.FC = () => {
                 />
               </Card>
             </Col>
-            <Col xs={24} sm={12} lg={5}>
+            <Col xs={12} sm={12} lg={5}>
               <Card style={{ backgroundColor: "#111116", borderColor: "rgba(255,255,255,0.08)", borderRadius: 10 }}>
                 <Statistic
                   title={<span style={{ color: "#9ca3af", fontSize: 12 }}>Purchases (Conversions)</span>}
@@ -299,7 +299,7 @@ export const MarketingDashboard: React.FC = () => {
                 />
               </Card>
             </Col>
-            <Col xs={24} sm={12} lg={5}>
+            <Col xs={12} sm={12} lg={5}>
               <Card style={{ backgroundColor: "#111116", borderColor: "rgba(255,255,255,0.08)", borderRadius: 10 }}>
                 <Statistic
                   title={<span style={{ color: "#9ca3af", fontSize: 12 }}>Avg. CPC / CTR</span>}

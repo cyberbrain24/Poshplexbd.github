@@ -325,6 +325,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({
 
   return (
     <div
+      className="posh-product-card"
       style={{
         background: isSelected ? "rgba(124, 58, 237, 0.12)" : "rgba(17, 17, 26, 0.85)",
         border: isSelected ? "1px solid #7c3aed" : "1px solid var(--border-glass, rgba(255, 255, 255, 0.08))",
@@ -411,13 +412,13 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({
 
         {/* Product Name (truncated with tooltip) */}
         <Tooltip title={product.name} placement="topLeft">
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: "16px" }}>
+          <div className="posh-product-card-name" style={{ fontSize: 12, fontWeight: 700, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: "16px" }}>
             {product.name}
           </div>
         </Tooltip>
 
         {/* SKU & Category */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 2, fontSize: 10, color: "var(--text-muted, #9ca3af)", lineHeight: "14px" }}>
+        <div className="posh-product-card-meta" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 2, fontSize: 10, color: "var(--text-muted, #9ca3af)", lineHeight: "14px" }}>
           <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "55%" }}>
             <code>{product.sku}</code>
           </span>
@@ -427,7 +428,7 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({
         </div>
 
         {/* Pricing */}
-        <div style={{ marginTop: 3, display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+        <div className="posh-product-card-price" style={{ marginTop: 3, display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
           <span style={{ fontSize: 13, fontWeight: 800, color: "#10b981" }}>
             ৳{Math.round(minPrice)}
           </span>
@@ -2099,17 +2100,17 @@ export const Catalog: React.FC = () => {
         { label: <span><BuildOutlined /> Drop Listings</span>, key: "1", children: (
           <Card
             title={
-              <Space wrap size="middle">
+              <Space wrap size="small">
                 <DebouncedSearchInput
                   placeholder="Search Name or SKU..."
                   onSearch={setSearchText}
-                  style={{ width: 220, borderRadius: 0 }}
+                  style={{ width: "min(220px, 100%)", minWidth: 140, borderRadius: 0 }}
                 />
                 <Select
                   placeholder="Category Filter"
                   allowClear
                   onChange={setFilterCategory}
-                  style={{ width: 160 }}
+                  style={{ minWidth: 130, flex: "1 1 130px" }}
                 >
                   {flatCategories.map((c: any) => <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>)}
                 </Select>
@@ -2117,7 +2118,7 @@ export const Catalog: React.FC = () => {
                   placeholder="Brand Filter"
                   allowClear
                   onChange={setFilterBrand}
-                  style={{ width: 140 }}
+                  style={{ minWidth: 120, flex: "1 1 120px" }}
                 >
                   {brands.map((b: any) => <Select.Option key={b.id} value={b.id}>{b.name}</Select.Option>)}
                 </Select>
@@ -2125,7 +2126,7 @@ export const Catalog: React.FC = () => {
                   placeholder="Status Filter"
                   allowClear
                   onChange={setFilterStatus}
-                  style={{ width: 140 }}
+                  style={{ minWidth: 120, flex: "1 1 120px" }}
                 >
                   <Select.Option value={true}>Active</Select.Option>
                   <Select.Option value={false}>Inactive</Select.Option>
@@ -2133,9 +2134,9 @@ export const Catalog: React.FC = () => {
               </Space>
             }
             extra={
-              <Space>
+              <Space wrap size="small">
                 {selectedRowKeys.length > 0 && (
-                  <Space style={{ marginRight: 16 }}>
+                  <Space wrap size="small">
                     <Button onClick={() => handleBulkStatusUpdate(true)}>Activate</Button>
                     <Button onClick={() => handleBulkStatusUpdate(false)}>Deactivate</Button>
                     <Button danger onClick={handleBulkDelete}>Delete</Button>
@@ -2167,12 +2168,17 @@ export const Catalog: React.FC = () => {
               @media (max-width: 900px) {
                 .posh-drop-8col-grid {
                   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                  gap: 6px !important;
                 }
+                .posh-product-card { padding: 5px !important; }
+                .posh-product-card-name { font-size: 11px !important; line-height: 14px !important; }
+                .posh-product-card-meta { font-size: 9px !important; }
+                .posh-product-card-price span { font-size: 11.5px !important; }
               }
             `}</style>
 
             {/* View Mode & Selection Toolbar */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, background: "rgba(255,255,255,0.02)", padding: "6px 10px", borderRadius: 4, border: "1px solid rgba(255,255,255,0.06)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 12, background: "rgba(255,255,255,0.02)", padding: "6px 10px", borderRadius: 4, border: "1px solid rgba(255,255,255,0.06)" }}>
               <Space size="middle">
                 <Checkbox
                   checked={products.length > 0 && products.every(p => selectedRowKeys.includes(p.id))}
@@ -2359,15 +2365,8 @@ export const Catalog: React.FC = () => {
                     items={featuredProducts.map(p => p.id)}
                     strategy={rectSortingStrategy}
                   >
-                    <div style={{ width: "100%", overflowX: "auto", padding: "8px 0" }}>
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "repeat(6, minmax(160px, 1fr))",
-                          gap: 12,
-                          minWidth: 1020,
-                        }}
-                      >
+                    <div style={{ width: "100%", padding: "8px 0" }}>
+                      <div className="posh-featured-grid">
                         {featuredProducts.map((prod, idx) => (
                           <SortableFeaturedCard
                             key={prod.id}
@@ -2945,20 +2944,20 @@ export const Catalog: React.FC = () => {
           /* Tab A: Basic Information */
           { label: "Basic Info", key: "basic", children: (
               <>
-              <Row gutter={16}>
-                <Col span={12}>
+              <Row gutter={[12, 12]}>
+                <Col xs={24} sm={12}>
                   <Form.Item name="name" label="Product Name" rules={[{ required: true, message: "Please enter product name!" }]}>
                     <Input placeholder="e.g. Acid-Wash Oversized Heavy Tee" style={{ borderRadius: 0 }} />
                   </Form.Item>
                 </Col>
-                <Col span={12}>
+                <Col xs={24} sm={12}>
                   <Form.Item name="sku" label="SKU Identifier (Auto-generated if empty)">
                     <Input placeholder="e.g. PP-TEE-ACID-BLK" style={{ borderRadius: 0 }} />
                   </Form.Item>
                 </Col>
               </Row>
-              <Row gutter={16}>
-                <Col span={6}>
+              <Row gutter={[12, 12]}>
+                <Col xs={24} sm={12} md={6}>
                   <Form.Item name="product_type" label="Product Option Layout" rules={[{ required: true }]}>
                     <Select onChange={(val) => setProductType(val as any)}>
                       <Select.Option value="simple">Simple (Single Base Pricing)</Select.Option>
@@ -2966,22 +2965,22 @@ export const Catalog: React.FC = () => {
                     </Select>
                   </Form.Item>
                 </Col>
-                <Col span={4}>
+                <Col xs={8} sm={6} md={4}>
                   <Form.Item name="is_active" label="Storefront Active" valuePropName="checked">
                     <Switch />
                   </Form.Item>
                 </Col>
-                <Col span={5}>
+                <Col xs={8} sm={6} md={5}>
                   <Form.Item name="is_featured" label="Homepage Featured" valuePropName="checked">
                     <Switch />
                   </Form.Item>
                 </Col>
-                <Col span={5}>
+                <Col xs={8} sm={6} md={5}>
                   <Form.Item name="is_sold_out" label="Sold Out Status" valuePropName="checked">
                     <Switch checkedChildren="SOLD OUT" unCheckedChildren="AVAILABLE" />
                   </Form.Item>
                 </Col>
-                <Col span={4}>
+                <Col xs={24} sm={12} md={4}>
                   <Form.Item name="listing_order" label="Listing Order" initialValue={0}>
                     <InputNumber style={{ width: '100%', borderRadius: 0 }} />
                   </Form.Item>
@@ -3117,9 +3116,9 @@ export const Catalog: React.FC = () => {
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                  <Row gutter={16} align="bottom">
+                  <Row gutter={[12, 12]} align="bottom">
                     {attributes.map((attr: any) => (
-                      <Col span={8} key={attr.code}>
+                      <Col xs={24} sm={12} md={8} key={attr.code}>
                         <Form.Item label={`Option ${attr.name} (Select or Type)`}>
                           <Select
                             mode="tags"

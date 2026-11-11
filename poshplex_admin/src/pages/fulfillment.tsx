@@ -308,8 +308,8 @@ export const Fulfillment: React.FC = () => {
         @media (max-width: 768px) {
           .mobile-product-grid {
             display: grid !important;
-            grid-template-columns: repeat(3, 1fr) !important;
-            gap: 12px !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 8px !important;
             overflow-x: visible !important;
             width: 100%;
           }
@@ -323,7 +323,7 @@ export const Fulfillment: React.FC = () => {
             aspect-ratio: 1 / 1;
           }
           .mobile-parcel-id {
-            font-size: 18px !important;
+            font-size: 13.5px !important;
           }
         }
       `}</style>

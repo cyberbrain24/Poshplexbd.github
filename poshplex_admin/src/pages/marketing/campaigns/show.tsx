@@ -151,8 +151,8 @@ export const CampaignShow: React.FC = () => {
       </div>
 
       {/* KPI Row */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={6}>
+      <Row gutter={[10, 10]} style={{ marginBottom: 20 }}>
+        <Col xs={12} sm={6}>
           <Card style={{ backgroundColor: "#111116", borderColor: "rgba(255,255,255,0.08)", borderRadius: 10 }}>
             <Statistic
               title={<span style={{ color: "#9ca3af", fontSize: 12 }}>Total Spend</span>}
@@ -163,7 +163,7 @@ export const CampaignShow: React.FC = () => {
             />
           </Card>
         </Col>
-        <Col xs={24} sm={6}>
+        <Col xs={12} sm={6}>
           <Card style={{ backgroundColor: "#111116", borderColor: "rgba(255,255,255,0.08)", borderRadius: 10 }}>
             <Statistic
               title={<span style={{ color: "#9ca3af", fontSize: 12 }}>Attributed Revenue</span>}
@@ -174,7 +174,7 @@ export const CampaignShow: React.FC = () => {
             />
           </Card>
         </Col>
-        <Col xs={24} sm={6}>
+        <Col xs={12} sm={6}>
           <Card style={{ backgroundColor: "#111116", borderColor: "rgba(255,255,255,0.08)", borderRadius: 10 }}>
             <Statistic
               title={<span style={{ color: "#9ca3af", fontSize: 12 }}>ROAS</span>}
@@ -184,7 +184,7 @@ export const CampaignShow: React.FC = () => {
             />
           </Card>
         </Col>
-        <Col xs={24} sm={6}>
+        <Col xs={12} sm={6}>
           <Card style={{ backgroundColor: "#111116", borderColor: "rgba(255,255,255,0.08)", borderRadius: 10 }}>
             <Statistic
               title={<span style={{ color: "#9ca3af", fontSize: 12 }}>Daily Budget</span>}

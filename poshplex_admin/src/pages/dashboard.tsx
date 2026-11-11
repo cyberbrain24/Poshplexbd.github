@@ -78,8 +78,8 @@ export const Dashboard: React.FC = () => {
       )}
 
       {/* KPI Cards */}
-      <Row gutter={[24, 24]}>
-        <Col xs={24} sm={12} lg={6}>
+      <Row gutter={[12, 12]}>
+        <Col xs={12} sm={12} lg={6}>
           <div className="glass-card">
             <Statistic
               title={<span style={{ color: "var(--text-muted)", fontSize: 13, fontWeight: 500 }}><DollarOutlined /> Cumulative Revenue</span>}
@@ -94,7 +94,7 @@ export const Dashboard: React.FC = () => {
           </div>
         </Col>
         
-        <Col xs={24} sm={12} lg={6}>
+        <Col xs={12} sm={12} lg={6}>
           <div className="glass-card">
             <Statistic
               title={<span style={{ color: "var(--text-muted)", fontSize: 13, fontWeight: 500 }}><RiseOutlined /> Net Income (Profit)</span>}
@@ -109,7 +109,7 @@ export const Dashboard: React.FC = () => {
           </div>
         </Col>
 
-        <Col xs={24} sm={12} lg={6}>
+        <Col xs={12} sm={12} lg={6}>
           <div className="glass-card">
             <Statistic
               title={<span style={{ color: "var(--text-muted)", fontSize: 13, fontWeight: 500 }}><ShoppingCartOutlined /> Total Sales Orders</span>}
@@ -122,7 +122,7 @@ export const Dashboard: React.FC = () => {
           </div>
         </Col>
 
-        <Col xs={24} sm={12} lg={6}>
+        <Col xs={12} sm={12} lg={6}>
           <div className="glass-card">
             <Statistic
               title={<span style={{ color: "var(--text-muted)", fontSize: 13, fontWeight: 500 }}><AccountBookOutlined /> Ledger Asset Balance</span>}

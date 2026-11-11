@@ -113,7 +113,7 @@ export const RolesPage: React.FC = () => {
         open={isModalVisible}
         onCancel={() => setIsModalVisible(false)}
         onOk={() => form.submit()}
-        width={800}
+        width="min(800px, 96vw)"
       >
         <Form form={form} name="rolesForm" layout="vertical" onFinish={handleSave}>
           <Form.Item name="name" label="Role Name" rules={[{ required: true }]}>

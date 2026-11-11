@@ -2098,8 +2098,8 @@ export const CRM: React.FC = () => {
           onFinish={handleSave}
           layout="vertical"
         >
-          <Row gutter={16}>
-            <Col span={12}>
+          <Row gutter={[12, 12]}>
+            <Col xs={24} sm={12}>
               <Form.Item
                 name="name"
                 label="Customer Name"
@@ -2108,7 +2108,7 @@ export const CRM: React.FC = () => {
                 <Input style={{ borderRadius: 0 }} />
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item
                 name="phone"
                 label="Unique Phone Number (Identity)"
@@ -2122,13 +2122,13 @@ export const CRM: React.FC = () => {
             </Col>
           </Row>
 
-          <Row gutter={16}>
-            <Col span={12}>
+          <Row gutter={[12, 12]}>
+            <Col xs={24} sm={12}>
               <Form.Item name="email" label="Email Address">
                 <Input style={{ borderRadius: 0 }} />
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item
                 name="membership_tier_id"
                 label="Membership tier Assignment"
@@ -2144,8 +2144,8 @@ export const CRM: React.FC = () => {
             </Col>
           </Row>
 
-          <Row gutter={16}>
-            <Col span={12}>
+          <Row gutter={[12, 12]}>
+            <Col xs={24} sm={12}>
               <Form.Item
                 name="gender"
                 label="Gender Orientation"
@@ -2159,7 +2159,7 @@ export const CRM: React.FC = () => {
                 </Select>
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item name="birthdate" label="Birthdate (Calendar)">
                 <DatePicker
                   style={{ width: "100%", borderRadius: 0 }}
@@ -2171,8 +2171,8 @@ export const CRM: React.FC = () => {
 
           <Divider orientation="left">Locations Hierarchy Cascades</Divider>
 
-          <Row gutter={16}>
-            <Col span={12}>
+          <Row gutter={[12, 12]}>
+            <Col xs={24} sm={12}>
               <Form.Item
                 name="district_id"
                 label="District (Division)"
@@ -2190,7 +2190,7 @@ export const CRM: React.FC = () => {
                 </Select>
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item
                 name="thana_id"
                 label="Thana (Area Hub)"
@@ -2281,8 +2281,8 @@ export const CRM: React.FC = () => {
             </Descriptions>
 
             <Divider>KPI summary metrics</Divider>
-            <Row gutter={16}>
-              <Col span={6}>
+            <Row gutter={[10, 10]}>
+              <Col xs={12} md={6}>
                 <Card size="small">
                   <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
                     Lifetime spend
@@ -2290,7 +2290,7 @@ export const CRM: React.FC = () => {
                   <h2>৳{Math.round(detailData.kpis.lifetime_spend)}</h2>
                 </Card>
               </Col>
-              <Col span={6}>
+              <Col xs={12} md={6}>
                 <Card size="small">
                   <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
                     Total Orders
@@ -2298,7 +2298,7 @@ export const CRM: React.FC = () => {
                   <h2>{detailData.kpis.total_orders}</h2>
                 </Card>
               </Col>
-              <Col span={6}>
+              <Col xs={12} md={6}>
                 <Card size="small">
                   <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
                     Average value
@@ -2306,7 +2306,7 @@ export const CRM: React.FC = () => {
                   <h2>৳{Math.round(detailData.kpis.average_order_value)}</h2>
                 </Card>
               </Col>
-              <Col span={6}>
+              <Col xs={12} md={6}>
                 <Card size="small">
                   <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
                     Last order date

@@ -626,8 +626,8 @@ export const FitCheckPage: React.FC = () => {
             children: (
               <div>
                 {/* Metric Cards */}
-                <Row gutter={[16, 16]} style={{ marginBottom: "24px" }}>
-                  <Col xs={24} sm={12} lg={6}>
+                <Row gutter={[10, 10]} style={{ marginBottom: "20px" }}>
+                  <Col xs={12} sm={12} lg={6}>
                     <Card style={{ background: "#111116", border: "1px solid #222" }}>
                       <Statistic
                         title={<Text style={{ color: "#aaa" }}>Total Generations</Text>}
@@ -637,7 +637,7 @@ export const FitCheckPage: React.FC = () => {
                       />
                     </Card>
                   </Col>
-                  <Col xs={24} sm={12} lg={6}>
+                  <Col xs={12} sm={12} lg={6}>
                     <Card style={{ background: "#111116", border: "1px solid #222" }}>
                       <Statistic
                         title={<Text style={{ color: "#aaa" }}>Success Rate</Text>}
@@ -649,7 +649,7 @@ export const FitCheckPage: React.FC = () => {
                       />
                     </Card>
                   </Col>
-                  <Col xs={24} sm={12} lg={6}>
+                  <Col xs={12} sm={12} lg={6}>
                     <Card style={{ background: "#111116", border: "1px solid #222" }}>
                       <Statistic
                         title={<Text style={{ color: "#aaa" }}>External AI API Spend</Text>}
@@ -660,7 +660,7 @@ export const FitCheckPage: React.FC = () => {
                       />
                     </Card>
                   </Col>
-                  <Col xs={24} sm={12} lg={6}>
+                  <Col xs={12} sm={12} lg={6}>
                     <Card style={{ background: "#111116", border: "1px solid #222" }}>
                       <Statistic
                         title={<Text style={{ color: "#aaa" }}>Avg Generation Latency</Text>}
@@ -1077,7 +1077,7 @@ export const FitCheckPage: React.FC = () => {
         open={!!selectedResultImage}
         onCancel={() => setSelectedResultImage(null)}
         footer={null}
-        width={500}
+        width="min(500px, 96vw)"
         styles={{ body: { background: "#0a0a0e", padding: "16px", textAlign: "center" } }}
       >
         {selectedResultImage && (
@@ -1105,7 +1105,7 @@ export const FitCheckPage: React.FC = () => {
             {editingStructure ? `Edit Body Structure: ${editingStructure.name}` : "Create New Body Structure"}
           </span>
         }
-        width={740}
+        width="min(740px, 96vw)"
         footer={null}
         destroyOnClose
         style={{ top: 40 }}
