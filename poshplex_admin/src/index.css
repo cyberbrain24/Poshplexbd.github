@@ -39,6 +39,9 @@ body {
 .btn-primary:hover { filter: brightness(1.1); }
 .ant-layout { background: var(--bg-primary) !important; min-width: 0; }
 .ant-layout-sider { background: var(--bg-secondary) !important; border-right: 1px solid var(--border-glass); }
+.ant-layout-sider-children { height: 100% !important; display: flex !important; flex-direction: column !important; }
+.sider-logout-btn { transition: all 0.2s ease !important; }
+.sider-logout-btn:hover { background: rgba(244, 63, 94, 0.15) !important; color: #fb7185 !important; }
 .ant-menu { background: transparent !important; border-inline-end: none !important; }
 .ant-menu-item { color: var(--text-muted) !important; margin: 4px 8px !important; border-radius: 8px !important; min-height: 44px !important; display: flex !important; align-items: center !important; }
 .ant-menu-item-selected { background: rgba(139,92,246,0.15) !important; color: var(--accent-purple) !important; font-weight: 600 !important; }

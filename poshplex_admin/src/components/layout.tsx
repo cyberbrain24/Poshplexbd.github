@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Layout, Menu, Button, Avatar, Space, Drawer } from "antd";
+import { Layout, Menu, Button, Avatar, Drawer, Tooltip } from "antd";
 import {
   DashboardOutlined, ShoppingCartOutlined, AppstoreOutlined, AuditOutlined,
   TeamOutlined, ApiOutlined, FolderOpenOutlined, LogoutOutlined, UserOutlined,
   CarOutlined, GiftOutlined, SoundOutlined, SettingOutlined, PrinterOutlined,
-  MenuOutlined, EllipsisOutlined, PictureOutlined, DesktopOutlined, CheckSquareOutlined, GlobalOutlined, BarChartOutlined,
+  EllipsisOutlined, PictureOutlined, DesktopOutlined, CheckSquareOutlined, GlobalOutlined, BarChartOutlined,
   RocketOutlined, ThunderboltOutlined, RobotOutlined, EyeOutlined, SkinOutlined
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -14,7 +14,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000')) + "/api/v1";
 
-const { Header, Sider, Content } = Layout;
+const { Sider, Content } = Layout;
 
 export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
@@ -140,74 +140,197 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
     ...(isSettingsActive ? ["sub-settings"] : []),
   ];
 
+  const sidebarFooter = (
+    <div
+      style={{
+        flexShrink: 0,
+        borderTop: "1px solid var(--border-glass)",
+        padding: "12px 14px",
+        background: "var(--bg-secondary)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 8,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          minWidth: 0,
+          flex: 1,
+        }}
+      >
+        <Avatar
+          size="default"
+          icon={<UserOutlined />}
+          style={{
+            backgroundColor: "var(--accent-purple)",
+            flexShrink: 0,
+          }}
+        />
+        <div style={{ minWidth: 0, overflow: "hidden" }}>
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: "var(--text-main)",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+            title={identity?.username || "Admin"}
+          >
+            {identity?.username || "Admin"}
+          </div>
+          {identity?.role && (
+            <div
+              style={{
+                fontSize: 11,
+                color: "var(--accent-cyan)",
+                textTransform: "capitalize",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {identity.role}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <Tooltip title="Sign Out" placement="right">
+        <Button
+          type="text"
+          icon={<LogoutOutlined />}
+          onClick={() => logout()}
+          aria-label="Sign Out"
+          style={{
+            color: "var(--accent-rose)",
+            fontSize: 16,
+            minHeight: 36,
+            width: 36,
+            padding: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: 6,
+            flexShrink: 0,
+          }}
+          className="sider-logout-btn"
+        />
+      </Tooltip>
+    </div>
+  );
+
   return (
     <Layout style={{ minHeight: "100vh" }}>
-      <Sider width={260} breakpoint="lg" collapsedWidth="0" className="desktop-sider" style={{ height: "100vh", position: "sticky", top: 0, left: 0, zIndex: 101, overflowY: "auto", overflowX: "hidden" }}>
-        <div style={{ height: 64, display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid var(--border-glass)" }}>
-          <span style={{ fontSize: 18, fontWeight: 800, color: "var(--accent-purple)", letterSpacing: "1px" }}>POSHPLEX ERP</span>
+      <Sider
+        width={260}
+        breakpoint="md"
+        collapsedWidth="0"
+        className="desktop-sider"
+        style={{
+          height: "100vh",
+          position: "sticky",
+          top: 0,
+          left: 0,
+          zIndex: 101,
+          overflow: "hidden",
+        }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+          {/* Top Brand Header */}
+          <div
+            style={{
+              height: 64,
+              flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderBottom: "1px solid var(--border-glass)",
+            }}
+          >
+            <span
+              style={{
+                fontSize: 18,
+                fontWeight: 800,
+                color: "var(--accent-purple)",
+                letterSpacing: "1px",
+              }}
+            >
+              POSHPLEX ERP
+            </span>
+          </div>
+
+          {/* Scrollable Navigation Menu */}
+          <div
+            style={{
+              flex: 1,
+              overflowY: "auto",
+              overflowX: "hidden",
+              paddingTop: 8,
+              paddingBottom: 8,
+            }}
+          >
+            <Menu
+              mode="inline"
+              selectedKeys={[location.pathname]}
+              defaultOpenKeys={defaultOpenKeys}
+              onClick={({ key }) => {
+                if (key && key.startsWith("/")) {
+                  navigate(key);
+                }
+              }}
+              items={menuItems}
+            />
+          </div>
+
+          {/* Bottom Fixed User Profile & Logout Section */}
+          {sidebarFooter}
         </div>
-        <Menu
-          mode="inline"
-          selectedKeys={[location.pathname]}
-          defaultOpenKeys={defaultOpenKeys}
-          onClick={({ key }) => {
-            if (key && key.startsWith("/")) {
-              navigate(key);
-            }
-          }}
-          items={menuItems}
-          style={{ marginTop: 8 }}
-        />
       </Sider>
 
       <Drawer
         placement="left"
         onClose={() => setMobileMenuOpen(false)}
         open={mobileMenuOpen}
-        styles={{ body: { padding: 0, background: "var(--bg-secondary)" }, header: { background: "var(--bg-secondary)", borderBottom: "1px solid var(--border-glass)" } }}
+        styles={{
+          body: {
+            padding: 0,
+            background: "var(--bg-secondary)",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+          },
+          header: {
+            background: "var(--bg-secondary)",
+            borderBottom: "1px solid var(--border-glass)",
+          },
+        }}
         title={<span style={{ fontSize: 18, fontWeight: 800, color: "var(--accent-purple)" }}>POSHPLEX ERP</span>}
         width={260}
-        extra={<Button type="text" icon={<LogoutOutlined />} onClick={() => logout()} style={{ color: "var(--accent-rose)", fontSize: 13 }}>Sign Out</Button>}
       >
-        {identity && (
-          <div style={{ padding: "16px", borderBottom: "1px solid var(--border-glass)", display: "flex", alignItems: "center", gap: 12 }}>
-            <Avatar icon={<UserOutlined />} style={{ backgroundColor: "var(--accent-purple)", flexShrink: 0 }} />
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-main)" }}>{identity.username}</div>
-              <div style={{ fontSize: 11, color: "var(--accent-cyan)", textTransform: "capitalize" }}>{identity.role}</div>
-            </div>
-          </div>
-        )}
-        <Menu
-          mode="inline"
-          selectedKeys={[location.pathname]}
-          defaultOpenKeys={defaultOpenKeys}
-          onClick={({ key }) => {
-            if (key && key.startsWith("/")) {
-              navigate(key);
-              setMobileMenuOpen(false);
-            }
-          }}
-          items={menuItems}
-        />
+        <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", paddingTop: 8, paddingBottom: 8 }}>
+          <Menu
+            mode="inline"
+            selectedKeys={[location.pathname]}
+            defaultOpenKeys={defaultOpenKeys}
+            onClick={({ key }) => {
+              if (key && key.startsWith("/")) {
+                navigate(key);
+                setMobileMenuOpen(false);
+              }
+            }}
+            items={menuItems}
+          />
+        </div>
+        {sidebarFooter}
       </Drawer>
 
       <Layout style={{ minWidth: 0, overflowX: "hidden" }}>
-        <Header style={{ height: "auto", minHeight: 56, background: "var(--bg-secondary)", padding: "8px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--border-glass)", position: "sticky", top: 0, zIndex: 100 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <Button type="text" icon={<MenuOutlined />} onClick={() => setMobileMenuOpen(true)} style={{ color: "var(--text-main)", fontSize: 18, padding: "4px 8px", minHeight: 40, display: "none" }} className="mobile-menu-btn-header" />
-            <span style={{ fontSize: 15, fontWeight: 600, color: "var(--text-muted)" }}>Streetwear Admin</span>
-          </div>
-          <Space size="small">
-            {identity && (
-              <Space size="small" className="desktop-only">
-                <Avatar size="small" icon={<UserOutlined />} style={{ backgroundColor: "var(--accent-purple)" }} />
-                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-main)" }}>{identity.username}</span>
-              </Space>
-            )}
-            <Button type="text" icon={<LogoutOutlined />} onClick={() => logout()} style={{ color: "var(--accent-rose)", minHeight: 36, padding: "4px 8px" }} />
-          </Space>
-        </Header>
         <Content style={{ padding: "16px 20px", overflowX: "hidden", minWidth: 0 }}>
           {children}
         </Content>
