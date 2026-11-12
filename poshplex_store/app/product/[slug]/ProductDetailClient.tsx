@@ -354,7 +354,7 @@ export default function ProductDetailClient({
   };
 
   return (
-    <div className="product-page-wrapper" style={{ background: "#fff", minHeight: "100vh" }}>
+    <div className="product-page-wrapper" style={{ background: "var(--bg-primary)", minHeight: "100vh" }}>
 
       {/* ── TOP: Two-column layout ── */}
       <div
@@ -370,7 +370,7 @@ export default function ProductDetailClient({
       >
 
         {/* LEFT: Image Gallery */}
-        <div className="product-gallery-container" style={{ position: "relative", width: "100%", background: "#f0f0f3", overflow: "hidden" }}>
+        <div className="product-gallery-container" style={{ position: "relative", width: "100%", background: "#ffffff", overflow: "hidden" }}>
           <div
             className="product-gallery-inner hide-scrollbar"
             style={{ display: "flex", overflowX: "auto", scrollSnapType: "x mandatory", width: "100%", cursor: "zoom-in", scrollBehavior: "smooth" }}
@@ -495,6 +495,7 @@ export default function ProductDetailClient({
             padding: "40px 48px 40px 40px",
             maxHeight: "100vh",
             overflowY: "auto",
+            background: "#ffffff",
           }}
         >
 

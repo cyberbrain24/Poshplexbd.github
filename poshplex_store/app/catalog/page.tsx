@@ -179,7 +179,7 @@ export default function CatalogPage() {
   });
 
   return (
-    <div style={{ background: "#fff", minHeight: "100vh", paddingTop: 40, paddingBottom: 100 }}>
+    <div style={{ background: "var(--bg-primary)", minHeight: "100vh", paddingTop: 40, paddingBottom: 100 }}>
       {isLoading ? (
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: 120 }}>
           <p style={{ fontSize: 13, color: "#888" }}>INITIALIZING CATALOG...</p>
@@ -450,13 +450,17 @@ export default function CatalogPage() {
           padding: 0 40px;
         }
         .catalog-sidebar {
-          width: 220px;
+          width: 240px;
           flex-shrink: 0;
           position: sticky;
           top: 120px;
           max-height: calc(100vh - 160px);
           overflow-y: auto;
-          padding-right: 12px;
+          background: #ffffff;
+          padding: 20px;
+          border-radius: 8px;
+          border: 1px solid rgba(15, 23, 42, 0.06);
+          align-self: flex-start;
         }
         .catalog-sidebar::-webkit-scrollbar {
           width: 4px;

@@ -615,7 +615,7 @@ export default function CategoryClient({
     filters.colors.length + filters.sizes.length + filters.priceBuckets.length;
 
   return (
-    <div style={{ background: "#fff", minHeight: "100vh" }}>
+    <div style={{ background: "var(--bg-primary)", minHeight: "100vh" }}>
       <style dangerouslySetInnerHTML={{__html: `
         .category-title {
           display: none !important;

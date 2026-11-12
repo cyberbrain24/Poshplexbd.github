@@ -143,7 +143,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <CartProvider>
             {/* [TEMPORARY DISCONNECT] MusicProvider & FloatingPlayer temporarily disconnected */}
             {/* <MusicProvider> */}
-              <div className="flex flex-col min-h-screen w-full md:w-[80%] mx-auto relative bg-white">
+              <div className="flex flex-col min-h-screen w-full md:w-[80%] mx-auto relative" style={{ backgroundColor: "var(--bg-primary)" }}>
               
               {/* Sticky Navigation Bar */}
               <Header categories={categories} />
