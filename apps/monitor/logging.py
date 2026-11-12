@@ -18,6 +18,10 @@ class RedisListHandler(logging.Handler):
 
     def emit(self, record):
         try:
+            # Ignore DisallowedHost noise from internet bots/scanners probing random IPs
+            if record.name == "django.security.DisallowedHost" or "Invalid HTTP_HOST header" in record.getMessage():
+                return
+
             # We must grab the raw redis client from the Django cache
             redis_client = None
             if hasattr(cache, 'client') and hasattr(cache.client, 'get_client'):

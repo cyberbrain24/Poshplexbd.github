@@ -31,6 +31,10 @@ if 'api.poshplexbd.com' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('api.poshplexbd.com')
 if 'poshplexbd.com' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('poshplexbd.com')
+if 'admin.poshplexbd.com' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('admin.poshplexbd.com')
+if '185.227.134.236' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('185.227.134.236')
 if 'testserver' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('testserver')
 if 'backend' not in ALLOWED_HOSTS:
@@ -228,6 +232,9 @@ LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'handlers': {
+        'null': {
+            'class': 'logging.NullHandler',
+        },
         'console': {
             'class': 'logging.StreamHandler',
         },
@@ -243,6 +250,10 @@ LOGGING = {
         'level': 'WARNING',
     },
     'loggers': {
+        'django.security.DisallowedHost': {
+            'handlers': ['null'],
+            'propagate': False,
+        },
         'django': {
             'handlers': ['console', 'redis_monitor'],
             'level': 'INFO',
