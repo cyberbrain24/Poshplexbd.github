@@ -41,7 +41,7 @@ const formatPrice = (bdt: string | number) => {
 async function getGeneralSettings() {
   try {
     const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/general`, {
-      next: { revalidate: 60 },
+      next: { revalidate: 10 },
     });
     if (res.ok) {
       const data = await res.json();

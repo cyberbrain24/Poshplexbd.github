@@ -4,11 +4,15 @@ from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 from django.conf import settings as django_settings
 from django.db.models import Q
-from ninja import Router, Schema, File
+from ninja import Router, Schema, File, Form
 from ninja.files import UploadedFile
 import os
+import re
+import uuid
+from urllib.parse import urlparse
 import jwt
 import datetime
+from django.core.files.storage import default_storage
 from ninja.security import HttpBearer
 from ninja.errors import HttpError
 
@@ -572,6 +576,276 @@ def list_settings(request):
     """List all site settings (Requires authentication)."""
     return list(SiteSetting.objects.all())
 
+SETTINGS_IMAGE_FIELDS = {
+    "general": {"desktop_hero_banner_url", "mobile_hero_banner_url", "favicon_url"},
+}
+
+def _extract_storage_key_from_url(url: str) -> str:
+    """Extract the relative storage key from a local or R2 media URL; return '' for third-party links."""
+    if not url or not isinstance(url, str):
+        return ""
+    cleaned = url.strip()
+    if not cleaned:
+        return ""
+
+    parsed = urlparse(cleaned)
+    path = parsed.path or ""
+
+    # Standard local Django /media/<key> URL
+    if "/media/" in path:
+        return path.split("/media/", 1)[-1].lstrip("/")
+
+    r2_cfg = SiteSetting.get_value("cloudflare_r2_config", {}) or {}
+    r2_custom_domain = (r2_cfg.get("custom_domain") or getattr(django_settings, "AWS_S3_CUSTOM_DOMAIN", "") or "").strip().lower()
+    r2_endpoint = (r2_cfg.get("endpoint_url") or getattr(django_settings, "AWS_S3_ENDPOINT_URL", "") or "").strip().lower()
+    r2_bucket = (r2_cfg.get("bucket_name") or getattr(django_settings, "AWS_STORAGE_BUCKET_NAME", "") or "").strip()
+    site_base = os.environ.get("SITE_BASE_URL", "").strip().lower()
+
+    known_hosts = {
+        "media.poshplexbd.com",
+        "cdn.poshplexbd.com",
+        "poshplexbd.com",
+        "api.poshplexbd.com",
+        "localhost:8000",
+        "127.0.0.1:8000",
+    }
+    if r2_custom_domain:
+        known_hosts.add(urlparse(r2_custom_domain if "://" in r2_custom_domain else f"https://{r2_custom_domain}").netloc.lower())
+    if r2_endpoint:
+        known_hosts.add(urlparse(r2_endpoint).netloc.lower())
+    if site_base:
+        known_hosts.add(urlparse(site_base).netloc.lower())
+
+    parsed_host = (parsed.netloc or "").lower()
+    if not parsed.scheme or parsed_host in known_hosts or parsed_host.endswith(".r2.dev"):
+        candidate = path.lstrip("/")
+        if r2_bucket and candidate.startswith(f"{r2_bucket}/"):
+            candidate = candidate[len(r2_bucket) + 1:]
+        return candidate
+
+    return ""
+
+def _is_storage_key_referenced_elsewhere(
+    storage_key: str,
+    old_url: str,
+    exclude_setting_key: str = "",
+    exclude_field: str = "",
+) -> bool:
+    """Guard against deleting media files that are still referenced by another setting or catalog item."""
+    if not storage_key:
+        return True
+
+    clean_old = (old_url or "").split("?")[0].strip()
+
+    general_val = SiteSetting.get_value("general", {}) or {}
+    for field_name in ("desktop_hero_banner_url", "mobile_hero_banner_url", "favicon_url"):
+        if exclude_setting_key == "general" and exclude_field == field_name:
+            continue
+        val = str(general_val.get(field_name) or "")
+        if val and (storage_key in val or (clean_old and clean_old == val.split("?")[0].strip())):
+            return True
+
+    seo_val = SiteSetting.get_value("seo", {}) or {}
+    if not (exclude_setting_key == "seo" and exclude_field == "og_image_url"):
+        og_val = str(seo_val.get("og_image_url") or "")
+        if og_val and (storage_key in og_val or (clean_old and clean_old == og_val.split("?")[0].strip())):
+            return True
+
+    from apps.catalog.models import ProductImage, Category, Product
+    if ProductImage.objects.filter(image__icontains=storage_key).exists():
+        return True
+    if Category.objects.filter(image__icontains=storage_key).exists():
+        return True
+    if Product.objects.filter(Q(description__icontains=storage_key) | Q(short_description__icontains=storage_key)).exists():
+        return True
+
+    return False
+
+def _safely_delete_old_asset_by_url(old_url: str, exclude_setting_key: str = "", exclude_field: str = "") -> bool:
+    """Delete an obsolete setting image from MediaAsset, active storage (R2/disk), and local disk fallback."""
+    storage_key = _extract_storage_key_from_url(old_url)
+    if not storage_key:
+        return False
+
+    if _is_storage_key_referenced_elsewhere(
+        storage_key,
+        old_url,
+        exclude_setting_key=exclude_setting_key,
+        exclude_field=exclude_field,
+    ):
+        return False
+
+    deleted = False
+    for old_asset in list(MediaAsset.objects.filter(file=storage_key)):
+        if old_asset.file:
+            try:
+                old_asset.file.delete(save=False)
+                deleted = True
+            except Exception:
+                pass
+        old_asset.delete()
+        deleted = True
+
+    try:
+        if default_storage.exists(storage_key):
+            default_storage.delete(storage_key)
+            deleted = True
+    except Exception:
+        pass
+
+    # Clean up local disk copy as well if present inside MEDIA_ROOT (e.g. mixed R2/local history)
+    media_root = os.path.abspath(str(django_settings.MEDIA_ROOT))
+    local_path = os.path.abspath(os.path.join(media_root, storage_key))
+    if local_path.startswith(media_root + os.sep) and os.path.isfile(local_path):
+        try:
+            os.remove(local_path)
+            deleted = True
+        except Exception:
+            pass
+
+    return deleted
+
+@router.post("/settings/upload-asset", auth=BearerAuth())
+def upload_setting_asset(
+    request,
+    field: str = Form(...),
+    setting_key: str = Form("general"),
+    file: UploadedFile = File(...),
+):
+    """Upload a storefront banner or favicon image, persist the setting, and delete the replaced image."""
+    enforce_permission(request, "core", "edit_settings")
+
+    allowed = SETTINGS_IMAGE_FIELDS.get(setting_key, set())
+    if field not in allowed:
+        raise HttpError(400, f"Invalid asset field '{field}' for setting '{setting_key}'.")
+
+    orig_name = os.path.basename(file.name or "asset.png")
+    stem, ext = os.path.splitext(orig_name)
+    ext = ext.lower()
+
+    allowed_exts = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"}
+    if field == "favicon_url":
+        allowed_exts.add(".ico")
+
+    if ext not in allowed_exts:
+        raise HttpError(400, f"Unsupported image format '{ext}'. Allowed: {', '.join(sorted(allowed_exts))}")
+
+    if file.size and file.size > 15 * 1024 * 1024:
+        raise HttpError(400, "File exceeds maximum size of 15MB.")
+
+    ext_mime_map = {
+        ".webp": "image/webp",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".gif": "image/gif",
+        ".svg": "image/svg+xml",
+        ".ico": "image/x-icon",
+    }
+    mime_type = ext_mime_map.get(ext, file.content_type or "application/octet-stream")
+
+    safe_stem = re.sub(r"[^a-zA-Z0-9_-]+", "_", stem).strip("_") or "asset"
+    field_prefix = field.replace("_url", "")
+    # Unique filename guarantees cache busting on browsers/CDNs and avoids colliding with the deleted old asset
+    unique_filename = f"{field_prefix}_{safe_stem}_{uuid.uuid4().hex[:8]}{ext}"
+
+    asset = MediaAsset(
+        file_name=orig_name,
+        mime_type=mime_type,
+        file_size=file.size or 0,
+        uploaded_by=request.auth,
+    )
+    asset.file.save(unique_filename, file, save=True)
+
+    new_url = asset.file.url if asset.file else ""
+    if new_url and not (new_url.startswith("http://") or new_url.startswith("https://")):
+        base_url = os.environ.get(
+            "SITE_BASE_URL",
+            "https://poshplexbd.com" if not django_settings.DEBUG else "http://localhost:8000",
+        )
+        new_url = f"{base_url.rstrip('/')}{new_url}"
+
+    existing_setting = SiteSetting.objects.filter(key=setting_key).first()
+    current_val = dict(existing_setting.value) if (existing_setting and existing_setting.value) else {}
+    old_url = str(current_val.get(field) or "")
+    if field == "desktop_hero_banner_url" and not old_url:
+        old_url = str(current_val.get("banner_image_url") or "")
+
+    current_val[field] = new_url
+    if field == "desktop_hero_banner_url":
+        # Keep legacy fallback key aligned so older references do not point to the deleted image
+        current_val["banner_image_url"] = new_url
+
+    SiteSetting.objects.update_or_create(
+        key=setting_key,
+        defaults={
+            "value": current_val,
+            "description": existing_setting.description if existing_setting else "General settings",
+        },
+    )
+
+    deleted_old = False
+    if old_url and old_url != new_url:
+        deleted_old = _safely_delete_old_asset_by_url(
+            old_url,
+            exclude_setting_key=setting_key,
+            exclude_field=field,
+        )
+
+    return {
+        "success": True,
+        "field": field,
+        "url": new_url,
+        "file_name": asset.file_name,
+        "asset_id": f"asset_{asset.id}",
+        "deleted_old": deleted_old,
+    }
+
+@router.delete("/settings/delete-asset", auth=BearerAuth())
+def delete_setting_asset(
+    request,
+    field: str,
+    setting_key: str = "general",
+):
+    """Clear a storefront banner/favicon setting and delete its underlying image file if unreferenced."""
+    enforce_permission(request, "core", "edit_settings")
+
+    allowed = SETTINGS_IMAGE_FIELDS.get(setting_key, set())
+    if field not in allowed:
+        raise HttpError(400, f"Invalid asset field '{field}' for setting '{setting_key}'.")
+
+    existing_setting = SiteSetting.objects.filter(key=setting_key).first()
+    current_val = dict(existing_setting.value) if (existing_setting and existing_setting.value) else {}
+    old_url = str(current_val.get(field) or "")
+    if field == "desktop_hero_banner_url" and not old_url:
+        old_url = str(current_val.get("banner_image_url") or "")
+
+    current_val[field] = ""
+    if field == "desktop_hero_banner_url":
+        current_val["banner_image_url"] = ""
+
+    SiteSetting.objects.update_or_create(
+        key=setting_key,
+        defaults={
+            "value": current_val,
+            "description": existing_setting.description if existing_setting else "General settings",
+        },
+    )
+
+    deleted_old = False
+    if old_url:
+        deleted_old = _safely_delete_old_asset_by_url(
+            old_url,
+            exclude_setting_key=setting_key,
+            exclude_field=field,
+        )
+
+    return {
+        "success": True,
+        "field": field,
+        "deleted_old": deleted_old,
+    }
+
 @router.get("/settings/{key}", response=SiteSettingSchema)
 def get_setting(request, key: str):
     """Retrieve value of a specific setting key (Publicly accessible)."""
@@ -612,6 +886,13 @@ def save_setting(request, data: SiteSettingInputSchema):
             new_value["google_client_secret"] = existing["google_client_secret"]
         if not new_value.get("facebook_client_secret") and existing.get("facebook_client_secret"):
             new_value["facebook_client_secret"] = existing["facebook_client_secret"]
+    elif data.key == "general":
+        existing = SiteSetting.get_value(data.key) or {}
+        merged = dict(existing)
+        merged.update(new_value)
+        if "desktop_hero_banner_url" in merged:
+            merged["banner_image_url"] = merged.get("desktop_hero_banner_url") or ""
+        new_value = merged
 
     setting, created = SiteSetting.objects.update_or_create(
         key=data.key,

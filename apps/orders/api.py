@@ -1,4 +1,5 @@
 # pyright: reportAttributeAccessIssue=false, reportCallIssue=false, reportGeneralTypeIssues=false, reportOperatorIssue=false, reportArgumentType=false
+import re
 from typing import List, Any, Optional
 from decimal import Decimal
 from django.shortcuts import get_object_or_404
@@ -538,22 +539,117 @@ def list_customers_endpoint(request, search: Optional[str] = None):
     enforce_permission(request, "orders", "view_orders")
     qs = User.objects.filter(role='customer')
     if search:
-        qs = qs.filter(Q(username__icontains=search) | Q(email__icontains=search))
+        qs = qs.filter(
+            Q(username__icontains=search) |
+            Q(email__icontains=search) |
+            Q(crm_profile__phone__icontains=search)
+        ).distinct()
         
     from apps.crm.models import CustomerProfile
     results = []
     for u in qs[:20]:
-        profile = CustomerProfile.objects.filter(user=u).first()
+        profile = CustomerProfile.objects.filter(user=u).select_related('district', 'thana').first()
+        district_name = profile.district.name if profile and profile.district else ""
+        thana_name = profile.thana.name if profile and profile.thana else ""
         results.append({
             "id": u.id,
-            "username": u.username,
+            "username": u.get_full_name().strip() or u.username,
             "email": u.email,
             "phone": profile.phone if profile else "",
-            "district": profile.district.name if profile and profile.district else "",
-            "thana": profile.thana.name if profile and profile.thana else "",
+            "district": district_name,
+            "thana": thana_name,
+            "district_name": district_name,
+            "thana_name": thana_name,
             "address": profile.address if profile else ""
         })
     return results
+
+
+@router.get("/customers/by-phone", auth=BearerAuth())
+def lookup_customer_by_phone_endpoint(request, phone: str):
+    """Look up an existing customer by 11-digit/full phone across CRM profiles and prior orders."""
+    enforce_permission(request, "orders", "view_orders")
+
+    raw = (phone or "").strip()
+    digits = re.sub(r"\D", "", raw)
+    if digits.startswith("8801") and len(digits) >= 13:
+        digits = digits[2:]
+    elif digits.startswith("008801") and len(digits) >= 15:
+        digits = digits[4:]
+
+    if len(digits) < 10:
+        return {"found": False}
+
+    core_10 = digits[-10:]
+    norm_11 = f"0{core_10}" if len(core_10) == 10 else digits
+    variants = list({raw, digits, norm_11, f"+88{norm_11}", f"88{norm_11}"})
+
+    from apps.crm.models import CustomerProfile
+    profile = (
+        CustomerProfile.objects.select_related("user", "district", "thana")
+        .filter(Q(phone__in=variants) | Q(phone__endswith=core_10))
+        .order_by("-created_at")
+        .first()
+    )
+    latest_order = (
+        Order.objects.select_related("user")
+        .filter(Q(shipping_phone__in=variants) | Q(shipping_phone__endswith=core_10))
+        .order_by("-created_at")
+        .first()
+    )
+
+    if not profile and not latest_order:
+        return {"found": False}
+
+    user_obj = profile.user if profile else (latest_order.user if latest_order else None)
+    full_name = ""
+    if user_obj and user_obj.get_full_name().strip():
+        full_name = user_obj.get_full_name().strip()
+    elif latest_order and (latest_order.shipping_name or "").strip():
+        full_name = latest_order.shipping_name.strip()
+    elif user_obj:
+        full_name = user_obj.username
+
+    email_val = ""
+    if profile and profile.email:
+        email_val = profile.email
+    elif user_obj and user_obj.email and not str(user_obj.email).endswith("@poshplex-guest.com"):
+        email_val = user_obj.email
+
+    district_val = (
+        (profile.district.name if profile and profile.district else "")
+        or (latest_order.shipping_district if latest_order else "")
+        or ""
+    )
+    thana_val = (
+        (profile.thana.name if profile and profile.thana else "")
+        or (latest_order.shipping_thana if latest_order else "")
+        or ""
+    )
+    postal_val = (latest_order.shipping_postal_code if latest_order else "") or ""
+    address_val = (
+        (profile.address if profile and profile.address else "")
+        or (latest_order.shipping_address if latest_order else "")
+        or ""
+    )
+    final_phone = (
+        (profile.phone if profile and profile.phone else "")
+        or (latest_order.shipping_phone if latest_order else "")
+        or norm_11
+    )
+
+    return {
+        "found": True,
+        "user_id": user_obj.id if user_obj else None,
+        "username": full_name,
+        "name": full_name,
+        "phone": final_phone,
+        "email": email_val,
+        "district_name": district_val,
+        "thana_name": thana_val,
+        "postal_code": postal_val,
+        "address": address_val,
+    }
 
 
 class DeliveryRiskBatchInputSchema(Schema):

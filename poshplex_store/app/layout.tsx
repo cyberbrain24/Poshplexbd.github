@@ -104,7 +104,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   let desktopBannerUrl = null;
   let mobileBannerUrl = null;
   try {
-    const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/general`, { next: { revalidate: 60 } });
+    const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/general`, { next: { revalidate: 10 } });
     if (res.ok) {
       const data = await res.json();
       const settings = data.value;

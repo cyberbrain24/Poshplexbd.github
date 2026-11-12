@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Table, Tag, Button, Space, Card, Modal, Form, Input, Pagination,
   InputNumber, Select, Descriptions, Divider, message, Tabs, Drawer, Timeline, Tooltip, Row, Col, Alert, Badge, Popconfirm, Popover
@@ -18,12 +18,17 @@ import { OrderPulseDrawer } from "../components/OrderPulseDrawer";
 const API_URL = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/orders";
 const CATALOG_API_URL = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/catalog";
 
+const normalizePhoneDigits = (phone: string | undefined | null): string => {
+  if (!phone) return "";
+  let digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("8801") && digits.length >= 13) digits = digits.slice(2);
+  else if (digits.startsWith("008801") && digits.length >= 15) digits = digits.slice(4);
+  return digits;
+};
+
 const isValidPhone = (phone: string | undefined | null) => {
-  if (!phone) return false;
-  let digits = phone.replace(/\D/g, '');
-  if (digits.startsWith('8801') && digits.length === 13) digits = digits.slice(2);
-  else if (digits.startsWith('008801') && digits.length === 15) digits = digits.slice(4);
-  return digits.startsWith('01') && digits.length === 11;
+  const digits = normalizePhoneDigits(phone);
+  return digits.startsWith("01") && digits.length === 11;
 };
 
 export const Orders: React.FC = () => {
@@ -112,6 +117,9 @@ export const Orders: React.FC = () => {
   const [crmCustomers, setCrmCustomers] = useState<any[]>([]);
   const [productsList, setProductsList] = useState<any[]>([]);
   const [customerSearchQuery, setCustomerSearchQuery] = useState("");
+  const [phoneLookupLoading, setPhoneLookupLoading] = useState(false);
+  const [phoneMatchedName, setPhoneMatchedName] = useState<string | null>(null);
+  const lastAutoFilledPhoneRef = useRef<string>("");
 
   // Fetch orders from API
   const fetchOrders = async () => {
@@ -233,32 +241,116 @@ export const Orders: React.FC = () => {
     fetchCrmCustomers("");
   }, []);
 
-  // Autofill customer profile inside Create Order Drawer
+  // Shared customer-profile autofill helper for dropdown selection and 11-digit phone lookup
+  const applyCustomerProfileToDraft = (customer: any, keepTypedPhone: boolean = false) => {
+    if (!customer) return;
+    const distName = customer.district_name || customer.district || "";
+    const thanaName = customer.thana_name || customer.thana || "";
+    const matchedDist = distName
+      ? locationRates.find((d: any) => d.name?.toLowerCase() === String(distName).toLowerCase())
+      : null;
+    const matchedThana =
+      matchedDist && thanaName
+        ? matchedDist.thanas?.find((t: string) => t.toLowerCase() === String(thanaName).toLowerCase()) || thanaName
+        : matchedDist?.thanas?.[0] || thanaName || "";
+
+    setSelectedOrder((prev: any) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        user_id: customer.user_id ?? customer.id ?? prev.user_id ?? null,
+        shipping_name: customer.name || customer.username || prev.shipping_name || "",
+        shipping_phone: keepTypedPhone
+          ? (prev.shipping_phone || customer.phone || "")
+          : (customer.phone || prev.shipping_phone || ""),
+        customer_email: customer.email || prev.customer_email || "",
+        shipping_address: customer.address || prev.shipping_address || "",
+        shipping_postal_code: customer.postal_code || prev.shipping_postal_code || "",
+        ...(matchedDist
+          ? {
+              shipping_district: matchedDist.name,
+              shipping_thana: matchedThana,
+              shipping_cost: matchedDist.shipping_cost ?? prev.shipping_cost ?? 0,
+            }
+          : distName
+          ? {
+              shipping_district: distName,
+              shipping_thana: thanaName || prev.shipping_thana,
+            }
+          : {}),
+      };
+    });
+  };
+
+  // Autofill customer profile inside Create Order Drawer via Quick Customer dropdown
   const handleCreateCustomerSelect = (userId: number | undefined) => {
     if (!userId) {
-      setSelectedOrder((prev: any) => prev ? { ...prev, user_id: null } : prev);
+      setSelectedOrder((prev: any) => (prev ? { ...prev, user_id: null } : prev));
+      setPhoneMatchedName(null);
       return;
     }
-    const customer = crmCustomers.find(c => c.id === userId);
+    const customer = crmCustomers.find((c) => c.id === userId);
     if (customer) {
-      const matchedDist = customer.district_name
-        ? locationRates.find((d: any) => d.name?.toLowerCase() === String(customer.district_name).toLowerCase())
-        : null;
-      setSelectedOrder((prev: any) => ({
-        ...prev,
-        user_id: customer.id,
-        shipping_name: customer.username || prev?.shipping_name || "",
-        shipping_phone: customer.phone || prev?.shipping_phone || "",
-        customer_email: customer.email || "",
-        shipping_address: customer.address || prev?.shipping_address || "",
-        ...(matchedDist ? {
-          shipping_district: matchedDist.name,
-          shipping_thana: customer.thana_name || matchedDist.thanas?.[0] || "",
-          shipping_cost: matchedDist.shipping_cost ?? prev?.shipping_cost ?? 0,
-        } : {}),
-      }));
+      lastAutoFilledPhoneRef.current = normalizePhoneDigits(customer.phone);
+      setPhoneMatchedName(customer.username || customer.phone || null);
+      applyCustomerProfileToDraft(customer, false);
     }
   };
+
+  // Auto-lookup & fill customer information in Create Order Drawer once full 11-digit phone is entered
+  useEffect(() => {
+    if (!isDetailDrawerOpen || drawerMode !== "create" || !selectedOrder) return;
+    const digits = normalizePhoneDigits(selectedOrder.shipping_phone);
+
+    if (digits.length < 11) {
+      if (lastAutoFilledPhoneRef.current) {
+        lastAutoFilledPhoneRef.current = "";
+      }
+      if (phoneMatchedName) {
+        setPhoneMatchedName(null);
+      }
+      return;
+    }
+
+    if (digits === lastAutoFilledPhoneRef.current) {
+      return;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setPhoneLookupLoading(true);
+      try {
+        const token = localStorage.getItem("poshplex_access_token");
+        const res = await axios.get(`${API_URL}/customers/by-phone`, {
+          params: { phone: digits },
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (cancelled) return;
+        lastAutoFilledPhoneRef.current = digits;
+        if (res.data?.found) {
+          applyCustomerProfileToDraft(res.data, true);
+          const matchedLabel = res.data.name || res.data.username || res.data.phone;
+          setPhoneMatchedName(matchedLabel);
+          message.success(`Existing customer "${matchedLabel}" found — details auto-filled.`);
+        } else {
+          setPhoneMatchedName(null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setPhoneMatchedName(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setPhoneLookupLoading(false);
+        }
+      }
+    }, 180);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [isDetailDrawerOpen, drawerMode, selectedOrder?.shipping_phone, locationRates]);
 
   // Manual Order Create Drawer Submit handler
   const handleSaveCreateOrder = async () => {
@@ -460,6 +552,9 @@ export const Orders: React.FC = () => {
     setSelectedAttributes({});
     setAddQty(1);
     setAddPriceOverride(undefined);
+    lastAutoFilledPhoneRef.current = "";
+    setPhoneMatchedName(null);
+    setPhoneLookupLoading(false);
     setIsDetailDrawerOpen(true);
   };
 
@@ -476,6 +571,9 @@ export const Orders: React.FC = () => {
     setSelectedAttributes({});
     setAddQty(1);
     setAddPriceOverride(undefined);
+    lastAutoFilledPhoneRef.current = "";
+    setPhoneMatchedName(null);
+    setPhoneLookupLoading(false);
     setIsDetailDrawerOpen(true);
   };
 
@@ -1501,6 +1599,47 @@ export const Orders: React.FC = () => {
             <div style={{ padding: "16px", flex: 1 }}>
               {selectedOrder && (
                 <Space direction="vertical" size="large" style={{ width: "100%" }}>
+                  {/* Top Steadfast Delivery Risk & Merchant Reports (Create & Edit Order Drawers) */}
+                  {(() => {
+                    const activeDrawerPhone = selectedOrder.shipping_phone || selectedOrder.customer_phone || "";
+                    const normalizedDigits = normalizePhoneDigits(activeDrawerPhone);
+                    const rawDigits = String(activeDrawerPhone).replace(/\D/g, "");
+                    const canQuerySteadfast =
+                      drawerMode === "edit" ? rawDigits.length >= 10 : normalizedDigits.length >= 11;
+
+                    return (
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: "#888",
+                            textTransform: "uppercase",
+                            marginBottom: 8,
+                            fontWeight: 700,
+                          }}
+                        >
+                          Steadfast Delivery Risk &amp; Merchant Reports
+                        </div>
+                        {canQuerySteadfast ? (
+                          <SteadfastRiskCard key={normalizedDigits || rawDigits} phone={activeDrawerPhone} />
+                        ) : (
+                          <div
+                            style={{
+                              padding: "12px 14px",
+                              borderRadius: 8,
+                              border: "1px dashed #333",
+                              background: "rgba(255,255,255,0.02)",
+                              color: "#9ca3af",
+                              fontSize: 12,
+                            }}
+                          >
+                            Enter the customer&apos;s full 11-digit phone number below to load Steadfast delivery risk &amp; auto-fill existing customer details.
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   {/* Risk and Status Overview */}
                   {drawerMode === "create" ? (
                     (() => {
@@ -1645,11 +1784,24 @@ export const Orders: React.FC = () => {
                       <Col xs={12} sm={12}>
                         <div style={{ fontSize: 11, color: "#888", textTransform: "uppercase" }}>Phone</div>
                         <Input
-                          placeholder="01XXXXXXXXX"
+                          placeholder="01XXXXXXXXX (11 digits)"
                           value={selectedOrder.shipping_phone || selectedOrder.customer_phone}
-                          onChange={(e) => setSelectedOrder({ ...selectedOrder, shipping_phone: e.target.value })}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setSelectedOrder({ ...selectedOrder, shipping_phone: val });
+                          }}
                           style={{ marginTop: 4 }}
                         />
+                        {drawerMode === "create" && phoneLookupLoading && (
+                          <div style={{ fontSize: 11, color: "#a78bfa", marginTop: 4 }}>
+                            Checking customer database...
+                          </div>
+                        )}
+                        {drawerMode === "create" && !phoneLookupLoading && phoneMatchedName && (
+                          <div style={{ fontSize: 11, color: "#22c55e", marginTop: 4 }}>
+                            Auto-filled existing customer: {phoneMatchedName}
+                          </div>
+                        )}
                       </Col>
                       <Col xs={12} sm={8}>
                         <div style={{ fontSize: 11, color: "#888", textTransform: "uppercase" }}>District</div>
@@ -1792,25 +1944,6 @@ export const Orders: React.FC = () => {
                           style={{ marginTop: 4 }}
                         />
                       </Col>
-
-                      {/* Steadfast Delivery Risk & Merchant Reports Card */}
-                      {(selectedOrder.shipping_phone || selectedOrder.customer_phone) &&
-                        String(selectedOrder.shipping_phone || selectedOrder.customer_phone).replace(/\D/g, "").length >= 10 && (
-                          <Col span={24} style={{ marginTop: 14 }}>
-                            <div
-                              style={{
-                                fontSize: 11,
-                                color: "#888",
-                                textTransform: "uppercase",
-                                marginBottom: 8,
-                                fontWeight: 700,
-                              }}
-                            >
-                              Steadfast Delivery Risk &amp; Merchant Reports
-                            </div>
-                            <SteadfastRiskCard phone={selectedOrder.shipping_phone || selectedOrder.customer_phone} />
-                          </Col>
-                        )}
                     </Row>
                   </div>
 
