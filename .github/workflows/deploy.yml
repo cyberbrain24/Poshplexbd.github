@@ -42,4 +42,6 @@ jobs:
             docker compose up -d --build store backend admin worker nginx
             echo "Removing dangling Next.js images to save space..."
             docker image prune -f
+            echo "Pruning stale Docker build cache (>24h)..."
+            docker builder prune -f --filter "until=24h" || true
             echo "Deployment successful! 🚀"
