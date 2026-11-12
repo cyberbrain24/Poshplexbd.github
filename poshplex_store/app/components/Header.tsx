@@ -252,7 +252,7 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
                       zIndex: 100,
                     }}>
                       <div style={{
-                        background: "#ffffff",
+                        background: "var(--bg-primary, #ffffff)",
                         border: "1px solid var(--border-glass, #eaeaea)",
                         padding: "32px",
                         display: "flex",

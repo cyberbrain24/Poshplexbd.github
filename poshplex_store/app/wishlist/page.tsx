@@ -70,7 +70,7 @@ export default function WishlistPage() {
   };
 
   return (
-    <div style={{ background: "var(--bg-primary)", minHeight: "100vh", paddingTop: 40, paddingBottom: 100 }}>
+    <div style={{ background: "#fff", minHeight: "100vh", paddingTop: 40, paddingBottom: 100 }}>
       <div className="container" style={{ maxWidth: 1400, margin: "0 auto", padding: "0 24px" }}>
         
         <div style={{ textAlign: "center", marginBottom: 40 }}>

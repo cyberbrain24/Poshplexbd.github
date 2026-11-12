@@ -73,12 +73,12 @@ export default function ProductCard({
   };
 
   return (
-    <div style={{ position: "relative", display: "flex", flexDirection: "column", height: "100%", width: "100%", minWidth: 0, background: "#ffffff", borderRadius: 6, border: "1px solid rgba(15, 23, 42, 0.06)", overflow: "hidden" }}>
+    <div style={{ position: "relative", display: "flex", flexDirection: "column", height: "100%", width: "100%", minWidth: 0 }}>
       <Link
         href={`/product/${product.slug}`}
         style={{ textDecoration: "none", color: "inherit", display: "flex", flexDirection: "column", flex: 1, width: "100%", minWidth: 0 }}
       >
-        <div style={{ position: "relative", background: "#ffffff", overflow: "hidden", aspectRatio: "3/4", width: "100%" }}>
+        <div style={{ position: "relative", background: "#f0f0f0", overflow: "hidden", aspectRatio: "3/4", width: "100%" }}>
           <Image unoptimized={true}
             src={imageUrl}
             alt={product.name}
@@ -101,7 +101,7 @@ export default function ProductCard({
             </div>
           )}
         </div>
-        <div style={{ padding: "8px 10px 10px", flex: 1, width: "100%", minWidth: 0, background: "#ffffff" }}>
+        <div style={{ paddingTop: 8, paddingBottom: 4, flex: 1, width: "100%", minWidth: 0 }}>
           <p style={{ fontSize: 10, color: "#888", marginBottom: 2, letterSpacing: "0.2px", textTransform: "uppercase" }}>
             {product.category?.name || product.categories?.[0]?.name || "Apparel"}
           </p>

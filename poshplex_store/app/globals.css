@@ -1,8 +1,8 @@
 :root {
 
-  --bg-primary: #EAEEF2;
+  --bg-primary: #ffffff;
 
-  --bg-secondary: #ffffff;
+  --bg-secondary: #f9f9fa;
 
   --bg-tertiary: #f0f0f3;
 
@@ -18,7 +18,7 @@
 
   --border-glass: rgba(46, 46, 46, 0.08);
 
-  --bg-glass: rgba(255, 255, 255, 0.94);
+  --bg-glass: rgba(255, 255, 255, 0.85);
 
 }
 

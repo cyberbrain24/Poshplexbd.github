@@ -161,18 +161,18 @@ export default async function Home() {
         >
           {categories.map((cat: any) => (
             <Link key={cat.id} href={`/catalog/${cat.slug}`} className="category-card-link" style={{ textDecoration: "none" }}>
-              <div className="category-card-inner" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, background: "#ffffff", padding: 8, borderRadius: 6, border: "1px solid rgba(15, 23, 42, 0.06)" }}>
+              <div className="category-card-inner" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
                 <div
                   className="category-image-wrapper"
                   style={{
                     position: "relative",
-                    background: "#ffffff",
+                    background: "#f1f1f1",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     borderRadius: 4,
                     overflow: "hidden",
-                    border: "1px solid #f1f5f9",
+                    border: "1px solid #eaeaea",
                   }}
                 >
                   {cat.image ? (
@@ -225,8 +225,6 @@ export default async function Home() {
             }
             .category-card-inner {
               gap: 5px !important;
-              padding: 4px !important;
-              border-radius: 4px !important;
             }
             .category-image-wrapper {
               width: 100%;
@@ -285,20 +283,12 @@ export default async function Home() {
             <div
               key={product.id}
               className="product-card"
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                background: "#ffffff",
-                borderRadius: 6,
-                border: "1px solid rgba(15, 23, 42, 0.06)",
-                overflow: "hidden",
-                paddingBottom: 12,
-              }}
+              style={{ display: "flex", flexDirection: "column" }}
             >
               <Link href={`/product/${product.slug}`} style={{ flex: 1, textDecoration: "none", color: "inherit", display: "flex", flexDirection: "column" }}>
                 <div
                   style={{
-                    background: "#ffffff",
+                    background: "#f5f5f5",
                     aspectRatio: "3/4",
                     position: "relative",
                     marginBottom: 12,
@@ -334,7 +324,7 @@ export default async function Home() {
                     </div>
                   )}
                 </div>
-                <div style={{ padding: "0 12px" }}>
+                <div style={{ padding: "0 4px" }}>
                   {Boolean((product.rating_count && product.rating_count > 0) || (product.rating_average && product.rating_average > 0)) && (
                     <div style={{ display: "flex", alignItems: "center", gap: 3, marginBottom: 6 }}>
                       {[1, 2, 3, 4, 5].map((s) => (

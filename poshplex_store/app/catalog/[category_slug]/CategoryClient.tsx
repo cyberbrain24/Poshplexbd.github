@@ -74,7 +74,7 @@ function SubcategoryNav({
   if (!children.length) return null;
   return (
     <div style={{ position: "relative", width: "100%" }}>
-      <button 
+      <button
         className="mobile-slider-icon left-icon"
         onClick={(e) => {
           e.preventDefault();
@@ -106,8 +106,8 @@ function SubcategoryNav({
               key={sub.id}
               href={`/catalog/${encodeURIComponent(sub.slug)}`}
               scroll={false}
-              style={{ 
-                textDecoration: "none", 
+              style={{
+                textDecoration: "none",
                 textAlign: "center",
                 display: "flex",
                 flexDirection: "column",
@@ -157,7 +157,7 @@ function SubcategoryNav({
         })}
       </div>
 
-      <button 
+      <button
         className="mobile-slider-icon right-icon"
         onClick={(e) => {
           e.preventDefault();
@@ -615,8 +615,9 @@ export default function CategoryClient({
     filters.colors.length + filters.sizes.length + filters.priceBuckets.length;
 
   return (
-    <div style={{ background: "var(--bg-primary)", minHeight: "100vh" }}>
-      <style dangerouslySetInnerHTML={{__html: `
+    <div style={{ background: "#fff", minHeight: "100vh" }}>
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .category-title {
           display: none !important;
         }
