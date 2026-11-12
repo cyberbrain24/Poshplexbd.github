@@ -173,8 +173,8 @@ const SettingsImageUploader: React.FC<SettingsImageUploaderProps> = ({
         }
       : previewVariant === "mobile"
       ? {
-          width: 148,
-          height: 196,
+          maxWidth: 220,
+          maxHeight: 260,
           borderRadius: 6,
           overflow: "hidden",
           border: "1px solid var(--border-color, #2f2f37)",
@@ -231,9 +231,11 @@ const SettingsImageUploader: React.FC<SettingsImageUploaderProps> = ({
                 src={currentUrl}
                 alt={label}
                 style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: previewVariant === "favicon" ? "contain" : "cover",
+                  width: previewVariant === "mobile" ? "auto" : "100%",
+                  maxWidth: "100%",
+                  height: previewVariant === "mobile" ? "auto" : "100%",
+                  maxHeight: previewVariant === "mobile" ? 260 : undefined,
+                  objectFit: previewVariant === "desktop" ? "cover" : "contain",
                   display: "block",
                 }}
               />
@@ -504,7 +506,7 @@ export const SettingsPage: React.FC = () => {
                         form={generalForm}
                         field="mobile_hero_banner_url"
                         label="Mobile Hero Banner Image"
-                        hint="Recommended: Vertical/square banner (1080×1350 JPG, PNG, or WebP). Uploading a new photo automatically deletes the previous banner."
+                        hint="Any dimensions supported — fits mobile width and height automatically with zero cropping. Uploading a new photo automatically deletes the previous banner."
                         accept=".png,.jpg,.jpeg,.webp,.gif,.svg,image/*"
                         previewVariant="mobile"
                       />

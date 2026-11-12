@@ -105,7 +105,7 @@ export default async function Home() {
               src={(mobileBannerUrl || desktopBannerUrl) as string}
               alt="Streetwear Hero Mobile"
               fetchPriority="high"
-              className="hide-on-desktop"
+              className="hide-on-desktop hero-mobile-img"
               style={{
                 width: "100%",
                 maxWidth: "100%",
@@ -114,6 +114,30 @@ export default async function Home() {
               }}
             />
           )}
+          <style dangerouslySetInnerHTML={{__html: `
+            .hero-banner-section {
+              position: relative;
+              width: 100%;
+              min-height: 70vh;
+              overflow: hidden;
+            }
+            @media (max-width: 768px) {
+              .hero-banner-section {
+                min-height: 0 !important;
+                height: auto !important;
+                max-height: none !important;
+                overflow: visible !important;
+              }
+              .hero-mobile-img {
+                width: 100% !important;
+                max-width: 100% !important;
+                height: auto !important;
+                max-height: none !important;
+                object-fit: contain !important;
+                display: block !important;
+              }
+            }
+          `}} />
         </section>
       )}
 
