@@ -101,13 +101,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     console.error("Failed to fetch tracking_pixels:", err);
   }
 
-  // Fetch hero banner URL for preloading to improve LCP
+  // Fetch hero banner URL for preloading to improve LCP & header settings
   let desktopBannerUrl = null;
   let mobileBannerUrl = null;
+  let generalSettings = null;
   try {
     const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/general`, { next: { revalidate: 10 } });
     if (res.ok) {
       const data = await res.json();
+      generalSettings = data?.value || null;
       const settings = data.value;
       desktopBannerUrl = settings?.desktop_hero_banner_url
         ? `${settings.desktop_hero_banner_url}`
@@ -146,7 +148,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <div className="flex flex-col min-h-screen w-full md:w-[80%] mx-auto relative bg-white">
               
               {/* Sticky Navigation Bar */}
-              <Header categories={categories} />
+              <Header categories={categories} initialSettings={generalSettings} />
 
               {/* Cart Slide-in Drawer (global, available on all pages) */}
               <CartDrawer />

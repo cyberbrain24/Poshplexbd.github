@@ -8,12 +8,60 @@ import { Menu, X, Search, Heart, User } from "lucide-react";
 import { HeaderCartCounter } from "./HeaderCartCounter";
 import { useCart } from "../../context/CartContext";
 
-export default function Header({ categories = [] }: { categories?: any[] }) {
+export default function Header({
+  categories = [],
+  initialSettings = null,
+}: {
+  categories?: any[];
+  initialSettings?: any;
+}) {
   const { openCart } = useCart();
   const pathname = usePathname();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [hoveredCategory, setHoveredCategory] = useState<number | null>(null);
+
+  // Dynamic Header Announcement Bar settings from Site Settings
+  const [headerSettings, setHeaderSettings] = useState<{
+    tagline: string;
+    animType: string;
+    speedDesktop: number;
+    speedTablet: number;
+    speedMobile: number;
+  }>({
+    tagline: initialSettings?.site_tagline || "BE POSH WITH POSHPLEX",
+    animType: initialSettings?.header_animation_type || "bounce",
+    speedDesktop: initialSettings?.header_speed_desktop != null ? Number(initialSettings.header_speed_desktop) : 12,
+    speedTablet: initialSettings?.header_speed_tablet != null ? Number(initialSettings.header_speed_tablet) : 10,
+    speedMobile: initialSettings?.header_speed_mobile != null ? Number(initialSettings.header_speed_mobile) : 8,
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchGeneralSettings = async () => {
+      try {
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const res = await fetch(`${apiBase}/api/v1/core/settings/general`);
+        if (res.ok) {
+          const data = await res.json();
+          const val = data?.value || {};
+          if (isMounted) {
+            setHeaderSettings({
+              tagline: val.site_tagline || "BE POSH WITH POSHPLEX",
+              animType: val.header_animation_type || "bounce",
+              speedDesktop: val.header_speed_desktop != null ? Number(val.header_speed_desktop) : 12,
+              speedTablet: val.header_speed_tablet != null ? Number(val.header_speed_tablet) : 10,
+              speedMobile: val.header_speed_mobile != null ? Number(val.header_speed_mobile) : 8,
+            });
+          }
+        }
+      } catch (err) {
+        // Fallback already initialised
+      }
+    };
+    fetchGeneralSettings();
+    return () => { isMounted = false; };
+  }, []);
 
   // Search states
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -159,8 +207,52 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
 
   return (
     <header className={`street-header ${isOpen ? "menu-open" : ""}`}>
-      <div style={{ background: "#111116", color: "#ffffff", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "1.5px", padding: "6px 24px", textAlign: "center" }}>
-        BE POSH WITH POSHPLEX
+      {/* Top Animated Announcement Bar */}
+      <div
+        className="posh-announcement-bar"
+        style={{
+          background: "#111116",
+          color: "#ffffff",
+          fontSize: 10,
+          fontWeight: 800,
+          textTransform: "uppercase",
+          letterSpacing: "1.5px",
+          padding: "6px 0",
+          overflow: "hidden",
+          position: "relative",
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          ["--header-speed-desktop" as any]: `${headerSettings.speedDesktop}s`,
+          ["--header-speed-tablet" as any]: `${headerSettings.speedTablet}s`,
+          ["--header-speed-mobile" as any]: `${headerSettings.speedMobile}s`,
+        }}
+      >
+        <div
+          className={`posh-announcement-inner ${
+            headerSettings.animType === "continuous"
+              ? "posh-anim-continuous"
+              : headerSettings.animType === "ticker"
+              ? "posh-anim-ticker"
+              : "posh-anim-bounce"
+          }`}
+        >
+          {headerSettings.animType === "ticker" ? (
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 32, paddingRight: 32 }}>
+              <span>{headerSettings.tagline}</span>
+              <span style={{ opacity: 0.5 }}>•</span>
+              <span>{headerSettings.tagline}</span>
+              <span style={{ opacity: 0.5 }}>•</span>
+              <span>{headerSettings.tagline}</span>
+              <span style={{ opacity: 0.5 }}>•</span>
+              <span>{headerSettings.tagline}</span>
+              <span style={{ opacity: 0.5 }}>•</span>
+            </div>
+          ) : (
+            <span>{headerSettings.tagline}</span>
+          )}
+        </div>
       </div>
       <div className="header-main-nav-container">
         
@@ -728,6 +820,85 @@ export default function Header({ categories = [] }: { categories?: any[] }) {
             text-overflow: ellipsis !important;
             line-height: 1.15 !important;
             width: 100% !important;
+          }
+        }
+
+        /* ── Top Header Announcement Bar Animation ── */
+        .posh-announcement-bar {
+          --header-speed: var(--header-speed-desktop, 12s);
+        }
+        @media (max-width: 1024px) {
+          .posh-announcement-bar {
+            --header-speed: var(--header-speed-tablet, 10s);
+          }
+        }
+        @media (max-width: 768px) {
+          .posh-announcement-bar {
+            --header-speed: var(--header-speed-mobile, 8s);
+          }
+        }
+
+        .posh-announcement-inner {
+          display: inline-block;
+          white-space: nowrap;
+          will-change: transform;
+        }
+
+        .posh-announcement-bar:hover .posh-announcement-inner {
+          animation-play-state: paused;
+        }
+
+        /* Ping-Pong Bounce: starts at right, travels across to left, then smoothly returns to right */
+        .posh-anim-bounce {
+          animation: poshMarqueeBounce var(--header-speed, 12s) ease-in-out infinite alternate;
+        }
+
+        @keyframes poshMarqueeBounce {
+          0% {
+            transform: translateX(38vw);
+          }
+          100% {
+            transform: translateX(-38vw);
+          }
+        }
+
+        @media (max-width: 768px) {
+          @keyframes poshMarqueeBounce {
+            0% {
+              transform: translateX(32vw);
+            }
+            100% {
+              transform: translateX(-32vw);
+            }
+          }
+        }
+
+        /* Continuous Marquee: enters from right, scrolls to left, loops continuously */
+        .posh-anim-continuous {
+          animation: poshMarqueeContinuous var(--header-speed, 12s) linear infinite;
+        }
+
+        @keyframes poshMarqueeContinuous {
+          0% {
+            transform: translateX(100vw);
+          }
+          100% {
+            transform: translateX(-100%);
+          }
+        }
+
+        /* Seamless Multi-Item Ticker */
+        .posh-anim-ticker {
+          display: inline-flex;
+          animation: poshMarqueeTicker var(--header-speed, 12s) linear infinite;
+        }
+
+        @keyframes poshMarqueeTicker {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-50%);
           }
         }
       ` }} />

@@ -3,6 +3,7 @@ import {
   Card,
   Form,
   Input,
+  InputNumber,
   Button,
   Select,
   Space,
@@ -15,6 +16,7 @@ import {
   Popconfirm,
   Spin,
   Tag,
+  Divider,
 } from "antd";
 import type { FormInstance } from "antd";
 import {
@@ -24,6 +26,7 @@ import {
   UploadOutlined,
   DeleteOutlined,
   PictureOutlined,
+  ThunderboltOutlined,
 } from "@ant-design/icons";
 import { useList } from "@refinedev/core";
 import axios from "axios";
@@ -347,8 +350,12 @@ export const SettingsPage: React.FC = () => {
               desktop_hero_banner_url: desktopUrl,
               mobile_hero_banner_url: resGen.data.value.mobile_hero_banner_url || "",
               favicon_url: resGen.data.value.favicon_url || "",
-              site_tagline: resGen.data.value.site_tagline || "",
+              site_tagline: resGen.data.value.site_tagline || "BE POSH WITH POSHPLEX",
               site_description: resGen.data.value.site_description || "",
+              header_animation_type: resGen.data.value.header_animation_type || "bounce",
+              header_speed_desktop: resGen.data.value.header_speed_desktop != null ? Number(resGen.data.value.header_speed_desktop) : 12,
+              header_speed_tablet: resGen.data.value.header_speed_tablet != null ? Number(resGen.data.value.header_speed_tablet) : 10,
+              header_speed_mobile: resGen.data.value.header_speed_mobile != null ? Number(resGen.data.value.header_speed_mobile) : 8,
             });
           }
         } catch (err) {
@@ -359,6 +366,10 @@ export const SettingsPage: React.FC = () => {
             site_tagline: "BE POSH WITH POSHPLEX",
             site_description:
               "Heavyweight distressed boxy street-culture brand. Mapped deliveries across Banani, Dhaka, Bangladesh.",
+            header_animation_type: "bounce",
+            header_speed_desktop: 12,
+            header_speed_tablet: 10,
+            header_speed_mobile: 8,
           });
         }
 
@@ -520,9 +531,88 @@ export const SettingsPage: React.FC = () => {
                         previewVariant="favicon"
                       />
 
-                      <Form.Item name="site_tagline" label="Site Tagline" rules={[{ required: true }]}>
-                        <Input placeholder="e.g. BE POSH WITH POSHPLEX" style={{ borderRadius: 0 }} />
+                      <Divider orientation="left" style={{ margin: "24px 0 16px", fontSize: 13, fontWeight: 700 }}>
+                        <Space>
+                          <ThunderboltOutlined style={{ color: "#e11d48" }} />
+                          <span>Top Header Announcement Bar &amp; Animation</span>
+                        </Space>
+                      </Divider>
+
+                      <Form.Item
+                        name="site_tagline"
+                        label="Top Header Announcement Text"
+                        tooltip="Displayed in the top black announcement bar across the storefront."
+                        rules={[{ required: true, message: "Announcement text is required" }]}
+                      >
+                        <Input placeholder="e.g. BE POSH WITH POSHPLEX" style={{ borderRadius: 4 }} />
                       </Form.Item>
+
+                      <Form.Item
+                        name="header_animation_type"
+                        label="Animation Movement Style"
+                        tooltip="Controls how the announcement text moves across the top header bar."
+                        initialValue="bounce"
+                      >
+                        <Select
+                          options={[
+                            { value: "bounce", label: "Ping-Pong (Moves from right to left, then returns left from right automatically)" },
+                            { value: "continuous", label: "Continuous Marquee (Moves from right to left, loops continuously)" },
+                            { value: "ticker", label: "Seamless Multi-Text Ticker (Infinite smooth stream)" },
+                          ]}
+                          style={{ borderRadius: 4 }}
+                        />
+                      </Form.Item>
+
+                      <div style={{ marginBottom: 16 }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, display: "block", marginBottom: 4 }}>
+                          Animation Speed by Viewport (Seconds per Cycle)
+                        </span>
+                        <p style={{ fontSize: 11, color: "#888", margin: "0 0 12px 0" }}>
+                          Lower seconds = faster movement. Higher seconds = slower, smoother movement.
+                        </p>
+                        <Row gutter={16}>
+                          <Col xs={24} sm={8}>
+                            <Form.Item
+                              name="header_speed_desktop"
+                              label="Desktop Speed"
+                              tooltip="Animation duration on desktop screens (>1024px). Default: 12s"
+                              initialValue={12}
+                              rules={[{ required: true, message: "Desktop speed is required" }]}
+                            >
+                              <InputNumber min={3} max={60} style={{ width: "100%", borderRadius: 4 }} addonAfter="sec" />
+                            </Form.Item>
+                          </Col>
+                          <Col xs={24} sm={8}>
+                            <Form.Item
+                              name="header_speed_tablet"
+                              label="Tablet Speed"
+                              tooltip="Animation duration on tablet screens (769px–1024px). Default: 10s"
+                              initialValue={10}
+                              rules={[{ required: true, message: "Tablet speed is required" }]}
+                            >
+                              <InputNumber min={3} max={60} style={{ width: "100%", borderRadius: 4 }} addonAfter="sec" />
+                            </Form.Item>
+                          </Col>
+                          <Col xs={24} sm={8}>
+                            <Form.Item
+                              name="header_speed_mobile"
+                              label="Mobile Speed"
+                              tooltip="Animation duration on mobile devices (<=768px). Default: 8s"
+                              initialValue={8}
+                              rules={[{ required: true, message: "Mobile speed is required" }]}
+                            >
+                              <InputNumber min={3} max={60} style={{ width: "100%", borderRadius: 4 }} addonAfter="sec" />
+                            </Form.Item>
+                          </Col>
+                        </Row>
+                      </div>
+
+                      <Divider orientation="left" style={{ margin: "24px 0 16px", fontSize: 13, fontWeight: 700 }}>
+                        <Space>
+                          <SettingOutlined />
+                          <span>General Information</span>
+                        </Space>
+                      </Divider>
                       <Form.Item
                         name="site_description"
                         label="Site Description"
