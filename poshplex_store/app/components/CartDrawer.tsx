@@ -88,8 +88,10 @@ export default function CartDrawer() {
             Shopping Bag
           </h2>
           <button
+            type="button"
             onClick={closeCart}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "#555", padding: 4, display: "flex" }}
+            aria-label="Close shopping bag"
+            style={{ background: "none", border: "none", cursor: "pointer", color: "#222", padding: 6, display: "flex", alignItems: "center", justifyContent: "center" }}
           >
             <X size={20} />
           </button>
@@ -152,26 +154,32 @@ export default function CartDrawer() {
 
                     {/* Qty stepper + remove */}
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>
-                      <div style={{ display: "flex", alignItems: "center", border: "1px solid #e0e0e0", borderRadius: 2 }}>
+                      <div style={{ display: "flex", alignItems: "center", border: "1px solid #cbd5e1", borderRadius: 3 }}>
                         <button
+                          type="button"
+                          aria-label={`Decrease quantity of ${item.name}`}
                           onClick={() => updateQuantity(item.sku, item.quantity - 1)}
-                          style={{ width: 28, height: 28, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#333" }}
+                          style={{ width: 30, height: 30, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#333" }}
                         >
                           <Minus size={12} />
                         </button>
-                        <span style={{ width: 28, textAlign: "center", fontSize: 13, fontWeight: 500, color: "#111" }}>
+                        <span style={{ width: 28, textAlign: "center", fontSize: 13, fontWeight: 600, color: "#111" }}>
                           {item.quantity}
                         </span>
                         <button
+                          type="button"
+                          aria-label={`Increase quantity of ${item.name}`}
                           onClick={() => updateQuantity(item.sku, item.quantity + 1)}
-                          style={{ width: 28, height: 28, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#333" }}
+                          style={{ width: 30, height: 30, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#333" }}
                         >
                           <Plus size={12} />
                         </button>
                       </div>
                       <button
+                        type="button"
+                        aria-label={`Remove ${item.name} from bag`}
                         onClick={() => removeFromCart(item.sku)}
-                        style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: "#aaa", padding: 0, textDecoration: "underline", textUnderlineOffset: 2 }}
+                        style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: "#555", padding: "4px 0", textDecoration: "underline", textUnderlineOffset: 2, fontWeight: 500 }}
                       >
                         Remove
                       </button>

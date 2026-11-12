@@ -369,9 +369,9 @@ export default function BuyMoreAndSave({
     <div className="bms-wrapper" style={{ marginTop: 18, marginBottom: 18 }}>
       {/* Title Header */}
       <div style={{ textAlign: "center", marginBottom: 12 }}>
-        <h3 className="bms-main-title">
+        <h2 className="bms-main-title">
           Buy more &amp; save
-        </h3>
+        </h2>
         <p className="bms-main-sub">
           Choose a bundle below to unlock a discount
         </p>
@@ -399,7 +399,7 @@ export default function BuyMoreAndSave({
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span className="bms-card-name">Single</span>
-                  <span className="bms-discount-tag" style={{ backgroundColor: "#f1f5f9", color: "#64748b", borderColor: "#e2e8f0" }}>0% OFF</span>
+                  <span className="bms-discount-tag" style={{ backgroundColor: "#f1f5f9", color: "#334155", borderColor: "#cbd5e1" }}>0% OFF</span>
                 </div>
                 <div className="bms-card-sub">Just One</div>
               </div>
@@ -575,7 +575,7 @@ export default function BuyMoreAndSave({
               <div style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 5, paddingLeft: 25 }}>
                 {estimatedSavings > 0 && (
                   <div className="bms-perk-row">
-                    <Tag size={11} color="#64748b" />
+                    <Tag size={11} color="#475569" />
                     <span>SAVE Tk {estimatedSavings}</span>
                   </div>
                 )}
@@ -1019,8 +1019,8 @@ export default function BuyMoreAndSave({
         .bms-main-sub {
           margin: 2px 0 0 0;
           font-size: 12px;
-          color: #64748b;
-          font-weight: 400;
+          color: #475569;
+          font-weight: 500;
         }
         .bms-card {
           border-radius: 8px;
@@ -1089,9 +1089,10 @@ export default function BuyMoreAndSave({
         }
         .bms-card-sub {
           font-size: 10.5px;
-          color: #64748b;
+          color: #475569;
           margin-top: 2px;
           line-height: 1.25;
+          font-weight: 500;
         }
         .bms-price-main {
           font-size: 13px;
@@ -1101,7 +1102,7 @@ export default function BuyMoreAndSave({
         }
         .bms-price-strike {
           font-size: 10px;
-          color: #94a3b8;
+          color: #595959;
           text-decoration: line-through;
           line-height: 1.2;
           margin-top: 1px;
@@ -1111,7 +1112,7 @@ export default function BuyMoreAndSave({
           align-items: center;
           gap: 5px;
           font-size: 10px;
-          color: #64748b;
+          color: #475569;
           line-height: 1.2;
           font-weight: 500;
         }

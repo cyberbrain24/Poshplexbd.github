@@ -260,7 +260,7 @@ export default function ProductReviews({
           })}
         </div>
       ) : (
-        <p style={{ fontSize: 13, color: "#aaa", textAlign: "center", padding: "20px 0" }}>
+        <p style={{ fontSize: 13, color: "#525252", textAlign: "center", padding: "20px 0", fontWeight: 500 }}>
           No reviews yet — be the first!
         </p>
       )}

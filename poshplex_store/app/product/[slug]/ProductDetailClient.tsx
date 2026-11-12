@@ -409,6 +409,8 @@ export default function ProductDetailClient({
           {images.length > 1 && (
             <>
               <button
+                type="button"
+                aria-label="Previous image"
                 onClick={(e) => {
                   e.stopPropagation();
                   const el = document.getElementById("gallery-scroll-container");
@@ -434,6 +436,8 @@ export default function ProductDetailClient({
               </button>
 
               <button
+                type="button"
+                aria-label="Next image"
                 onClick={(e) => {
                   e.stopPropagation();
                   const el = document.getElementById("gallery-scroll-container");
@@ -460,26 +464,40 @@ export default function ProductDetailClient({
 
               <div style={{
                 position: "absolute", bottom: 20, left: "50%", transform: "translateX(-50%)",
-                display: "flex", gap: 8, zIndex: 10
+                display: "flex", gap: 4, zIndex: 10, alignItems: "center"
               }}>
                 {images.map((_, idx) => (
                   <button
                     key={idx}
+                    type="button"
+                    aria-label={`Go to slide ${idx + 1}`}
                     onClick={() => {
                       const el = document.getElementById("gallery-scroll-container");
                       if (el) el.scrollTo({ left: el.clientWidth * idx, behavior: "smooth" });
                     }}
                     style={{
-                      width: activeImageIdx === idx ? 24 : 8,
-                      height: 8,
-                      borderRadius: 4,
-                      background: activeImageIdx === idx ? "#111" : "rgba(0,0,0,0.2)",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      minWidth: 32,
+                      minHeight: 32,
+                      padding: "10px 2px",
+                      background: "transparent",
                       border: "none",
-                      padding: 0,
                       cursor: "pointer",
-                      transition: "all 0.3s ease"
                     }}
-                  />
+                  >
+                    <span
+                      style={{
+                        display: "block",
+                        width: activeImageIdx === idx ? 24 : 8,
+                        height: 8,
+                        borderRadius: 4,
+                        background: activeImageIdx === idx ? "#111" : "rgba(0,0,0,0.3)",
+                        transition: "all 0.3s ease"
+                      }}
+                    />
+                  </button>
                 ))}
               </div>
             </>
@@ -508,8 +526,10 @@ export default function ProductDetailClient({
             <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0, marginLeft: 16, paddingTop: 2 }}>
               <span className="product-price-display" style={{ color: "#111" }}>{displayPrice}</span>
               <button
+                type="button"
                 onClick={handleWishlistToggle}
-                style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: wishlisted ? "#e11d48" : "#111" }}
+                aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+                style={{ background: "none", border: "none", cursor: "pointer", padding: 6, color: wishlisted ? "#e11d48" : "#111", display: "flex", alignItems: "center", justifyContent: "center" }}
               >
                 <Heart size={20} fill={wishlisted ? "#e11d48" : "none"} />
               </button>
@@ -596,7 +616,9 @@ export default function ProductDetailClient({
                                   return (
                                     <button
                                       key={val}
+                                      type="button"
                                       title={val}
+                                      aria-label={`Select ${displayLabel || key} ${val}`}
                                       onClick={() => selectAttr(key, val)}
                                       style={{
                                         width: 24, height: 24, borderRadius: "50%",
@@ -616,7 +638,9 @@ export default function ProductDetailClient({
                                   return (
                                     <button
                                       key={val}
+                                      type="button"
                                       title={val}
+                                      aria-label={`Select ${displayLabel || key} ${val}`}
                                       onClick={() => selectAttr(key, val)}
                                       style={{
                                         width: 40, height: 40, borderRadius: 4,
@@ -635,6 +659,8 @@ export default function ProductDetailClient({
                                 return (
                                   <button
                                     key={val}
+                                    type="button"
+                                    aria-label={`Select ${displayLabel || key} ${val}`}
                                     onClick={() => selectAttr(key, val)}
                                     style={{
                                       padding: "5px 12px",
@@ -713,10 +739,13 @@ export default function ProductDetailClient({
                 >
                   <button
                     type="button"
+                    aria-label="Decrease quantity"
                     onClick={() => setQuantity(q => Math.max(1, q - 1))}
                     style={{
-                      width: 30,
-                      height: 30,
+                      width: 34,
+                      height: 34,
+                      minWidth: 34,
+                      minHeight: 34,
                       background: "#f8fafc",
                       border: "none",
                       borderRight: "1px solid #cbd5e1",
@@ -724,12 +753,12 @@ export default function ProductDetailClient({
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      color: "#475569",
+                      color: "#334155",
                     }}
                     onMouseEnter={e => (e.currentTarget.style.background = "#f1f5f9")}
                     onMouseLeave={e => (e.currentTarget.style.background = "#f8fafc")}
                   >
-                    <Minus size={11} />
+                    <Minus size={12} />
                   </button>
                   <span
                     style={{
@@ -744,10 +773,13 @@ export default function ProductDetailClient({
                   </span>
                   <button
                     type="button"
+                    aria-label="Increase quantity"
                     onClick={() => setQuantity(q => q + 1)}
                     style={{
-                      width: 30,
-                      height: 30,
+                      width: 34,
+                      height: 34,
+                      minWidth: 34,
+                      minHeight: 34,
                       background: "#f8fafc",
                       border: "none",
                       borderLeft: "1px solid #cbd5e1",
@@ -755,12 +787,12 @@ export default function ProductDetailClient({
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      color: "#475569",
+                      color: "#334155",
                     }}
                     onMouseEnter={e => (e.currentTarget.style.background = "#f1f5f9")}
                     onMouseLeave={e => (e.currentTarget.style.background = "#f8fafc")}
                   >
-                    <Plus size={11} />
+                    <Plus size={12} />
                   </button>
                 </div>
               </div>
@@ -1037,6 +1069,7 @@ export default function ProductDetailClient({
             ) : (
               <>
                 <button
+                  type="button"
                   onClick={handlePlaceholderClick}
                   style={{
                     flex: 1, height: 48, fontSize: 11, fontWeight: 700,
@@ -1048,11 +1081,12 @@ export default function ProductDetailClient({
                   {placeholderText}
                 </button>
                 <button
+                  type="button"
                   onClick={handlePlaceholderClick}
                   style={{
                     flex: 1, height: 48, fontSize: 11, fontWeight: 700,
                     textTransform: "uppercase", letterSpacing: "1px",
-                    background: "#fff", color: "#ccc", border: "2px dashed #ddd",
+                    background: "#fff", color: "#525252", border: "2px dashed #94a3b8",
                     cursor: "pointer", borderRadius: 0,
                   }}
                 >
@@ -1064,7 +1098,7 @@ export default function ProductDetailClient({
 
           {/* Helper prompt */}
           {!product.is_sold_out && !allSelected && Object.keys(attributeGroups).length > 0 && (
-            <p style={{ fontSize: 12, color: "#888", textAlign: "center", marginBottom: 16 }}>
+            <p style={{ fontSize: 12, color: "#525252", fontWeight: 500, textAlign: "center", marginBottom: 16 }}>
               Please select {Object.keys(attributeGroups).sort((a, b) => getAttributeWeight(a, initialAttributes) - getAttributeWeight(b, initialAttributes)).join(" and ")} to view purchase actions
             </p>
           )}
@@ -1073,7 +1107,7 @@ export default function ProductDetailClient({
 
           {/* Short description */}
           {product.short_description && (
-            <p style={{ fontSize: 13, color: "#666", marginBottom: 16, lineHeight: 1.6, fontStyle: "italic" }}>
+            <p style={{ fontSize: 13, color: "#475569", marginBottom: 16, lineHeight: 1.6, fontStyle: "italic" }}>
               {product.short_description}
             </p>
           )}
@@ -1091,11 +1125,14 @@ export default function ProductDetailClient({
             return (
               <div key={key} style={{ borderBottom: "1px solid #eee" }}>
                 <button
+                  type="button"
+                  aria-label={label}
+                  aria-expanded={isOpen}
                   onClick={() => !isAlwaysOpen && toggleSection(key)}
                   className="accordion-toggle-btn"
                   style={{
                     width: "100%", display: "flex", justifyContent: "space-between",
-                    alignItems: "center", padding: "16px 0", background: "none",
+                    alignItems: "center", minHeight: 48, padding: "14px 0", background: "none",
                     border: "none", cursor: isAlwaysOpen ? "default" : "pointer", textAlign: "left",
                   }}
                 >
@@ -1129,6 +1166,7 @@ export default function ProductDetailClient({
                           </span>
                           <button
                             type="button"
+                            aria-label="View Full Size Chart"
                             onClick={() => setShowSizeChartModal(true)}
                             style={{
                               display: "inline-flex",
@@ -1137,12 +1175,14 @@ export default function ProductDetailClient({
                               backgroundColor: "#ffffff",
                               border: "1px solid #111111",
                               borderRadius: "4px",
-                              padding: "4px 10px",
+                              minHeight: 38,
+                              padding: "8px 12px",
                               fontSize: "11px",
                               fontWeight: 700,
                               color: "#111111",
                               cursor: "pointer",
-                              textTransform: "uppercase"
+                              textTransform: "uppercase",
+                              lineHeight: 1.2,
                             }}
                           >
                             <Ruler size={13} strokeWidth={2.2} /> View Full Chart
@@ -1254,8 +1294,12 @@ export default function ProductDetailClient({
           onClick={() => setLightboxUrl(null)}
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
         >
-          <button onClick={() => setLightboxUrl(null)}
-            style={{ position: "absolute", top: 20, right: 20, background: "none", border: "none", color: "#fff", cursor: "pointer" }}>
+          <button
+            type="button"
+            aria-label="Close zoomed image"
+            onClick={() => setLightboxUrl(null)}
+            style={{ position: "absolute", top: 20, right: 20, background: "none", border: "none", color: "#fff", cursor: "pointer", padding: 8, display: "flex", alignItems: "center", justifyContent: "center" }}
+          >
             <X size={30} />
           </button>
           <div style={{ position: "relative", width: "80vw", height: "85vh" }}>

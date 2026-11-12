@@ -102,7 +102,7 @@ export default function ProductCard({
           )}
         </div>
         <div style={{ paddingTop: 8, paddingBottom: 4, flex: 1, width: "100%", minWidth: 0 }}>
-          <p style={{ fontSize: 10, color: "#888", marginBottom: 2, letterSpacing: "0.2px", textTransform: "uppercase" }}>
+          <p style={{ fontSize: 10, color: "#525252", fontWeight: 600, marginBottom: 2, letterSpacing: "0.2px", textTransform: "uppercase" }}>
             {product.category?.name || product.categories?.[0]?.name || "Apparel"}
           </p>
           {Boolean((product.rating_count && product.rating_count > 0) || (product.rating_average && product.rating_average > 0)) && (
@@ -115,7 +115,7 @@ export default function ProductCard({
                   color="#111"
                 />
               ))}
-              <span style={{ fontSize: 9.5, fontWeight: 600, color: "#777", marginLeft: 2 }}>
+              <span style={{ fontSize: 9.5, fontWeight: 600, color: "#525252", marginLeft: 2 }}>
                 ({product.rating_count || 1})
               </span>
             </div>
@@ -163,7 +163,8 @@ export default function ProductCard({
 
       {/* Heart button */}
       <button
-        aria-label="Toggle Wishlist"
+        type="button"
+        aria-label={wishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
         onClick={handleWishlistToggle}
         style={{
           position: "absolute",
