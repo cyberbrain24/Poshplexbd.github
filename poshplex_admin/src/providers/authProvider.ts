@@ -30,8 +30,10 @@ axios.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const reqUrl: string = originalRequest?.url || "";
+    const isAuthEndpoint = reqUrl.includes("/core/login") || reqUrl.includes("/core/refresh");
 
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !isAuthEndpoint) {
       if (originalRequest && !originalRequest._retry) {
         if (isRefreshing) {
           return new Promise(function(resolve, reject) {

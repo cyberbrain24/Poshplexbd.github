@@ -10,6 +10,7 @@ import BottomNav from "./components/BottomNav";
 import CartDrawer from "./components/CartDrawer";
 import Footer from "./components/Footer";
 import FacebookPixel from "./components/FacebookPixel";
+import GoogleTag from "./components/GoogleTag";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -19,14 +20,11 @@ const outfit = Outfit({
 
 export async function generateMetadata() {
   try {
-    const [resSeo, resGen, resTracking] = await Promise.all([
+    const [resSeo, resGen] = await Promise.all([
       fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/seo`, {
         next: { revalidate: 60 }
       }),
       fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/general`, {
-        next: { revalidate: 60 }
-      }),
-      fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/tracking_pixels`, {
         next: { revalidate: 60 }
       })
     ]);
@@ -82,12 +80,20 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     console.error("Failed to fetch categories for footer:", err);
   }
   let fbPixelId = process.env.NEXT_PUBLIC_FB_PIXEL_ID || "1764455794927154";
+  let gtmId = process.env.NEXT_PUBLIC_GTM_ID || "GTM-TWWL83X6";
+  let gaId = process.env.NEXT_PUBLIC_GA_ID || "";
   try {
     const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/core/settings/tracking_pixels`, { next: { revalidate: 60 } });
     if (res.ok) {
       const data = await res.json();
       if (data?.value?.fb_pixel) {
         fbPixelId = data.value.fb_pixel;
+      }
+      if (data?.value?.google_gtm !== undefined) {
+        gtmId = String(data.value.google_gtm).trim();
+      }
+      if (data?.value?.google_ga !== undefined) {
+        gaId = String(data.value.google_ga).trim();
       }
     }
   } catch (err) {
@@ -130,6 +136,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body suppressHydrationWarning>
         <React.Suspense fallback={null}>
           <FacebookPixel fbPixelId={fbPixelId} />
+          <GoogleTag gtmId={gtmId} gaId={gaId} />
         </React.Suspense>
         <GlobalErrorBoundary>
           <CartProvider>

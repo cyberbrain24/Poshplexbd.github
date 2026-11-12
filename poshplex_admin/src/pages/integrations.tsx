@@ -36,8 +36,9 @@ export const Integrations: React.FC = () => {
     const pixelsSetting = settings.find((s) => s.key === "tracking_pixels");
     const autoSetting = settings.find((s) => s.key === "automated_notifications");
     const socialSetting = settings.find((s) => s.key === "social_auth");
+    const metaCatalogSetting = settings.find((s) => s.key === "meta_catalog");
 
-    if (configSetting || pixelsSetting || autoSetting || socialSetting) {
+    if (configSetting || pixelsSetting || autoSetting || socialSetting || metaCatalogSetting) {
       form.setFieldsValue({
         sms_provider: configSetting?.value?.sms_provider || "mock",
         bulksmsbd_key: configSetting?.value?.bulksmsbd_credentials?.api_key || "",
@@ -57,6 +58,7 @@ export const Integrations: React.FC = () => {
         fb_capi_token: pixelsSetting?.value?.fb_capi_token || "",
         tiktok_pixel: pixelsSetting?.value?.tiktok_pixel || "",
         google_ga: pixelsSetting?.value?.google_ga || "",
+        google_gtm: pixelsSetting?.value?.google_gtm ?? "GTM-TWWL83X6",
 
         google_client_id: socialSetting?.value?.google_client_id || "",
         google_client_secret: socialSetting?.value?.google_client_secret || "",
@@ -118,6 +120,7 @@ export const Integrations: React.FC = () => {
         fb_capi_token: values.fb_capi_token,
         tiktok_pixel: values.tiktok_pixel,
         google_ga: values.google_ga,
+        google_gtm: (values.google_gtm || "").trim(),
       },
       description: "Client/Server conversion pixels tracking configurations",
     };
@@ -262,6 +265,53 @@ export const Integrations: React.FC = () => {
     }
   };
 
+  const handleTestMetaConnection = async () => {
+    setIsTestingMeta(true);
+    const token = localStorage.getItem("poshplex_access_token");
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const API_URL =
+      import.meta.env.VITE_API_URL ||
+      (import.meta.env.VITE_SERVER_URL ||
+        (window.location.hostname === "admin.poshplexbd.com" ? "https://poshplexbd.com" : "http://localhost:8000")) +
+        "/api/v1";
+    try {
+      const res = await axios.get(`${API_URL}/catalog/meta-catalog/status`, { headers });
+      const conn = res.data?.connection;
+      if (conn?.connected || conn?.success) {
+        message.success(`Connected to Meta Catalog (${res.data?.catalog_id || ""}).`);
+      } else {
+        message.warning(conn?.error || conn?.message || "Meta Catalog connection returned inactive status.");
+      }
+    } catch (err: any) {
+      message.error(`Meta connection check failed: ${err.response?.data?.detail || err.message}`);
+    } finally {
+      setIsTestingMeta(false);
+    }
+  };
+
+  const handleSyncMetaCatalog = async () => {
+    setIsSyncingMeta(true);
+    const token = localStorage.getItem("poshplex_access_token");
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const API_URL =
+      import.meta.env.VITE_API_URL ||
+      (import.meta.env.VITE_SERVER_URL ||
+        (window.location.hostname === "admin.poshplexbd.com" ? "https://poshplexbd.com" : "http://localhost:8000")) +
+        "/api/v1";
+    try {
+      const res = await axios.post(`${API_URL}/catalog/meta-catalog/sync`, { all_products: true }, { headers });
+      if (res.data?.success) {
+        message.success(res.data?.message || "Products synced to Meta Catalog.");
+      } else {
+        message.warning(res.data?.message || "Sync completed with warnings.");
+      }
+    } catch (err: any) {
+      message.error(`Meta catalog sync failed: ${err.response?.data?.detail || err.message}`);
+    } finally {
+      setIsSyncingMeta(false);
+    }
+  };
+
   return (
     <Space direction="vertical" size="large" style={{ width: "100%" }}>
       <div>
@@ -365,6 +415,11 @@ export const Integrations: React.FC = () => {
                 <Col xs={24} md={12}>
                   <Form.Item name="google_ga" label="Google Analytics ID (G-XXXX)">
                     <Input placeholder="GA Measurement ID" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={12}>
+                  <Form.Item name="google_gtm" label="Google Tag / GTM ID (GTM-XXXX)" tooltip="Dynamically injects Google Tag Manager (gtm.js) & gtag dataLayer across the storefront.">
+                    <Input placeholder="GTM-TWWL83X6" />
                   </Form.Item>
                 </Col>
               </Row>

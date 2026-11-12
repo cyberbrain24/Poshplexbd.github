@@ -629,9 +629,10 @@ def resolve_or_create_customer(user, data: OrderCreateInputSchema, user_id_overr
                     u_id = resolved_user.id
             
             # 3. Create new user
-            if not u_id and data.customer_name:
+            resolved_name = (data.customer_name or data.shipping_name or "").strip()
+            if not u_id and resolved_name:
                 email_val = data.customer_email or f"{uuid.uuid4().hex[:8]}@poshplex-guest.com"
-                base_username = data.customer_name.replace(" ", "").lower() or "guest"
+                base_username = resolved_name.replace(" ", "").lower() or "guest"
                 username_val = base_username
                 if User.objects.filter(username=username_val).exists():
                     username_val = f"{base_username}_{uuid.uuid4().hex[:4]}"
@@ -701,6 +702,17 @@ def post_order_endpoint(request, data: OrderCreateInputSchema):
                 customer_notes=data.customer_notes,
                 internal_notes=data.internal_notes
             )
+
+            # Apply explicit initial status when provided by admin (e.g. 'review', 'pending')
+            if data.status and data.status in dict(Order.ORDER_STATUS_CHOICES) and data.status != order.status:
+                order.status = data.status
+                order.save(update_fields=['status'])
+                OrderStatusHistory.objects.create(
+                    order=order,
+                    status=order.status,
+                    admin_username=request.auth.username if getattr(request, 'auth', None) else "admin",
+                    notes=f"Initial status set to {order.status} during manual order creation."
+                )
             
             # If a promo code was provided manually by the admin, track its usage.
             if data.promo_code:

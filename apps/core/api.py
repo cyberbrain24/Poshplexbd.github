@@ -174,13 +174,13 @@ class UnifiedMediaSchema(Schema):
 
 @router.post("/login", response=TokenResponseSchema)
 def login(request, data: LoginSchema, response: HttpResponse):
-    """Authenticate with username + password and receive a signed JWT token."""
-    try:
-        user = User.objects.get(username=data.username)
-    except User.DoesNotExist:
-        raise HttpError(401, "Invalid username or password.")
+    """Authenticate with username (or email) + password and receive a signed JWT token."""
+    identifier = (data.username or "").strip()
+    user = User.objects.filter(
+        Q(username__iexact=identifier) | (Q(email__iexact=identifier) if "@" in identifier else Q(pk=-1))
+    ).first()
 
-    if not user.check_password(data.password):
+    if not user or not user.is_active or not user.check_password(data.password):
         raise HttpError(401, "Invalid username or password.")
 
     user_data = {
@@ -584,6 +584,8 @@ def get_setting(request, key: str):
     if key == "social_auth":
         redacted_val.pop("google_client_secret", None)
         redacted_val.pop("facebook_client_secret", None)
+    elif key == "tracking_pixels":
+        redacted_val.pop("fb_capi_token", None)
         
     return {"key": key, "value": redacted_val, "description": SiteSetting.objects.get(key=key).description}
 

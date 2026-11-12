@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
   Table, Tag, Button, Space, Card, Modal, Form, Input, Pagination,
-  InputNumber, Select, Descriptions, Divider, message, Tabs, Drawer, Timeline, Tooltip, Switch, Row, Col, Alert, Badge, Popconfirm, Popover
+  InputNumber, Select, Descriptions, Divider, message, Tabs, Drawer, Timeline, Tooltip, Row, Col, Alert, Badge, Popconfirm, Popover
 } from "antd";
 import {
   ShoppingCartOutlined, CheckCircleOutlined, CarOutlined, ClockCircleOutlined,
@@ -73,8 +73,8 @@ export const Orders: React.FC = () => {
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
   // Modals / Drawer toggles
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
+  const [drawerMode, setDrawerMode] = useState<"edit" | "create">("edit");
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -90,7 +90,7 @@ export const Orders: React.FC = () => {
   const [promoCode, setPromoCode] = useState<string>("");
   const [isSavingDraft, setIsSavingDraft] = useState(false);
 
-  // New product flow states
+  // New product flow states (shared by Edit Order & Create Order Drawers)
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [catalogSearchText, setCatalogSearchText] = useState("");
   const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
@@ -101,40 +101,17 @@ export const Orders: React.FC = () => {
   const [selectedGridProduct, setSelectedGridProduct] = useState<any>(null);
   const [selectedVariantSku, setSelectedVariantSku] = useState<string>("");
   const [addQty, setAddQty] = useState<number>(1);
-
-  // Modal product flow states
-  const [modalCategoryId, setModalCategoryId] = useState<number | null>(null);
-  const [modalSubcategoryId, setModalSubcategoryId] = useState<number | null>(null);
-  const [modalSearchText, setModalSearchText] = useState<string>("");
-  const [modalGridProducts, setModalGridProducts] = useState<any[]>([]);
-  const [modalSelectedProduct, setModalSelectedProduct] = useState<any>(null);
-  const [modalVariantSku, setModalVariantSku] = useState<string>("");
-  const [modalAddQty, setModalAddQty] = useState<number>(1);
-  const [modalOverridePrice, setModalOverridePrice] = useState<number | undefined>(undefined);
-  const [modalDraftItems, setModalDraftItems] = useState<any[]>([]);
+  const [addPriceOverride, setAddPriceOverride] = useState<number | undefined>(undefined);
 
   // Forms hooks
-  const [orderForm] = Form.useForm();
   const [paymentForm] = Form.useForm();
   const [returnForm] = Form.useForm();
-
-  // Watch manual order phone input for live delivery risk check
-  const manualCustomerPhone = Form.useWatch("customer_phone", orderForm);
-  const manualShippingPhone = Form.useWatch("shipping_phone", orderForm);
-  const activeManualPhone = manualShippingPhone || manualCustomerPhone;
 
   // Dynamic Metadata lists
   const [locationRates, setLocationRates] = useState<any[]>([]);
   const [crmCustomers, setCrmCustomers] = useState<any[]>([]);
   const [productsList, setProductsList] = useState<any[]>([]);
   const [customerSearchQuery, setCustomerSearchQuery] = useState("");
-
-  // Customer on-the-fly switch
-  const [createNewCustomer, setCreateNewCustomer] = useState(false);
-
-  // Cascading location states
-  const [selectedDistrict, setSelectedDistrict] = useState("");
-  const [thanaOptions, setThanaOptions] = useState<string[]>([]);
 
   // Fetch orders from API
   const fetchOrders = async () => {
@@ -256,64 +233,108 @@ export const Orders: React.FC = () => {
     fetchCrmCustomers("");
   }, []);
 
-  // Update thanas dropdown on District select
-  const handleDistrictChange = (districtName: string) => {
-    setSelectedDistrict(districtName);
-    const dist = locationRates.find(d => d.name === districtName);
-    if (dist) {
-      setThanaOptions(dist.thanas);
-      orderForm.setFieldsValue({
-        shipping_cost: dist.shipping_cost,
-        shipping_thana: dist.thanas[0]
-      });
-    } else {
-      setThanaOptions([]);
+  // Autofill customer profile inside Create Order Drawer
+  const handleCreateCustomerSelect = (userId: number | undefined) => {
+    if (!userId) {
+      setSelectedOrder((prev: any) => prev ? { ...prev, user_id: null } : prev);
+      return;
     }
-  };
-
-  // Autofill customer profile
-  const handleCustomerSelect = (userId: number) => {
     const customer = crmCustomers.find(c => c.id === userId);
     if (customer) {
-      orderForm.setFieldsValue({
-        shipping_name: customer.username,
-        shipping_phone: customer.phone,
-        shipping_address: customer.address
-      });
+      const matchedDist = customer.district_name
+        ? locationRates.find((d: any) => d.name?.toLowerCase() === String(customer.district_name).toLowerCase())
+        : null;
+      setSelectedOrder((prev: any) => ({
+        ...prev,
+        user_id: customer.id,
+        shipping_name: customer.username || prev?.shipping_name || "",
+        shipping_phone: customer.phone || prev?.shipping_phone || "",
+        customer_email: customer.email || "",
+        shipping_address: customer.address || prev?.shipping_address || "",
+        ...(matchedDist ? {
+          shipping_district: matchedDist.name,
+          shipping_thana: customer.thana_name || matchedDist.thanas?.[0] || "",
+          shipping_cost: matchedDist.shipping_cost ?? prev?.shipping_cost ?? 0,
+        } : {}),
+      }));
     }
   };
 
-  // Manual Order Submit handler
-  const handleManualOrderSubmit = async (values: any) => {
+  // Manual Order Create Drawer Submit handler
+  const handleSaveCreateOrder = async () => {
+    if (!selectedOrder) return;
+    if (!selectedOrder.shipping_name?.trim()) {
+      message.warning("Please enter Customer Name.");
+      return;
+    }
+    if (!selectedOrder.shipping_phone?.trim()) {
+      message.warning("Please enter Customer Phone number.");
+      return;
+    }
+    if (!selectedOrder.shipping_district || !selectedOrder.shipping_thana) {
+      message.warning("Please select District and Thana.");
+      return;
+    }
+    if (!selectedOrder.shipping_address?.trim()) {
+      message.warning("Please enter Detailed Delivery Address.");
+      return;
+    }
+    if (draftItems.length === 0) {
+      message.warning("Add at least one item line.");
+      return;
+    }
+
+    setIsSavingDraft(true);
     try {
       const token = localStorage.getItem("poshplex_access_token");
-      
-      // Parse dynamic form items fields
-      const itemsPayload = modalDraftItems.map((item: any) => ({
-        sku: item.sku,
-        quantity: item.quantity,
-        price: item.price
-      }));
-
-      if (itemsPayload.length === 0) {
-        message.warning("Add at least one item line.");
-        return;
-      }
-
       const payload = {
-        ...values,
-        items: itemsPayload
+        user_id: selectedOrder.user_id || null,
+        customer_name: selectedOrder.shipping_name.trim(),
+        customer_phone: selectedOrder.shipping_phone.trim(),
+        customer_email: selectedOrder.customer_email || "",
+        shipping_name: selectedOrder.shipping_name.trim(),
+        shipping_phone: selectedOrder.shipping_phone.trim(),
+        shipping_district: selectedOrder.shipping_district,
+        shipping_thana: selectedOrder.shipping_thana,
+        shipping_postal_code: selectedOrder.shipping_postal_code || "",
+        shipping_address: selectedOrder.shipping_address.trim(),
+        shipping_cost: parseFloat(selectedOrder.shipping_cost || 0),
+        discount_amount: draftDiscount || 0,
+        promo_code: promoCode || "",
+        customer_notes: selectedOrder.customer_notes || "",
+        internal_notes: selectedOrder.internal_notes || "",
+        status: selectedOrder.status || "placed",
+        payment_method: selectedOrder.payment_method || "COD",
+        payment_status: selectedOrder.payment_status || "unpaid",
+        payment_amount:
+          selectedOrder.payment_amount !== undefined &&
+          selectedOrder.payment_amount !== null &&
+          Number(selectedOrder.payment_amount) > 0
+            ? Number(selectedOrder.payment_amount)
+            : undefined,
+        payment_reference: selectedOrder.payment_reference || "",
+        items: draftItems.map((item: any) => ({
+          sku: item.sku,
+          quantity: item.quantity,
+          price: item.price,
+        })),
       };
 
-      await axios.post(`${API_URL}`, payload, {
-        headers: { Authorization: `Bearer ${token}` }
+      const res = await axios.post(`${API_URL}`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      message.success("Manual sales order created successfully!");
-      setIsCreateModalOpen(false);
-      orderForm.resetFields();
+      message.success(`Manual order ${res.data?.order_number || ""} created successfully!`);
+      setIsDetailDrawerOpen(false);
+      setIsAddingProduct(false);
       fetchOrders();
-    } catch (err: any) { if (err?.response?.status !== 403) message.error(err.response?.data?.message || "Failed to create order."); }
+    } catch (err: any) {
+      if (err?.response?.status !== 403) {
+        message.error(err.response?.data?.detail || err.response?.data?.message || "Failed to create order.");
+      }
+    } finally {
+      setIsSavingDraft(false);
+    }
   };
 
   // Steadfast Courier actions
@@ -406,67 +427,55 @@ export const Orders: React.FC = () => {
     }
   };
 
-  // --- Modal Product Selection Handlers ---
-  const handleOpenCreateModal = async () => {
-    setIsCreateModalOpen(true);
-    setModalDraftItems([]);
-    setModalCategoryId(null);
-    setModalSubcategoryId(null);
-    setModalGridProducts([]);
-    setModalSelectedProduct(null);
-    orderForm.resetFields();
-    if (catalogCategories.length === 0) {
-      try {
-        const token = localStorage.getItem("poshplex_access_token");
-        const res = await axios.get(`${CATALOG_API_URL}/categories/tree`, { headers: { Authorization: `Bearer ${token}` }});
-        setCatalogCategories(res.data);
-      } catch (e: any) { if (e?.response?.status !== 403) message.error("Failed to fetch categories"); }
-    }
-  };
-
-  const fetchModalCategoryProducts = async (catId?: number | null, search?: string) => {
-    if (catId) setModalSubcategoryId(catId);
-    setModalSelectedProduct(null);
-    try {
-      const token = localStorage.getItem("poshplex_access_token");
-      const params: any = { limit: 1000 };
-      if (catId) params.category_id = catId;
-      if (search) params.search = search;
-      const res = await axios.get(`${CATALOG_API_URL}/products`, { params, headers: { Authorization: `Bearer ${token}` }});
-      setModalGridProducts(res.data.results);
-    } catch (e: any) { if (e?.response?.status !== 403) message.error("Failed to fetch products"); }
-  };
-
-  const handleAddModalDraftItem = () => {
-    if (!modalSelectedProduct || !modalVariantSku) return;
-    const variant = modalSelectedProduct.variants.find((v: any) => v.sku === modalVariantSku);
-    if (!variant) return;
-    setModalDraftItems([...modalDraftItems, {
-      sku: variant.sku,
-      price: modalOverridePrice !== undefined ? modalOverridePrice : variant.selling_price,
-      quantity: modalAddQty,
-      image: modalSelectedProduct.images?.[0]?.url || null,
-      name: modalSelectedProduct.name
-    }]);
-    setModalSelectedProduct(null);
-    setModalVariantSku("");
-    setModalAddQty(1);
-    setModalOverridePrice(undefined);
-  };
-
-  const handleRemoveModalDraftItem = (index: number) => {
-    const newItems = [...modalDraftItems];
-    newItems.splice(index, 1);
-    setModalDraftItems(newItems);
+  // --- Unified Drawer Open Handlers (Create & Edit share the exact Drawer UI) ---
+  const handleOpenCreateDrawer = () => {
+    setDrawerMode("create");
+    setSelectedOrder({
+      id: null,
+      user_id: null,
+      status: "placed",
+      payment_status: "unpaid",
+      shipping_name: "",
+      shipping_phone: "",
+      customer_email: "",
+      shipping_district: undefined,
+      shipping_thana: undefined,
+      shipping_postal_code: "",
+      shipping_address: "",
+      shipping_cost: 0,
+      customer_notes: "",
+      internal_notes: "",
+      payment_method: "COD",
+      payment_amount: 0,
+      payment_reference: "",
+      payments: [],
+      status_history: [],
+    });
+    setDraftItems([]);
+    setDraftDiscount(0);
+    setPromoCode("");
+    setIsAddingProduct(false);
+    setSelectedGridProduct(null);
+    setSelectedVariantSku("");
+    setSelectedAttributes({});
+    setAddQty(1);
+    setAddPriceOverride(undefined);
+    setIsDetailDrawerOpen(true);
   };
 
   // --- Drawer Editing Handlers ---
   const handleOpenDrawerWithDraft = (order: any) => {
+    setDrawerMode("edit");
     setSelectedOrder(order);
     setDraftItems(order.items ? [...order.items] : []);
     setDraftDiscount(parseFloat(order.discount_amount || 0));
     setPromoCode("");
     setIsAddingProduct(false);
+    setSelectedGridProduct(null);
+    setSelectedVariantSku("");
+    setSelectedAttributes({});
+    setAddQty(1);
+    setAddPriceOverride(undefined);
     setIsDetailDrawerOpen(true);
   };
 
@@ -478,15 +487,25 @@ export const Orders: React.FC = () => {
 
   const handleOpenAddProduct = async () => {
     setIsAddingProduct(true);
+    setSelectedGridProduct(null);
+    setSelectedVariantSku("");
+    setSelectedAttributes({});
+    setAddQty(1);
+    setAddPriceOverride(undefined);
     try {
       const token = localStorage.getItem("poshplex_access_token");
-      const res = await axios.get(`${CATALOG_API_URL}/categories/tree`, { headers: { Authorization: `Bearer ${token}` }});
-      setCatalogCategories(res.data);
+      if (catalogCategories.length === 0) {
+        const res = await axios.get(`${CATALOG_API_URL}/categories/tree`, { headers: { Authorization: `Bearer ${token}` }});
+        setCatalogCategories(res.data);
+      }
+      if (gridProducts.length === 0) {
+        const prodRes = await axios.get(`${CATALOG_API_URL}/products?limit=40`, { headers: { Authorization: `Bearer ${token}` }});
+        setGridProducts(prodRes.data.results || []);
+      }
     } catch (e: any) { if (e?.response?.status !== 403) message.error("Failed to fetch categories"); }
   };
 
   const fetchCategoryProducts = async (catId: number) => {
-    setSelectedSubcategoryId(catId);
     setSelectedGridProduct(null);
     try {
       const token = localStorage.getItem("poshplex_access_token");
@@ -514,19 +533,39 @@ export const Orders: React.FC = () => {
     if (!selectedGridProduct || !selectedVariantSku) return;
     const variant = selectedGridProduct.variants.find((v: any) => v.sku === selectedVariantSku);
     if (!variant) return;
-    setDraftItems([...draftItems, {
-      sku: variant.sku,
-      product_name: selectedGridProduct.name,
-      attributes: variant.attributes,
-      price: variant.selling_price,
-      quantity: addQty,
-      image: selectedGridProduct.images?.[0]?.image_url || null,
-      fulfillment_status: 'pending'
-    }]);
+    const unitPrice = addPriceOverride !== undefined ? addPriceOverride : variant.selling_price;
+    const imgUrl = selectedGridProduct.images?.[0]?.url || selectedGridProduct.images?.[0]?.image_url || null;
+
+    setDraftItems((prev) => {
+      const existingIdx = prev.findIndex((item) => item.sku === variant.sku);
+      if (existingIdx !== -1) {
+        const updated = [...prev];
+        updated[existingIdx] = {
+          ...updated[existingIdx],
+          quantity: (updated[existingIdx].quantity || 1) + addQty,
+          price: unitPrice,
+        };
+        return updated;
+      }
+      return [
+        ...prev,
+        {
+          sku: variant.sku,
+          product_name: selectedGridProduct.name,
+          attributes: variant.attributes,
+          price: unitPrice,
+          quantity: addQty,
+          image: imgUrl,
+          fulfillment_status: "pending",
+        },
+      ];
+    });
     setIsAddingProduct(false);
     setSelectedGridProduct(null);
     setSelectedVariantSku("");
+    setSelectedAttributes({});
     setAddQty(1);
+    setAddPriceOverride(undefined);
   };
 
   const handleSaveDrawerEdits = async () => {
@@ -814,7 +853,7 @@ export const Orders: React.FC = () => {
           <Button icon={<SyncOutlined />} onClick={handleSyncAllCouriers} style={{ borderRadius: 6, whiteSpace: 'nowrap' }}>
             Sync Steadfast
           </Button>
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreateModal} style={{ borderRadius: 6, whiteSpace: 'nowrap' }}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreateDrawer} style={{ borderRadius: 6, whiteSpace: 'nowrap' }}>
             Create Order
           </Button>
         </div>
@@ -1077,293 +1116,117 @@ export const Orders: React.FC = () => {
         </div>
       </Card>
 
-      {/* Manual Creation Modal */}
-      <Modal 
-        title="Place Manual Sales Order" 
-        open={isCreateModalOpen} 
-        onCancel={() => setIsCreateModalOpen(false)} 
-        onOk={() => orderForm.submit()}
-        width="min(800px, 96vw)"
-      >
-        <Form form={orderForm} onFinish={handleManualOrderSubmit} layout="vertical">
-          
-          <Divider orientation="left">Customer Coordinates</Divider>
-          
-          <Row gutter={16}>
-            <Col xs={24} sm={12}>
-              <Form.Item label="Create Customer On the Fly?">
-                <Switch checked={createNewCustomer} onChange={setCreateNewCustomer} />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          {createNewCustomer ? (
-            <Row gutter={16}>
-              <Col xs={24} sm={12} md={8}>
-                <Form.Item name="customer_name" label="Full Name" rules={[{ required: true }]}>
-                  <Input style={{ borderRadius: 0 }} />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12} md={8}>
-                <Form.Item name="customer_phone" label="Phone" rules={[{ required: true }]}>
-                  <Input style={{ borderRadius: 0 }} />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={24} md={8}>
-                <Form.Item name="customer_email" label="Email">
-                  <Input style={{ borderRadius: 0 }} />
-                </Form.Item>
-              </Col>
-            </Row>
-          ) : (
-            <Row gutter={16}>
-              <Col span={24}>
-                <Form.Item name="user_id" label="Search Existing Customer" rules={[{ required: true }]}>
-                  <Select
-                    showSearch
-                    placeholder="Search by Name/Email"
-                    defaultActiveFirstOption={false}
-                    suffixIcon={null}
-                    filterOption={false}
-                    onSearch={setCustomerSearchQuery}
-                    onChange={handleCustomerSelect}
-                    notFoundContent={null}
-                  >
-                    {crmCustomers.map((c) => (
-                      <Select.Option key={c.id} value={c.id}>
-                        {c.username} ({c.email}) - {c.phone}
-                      </Select.Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
-          )}
-
-
-
-          {/* Live Steadfast Delivery Risk Widget */}
-          {activeManualPhone && activeManualPhone.replace(/\D/g, '').length >= 11 && (
-            <div style={{ marginTop: 8, marginBottom: 16 }}>
-              <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', marginBottom: 6, fontWeight: 700 }}>
-                Steadfast Live Delivery Risk Check
-              </div>
-              <SteadfastRiskCard phone={activeManualPhone} compact />
-            </div>
-          )}
-
-          <Divider orientation="left">Shipping Address & Cost</Divider>
-
-          <Row gutter={16}>
-            <Col xs={24} sm={12}>
-              <Form.Item name="shipping_name" label="Shipping Recipient Name">
-                <Input style={{ borderRadius: 0 }} />
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={12}>
-              <Form.Item name="shipping_phone" label="Shipping Recipient Phone">
-                <Input style={{ borderRadius: 0 }} />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Row gutter={16}>
-            <Col xs={24} sm={12} md={8}>
-              <Form.Item name="shipping_district" label="District (Division)" rules={[{ required: true }]}>
-                <Select placeholder="Select district" onChange={handleDistrictChange}>
-                  {locationRates.map((d) => <Select.Option key={d.name} value={d.name}>{d.name}</Select.Option>)}
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={12} md={8}>
-              <Form.Item name="shipping_thana" label="Thana (Area Hub)" rules={[{ required: true }]}>
-                <Select placeholder="Select thana">
-                  {thanaOptions.map((t) => <Select.Option key={t} value={t}>{t}</Select.Option>)}
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={24} md={8}>
-              <Form.Item name="shipping_cost" label="Shipping Cost override ($)" rules={[{ required: true }]}>
-                <InputNumber min={0} precision={2} style={{ width: "100%", borderRadius: 0 }} />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Form.Item name="shipping_address" label="Detailed Delivery Street Address" rules={[{ required: true }]}>
-            <Input.TextArea rows={2} placeholder="House No, Road, Flat..." style={{ borderRadius: 0 }} />
-          </Form.Item>
-
-          <Divider orientation="left">Product Lines Selection</Divider>
-          
-          <Table
-            scroll={{ x: 'max-content' }}
-            size="small"
-            dataSource={modalDraftItems}
-            pagination={false}
-            rowKey={(rec) => `${rec.sku}`}
-            columns={[
-              { title: "SKU Variant", dataIndex: "sku", key: "sku" },
-              { title: "Name", dataIndex: "name", key: "name" },
-              { title: "Price", dataIndex: "price", key: "price", render: (val) => `৳${Math.round(val)}` },
-              { title: "Qty", dataIndex: "quantity", key: "quantity" },
-              { title: "Action", key: "action", render: (_, __, index) => <Popconfirm title="Remove item from order?" onConfirm={() => handleRemoveModalDraftItem(index)}><Button danger size="small" type="text" icon={<DeleteOutlined />} /></Popconfirm> }
-            ]}
-            style={{ marginBottom: 16 }}
-          />
-
-          <Card size="small" style={{ marginBottom: 24, background: '#f9f9f9', borderColor: '#e5e5e5' }}>
-            <Row gutter={[12, 12]}>
-              <Col xs={24} sm={12} md={8}>
-                <Select style={{ width: '100%' }} placeholder="Select Category" value={modalCategoryId} onChange={(val) => { setModalCategoryId(val); setModalSubcategoryId(null); }}>
-                  {catalogCategories.map(c => <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>)}
-                </Select>
-              </Col>
-              <Col xs={24} sm={12} md={8}>
-                <Select style={{ width: '100%' }} placeholder="Select Subcategory" value={modalSubcategoryId} onChange={(val) => fetchModalCategoryProducts(val)} disabled={!modalCategoryId}>
-                  {catalogCategories.find(c => c.id === modalCategoryId)?.children?.map((sub: any) => (
-                    <Select.Option key={sub.id} value={sub.id}>{sub.name}</Select.Option>
-                  ))}
-                </Select>
-              </Col>
-              <Col xs={24} sm={24} md={8}>
-                <Input.Search placeholder="Search product by name" onSearch={(val) => fetchModalCategoryProducts(modalSubcategoryId, val)} allowClear />
-              </Col>
-            </Row>
-            {modalGridProducts.length > 0 && (
-              <div className="posh-modal-product-grid" style={{ marginTop: 12, paddingBottom: 8, maxHeight: 400, overflowY: 'auto', paddingRight: 4 }}>
-                {modalGridProducts.map(p => (
-                  <Card 
-                    key={p.id} 
-                    hoverable 
-                    size="small"
-                    onClick={() => setModalSelectedProduct(p)}
-                    style={{ minWidth: 0, border: modalSelectedProduct?.id === p.id ? '2px solid var(--primary-color)' : '1px solid #d9d9d9' }}
-                  >
-                    <img src={p.images?.[0]?.url ? (p.images[0].url.startsWith('http') ? p.images[0].url : `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}${p.images[0].url}`) : ''} style={{ width: '100%', height: 60, objectFit: 'cover' }} alt="prod" />
-                    <div style={{ fontSize: 10, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
-                  </Card>
-                ))}
-              </div>
-            )}
-            {modalSelectedProduct && (
-              <Row gutter={[10, 10]} align="bottom" style={{ marginTop: 12 }}>
-                <Col xs={24} md={10}>
-                  <Select style={{ width: '100%' }} placeholder="Select Variant" value={modalVariantSku} onChange={setModalVariantSku}>
-                    {modalSelectedProduct.variants.map((v: any) => {
-                      const attrLabel = v.attributes && Object.keys(v.attributes).length > 0
-                        ? Object.entries(v.attributes).map(([key, val]) => `${key}: ${val}`).join(', ')
-                        : v.sku;
-                      return (
-                        <Select.Option key={v.sku} value={v.sku}>
-                          {attrLabel} - ৳{Math.round(v.selling_price)}
-                        </Select.Option>
-                      );
-                    })}
-                  </Select>
-                </Col>
-                <Col xs={8} md={4}>
-                  <label style={{ fontSize: 11, display: 'block' }}>Qty</label>
-                  <InputNumber min={1} value={modalAddQty} onChange={(val) => setModalAddQty(val || 1)} style={{ width: '100%' }} />
-                </Col>
-                <Col xs={10} md={6}>
-                  <label style={{ fontSize: 11, display: 'block' }}>Override Price ($)</label>
-                  <InputNumber min={0} precision={2} placeholder="Optional" value={modalOverridePrice} onChange={(val) => setModalOverridePrice(val !== null ? val : undefined)} style={{ width: '100%' }} />
-                </Col>
-                <Col xs={6} md={4}>
-                  <Button type="primary" onClick={handleAddModalDraftItem} block disabled={!modalVariantSku}>Add</Button>
-                </Col>
-              </Row>
-            )}
-          </Card>
-
-          <Divider orientation="left">Ledger Billing Details</Divider>
-          
-          <Row gutter={12}>
-            <Col xs={12} md={8}>
-              <Form.Item name="promo_code" label="Promo Code (Optional)">
-                <Input placeholder="E.g. SUMMER20" style={{ borderRadius: 0 }} />
-              </Form.Item>
-            </Col>
-            <Col xs={12} md={8}>
-              <Form.Item name="discount_amount" label="Discount Value (৳)" initialValue={0}>
-                <InputNumber min={0} precision={2} style={{ width: "100%", borderRadius: 0 }} />
-              </Form.Item>
-            </Col>
-            <Col xs={12} md={8}>
-              <Form.Item name="payment_amount" label="Paid Amount (৳)" initialValue={0}>
-                <InputNumber min={0} precision={2} style={{ width: "100%", borderRadius: 0 }} />
-              </Form.Item>
-            </Col>
-            <Col xs={12} md={8}>
-              <Form.Item name="payment_method" label="Payment Option" initialValue="COD">
-                <Select>
-                  <Select.Option value="COD">Cash on Delivery (COD)</Select.Option>
-                  {bankAccounts.map((ba: any) => (
-                    <Select.Option key={ba.id} value={ba.name}>{ba.name}</Select.Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Form.Item name="customer_notes" label="Customer Notes (Visible on Invoices)">
-            <Input.TextArea rows={2} style={{ borderRadius: 0 }} />
-          </Form.Item>
-          <Form.Item name="internal_notes" label="Internal Notes (Admins only)">
-            <Input.TextArea rows={2} style={{ borderRadius: 0 }} />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      {/* Detailed Side Drawer Overlay */}
+      {/* Unified Order Create & Edit Side Drawer Overlay */}
       <Drawer
-        title={!isAddingProduct ? `Order Details: ${selectedOrder?.order_number || "#" + selectedOrder?.id}` : null}
+        title={
+          !isAddingProduct
+            ? drawerMode === "create"
+              ? "Create New Order"
+              : `Order Details: ${selectedOrder?.order_number || "#" + selectedOrder?.id}`
+            : null
+        }
         width={isAddingProduct ? "100vw" : "min(750px, 96vw)"}
-        onClose={() => setIsDetailDrawerOpen(false)}
+        onClose={() => {
+          setIsDetailDrawerOpen(false);
+          setIsAddingProduct(false);
+        }}
         open={isDetailDrawerOpen}
-        bodyStyle={{ padding: 0, overflow: 'hidden' }}
-        headerStyle={isAddingProduct ? { display: 'none' } : {}}
+        bodyStyle={{ padding: 0, overflow: "hidden" }}
+        headerStyle={isAddingProduct ? { display: "none" } : {}}
         closeIcon={!isAddingProduct ? undefined : null}
-        extra={!isAddingProduct ? (
-          <Space>
-            {selectedOrder?.status !== 'cancelled' && selectedOrder?.status !== 'manually_cancelled' && (
-              <Popconfirm
-                title="Cancel Order Manually"
-                description="Are you sure you want to mark this order as Manually Cancelled?"
-                onConfirm={() => handleManualCancelOrder(selectedOrder.id)}
-                okText="Yes, Cancel"
-                cancelText="No"
-                okButtonProps={{ danger: true }}
+        extra={
+          !isAddingProduct && drawerMode === "edit" ? (
+            <Space>
+              {selectedOrder?.status !== "cancelled" && selectedOrder?.status !== "manually_cancelled" && (
+                <Popconfirm
+                  title="Cancel Order Manually"
+                  description="Are you sure you want to mark this order as Manually Cancelled?"
+                  onConfirm={() => handleManualCancelOrder(selectedOrder.id)}
+                  okText="Yes, Cancel"
+                  cancelText="No"
+                  okButtonProps={{ danger: true }}
+                >
+                  <Button
+                    danger
+                    icon={<CloseCircleOutlined />}
+                    style={{
+                      color: "#c41d7f",
+                      borderColor: "rgba(196, 29, 127, 0.4)",
+                      background: "rgba(196, 29, 127, 0.08)",
+                    }}
+                  >
+                    Manually Cancel
+                  </Button>
+                </Popconfirm>
+              )}
+              <Button danger icon={<DeleteOutlined />} onClick={() => handleDeleteOrder(selectedOrder.id)}>
+                Delete Order
+              </Button>
+            </Space>
+          ) : null
+        }
+        footer={
+          !isAddingProduct ? (
+            <div style={{ textAlign: "right" }}>
+              <Button
+                type="primary"
+                size="large"
+                icon={<SaveOutlined />}
+                block
+                onClick={drawerMode === "create" ? handleSaveCreateOrder : handleSaveDrawerEdits}
+                loading={isSavingDraft}
               >
-                <Button danger icon={<CloseCircleOutlined />} style={{ color: "#c41d7f", borderColor: "rgba(196, 29, 127, 0.4)", background: "rgba(196, 29, 127, 0.08)" }}>
-                  Manually Cancel
-                </Button>
-              </Popconfirm>
-            )}
-            <Button danger icon={<DeleteOutlined />} onClick={() => handleDeleteOrder(selectedOrder.id)}>
-              Delete Order
-            </Button>
-          </Space>
-        ) : null}
-        footer={!isAddingProduct ? (
-          <div style={{ textAlign: 'right' }}>
-            <Button type="primary" size="large" icon={<SaveOutlined />} block onClick={handleSaveDrawerEdits} loading={isSavingDraft}>
-              Save Order Changes
-            </Button>
-          </div>
-        ) : null}
+                {drawerMode === "create" ? "Create Order" : "Save Order Changes"}
+              </Button>
+            </div>
+          ) : null
+        }
       >
-        <div className={isAddingProduct ? "posh-drawer-split adding" : "posh-drawer-split"} style={{ display: 'flex', height: '100%', width: isAddingProduct ? '100vw' : '100%', overflow: 'hidden' }}>
+        <div
+          className={isAddingProduct ? "posh-drawer-split adding" : "posh-drawer-split"}
+          style={{ display: "flex", height: "100%", width: isAddingProduct ? "100vw" : "100%", overflow: "hidden" }}
+        >
           {isAddingProduct && (
-            <div style={{ flex: 1, minWidth: 0, background: '#141414', color: '#fff', display: 'flex', flexDirection: 'column', height: '100%', borderRight: '1px solid #333' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #333', background: '#1f1f1f' }}>
+            <div
+              style={{
+                flex: 1,
+                minWidth: 0,
+                background: "#141414",
+                color: "#fff",
+                display: "flex",
+                flexDirection: "column",
+                height: "100%",
+                borderRight: "1px solid #333",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "12px 16px",
+                  borderBottom: "1px solid #333",
+                  background: "#1f1f1f",
+                }}
+              >
                 <span style={{ fontSize: 16, fontWeight: 600 }}>Product Catalog</span>
-                <Button type="text" onClick={() => setIsAddingProduct(false)} style={{ color: '#fff', fontSize: 16, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Button
+                  type="text"
+                  onClick={() => setIsAddingProduct(false)}
+                  style={{
+                    color: "#fff",
+                    fontSize: 16,
+                    padding: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
                   X
                 </Button>
               </div>
-              
-              <div style={{ padding: 24, overflowY: 'auto', flex: 1 }}>
+
+              <div style={{ padding: 24, overflowY: "auto", flex: 1 }}>
                 <Input.Search
                   placeholder="Search products..."
                   allowClear
@@ -1372,71 +1235,133 @@ export const Orders: React.FC = () => {
                   onChange={(e) => setCatalogSearchText(e.target.value)}
                   onSearch={handleCatalogSearch}
                   enterButton
-                  style={{ backgroundColor: '#1f1f1f', border: 'none', borderRadius: 6, marginBottom: 16 }}
+                  style={{ backgroundColor: "#1f1f1f", border: "none", borderRadius: 6, marginBottom: 16 }}
                 />
                 <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                   <Col span={12}>
-                    <Select 
-                      style={{ width: '100%' }} 
-                      placeholder="Select Category" 
-                      value={selectedCategoryId} 
-                      onChange={(val) => { setSelectedCategoryId(val); setSelectedSubcategoryId(null); }}
-                      dropdownStyle={{ background: '#1f1f1f', color: '#fff' }}
+                    <Select
+                      style={{ width: "100%" }}
+                      placeholder="Select Category"
+                      allowClear
+                      value={selectedCategoryId}
+                      onChange={(val) => {
+                        setSelectedCategoryId(val || null);
+                        setSelectedSubcategoryId(null);
+                        if (val) {
+                          fetchCategoryProducts(val);
+                        } else {
+                          handleCatalogSearch(catalogSearchText);
+                        }
+                      }}
+                      dropdownStyle={{ background: "#1f1f1f", color: "#fff" }}
                     >
-                      {catalogCategories.map(c => <Select.Option key={c.id} value={c.id} style={{ color: '#fff' }}>{c.name}</Select.Option>)}
+                      {catalogCategories.map((c) => (
+                        <Select.Option key={c.id} value={c.id} style={{ color: "#fff" }}>
+                          {c.name}
+                        </Select.Option>
+                      ))}
                     </Select>
                   </Col>
                   <Col span={12}>
-                    <Select 
-                      style={{ width: '100%' }} 
-                      placeholder="Select Subcategory" 
-                      value={selectedSubcategoryId} 
-                      onChange={fetchCategoryProducts} 
+                    <Select
+                      style={{ width: "100%" }}
+                      placeholder="Select Subcategory"
+                      allowClear
+                      value={selectedSubcategoryId}
+                      onChange={(val) => {
+                        setSelectedSubcategoryId(val || null);
+                        if (val) {
+                          fetchCategoryProducts(val);
+                        } else if (selectedCategoryId) {
+                          fetchCategoryProducts(selectedCategoryId);
+                        }
+                      }}
                       disabled={!selectedCategoryId}
-                      dropdownStyle={{ background: '#1f1f1f', color: '#fff' }}
+                      dropdownStyle={{ background: "#1f1f1f", color: "#fff" }}
                     >
-                      {catalogCategories.find(c => c.id === selectedCategoryId)?.children?.map((sub: any) => (
-                        <Select.Option key={sub.id} value={sub.id} style={{ color: '#fff' }}>{sub.name}</Select.Option>
-                      ))}
+                      {catalogCategories
+                        .find((c) => c.id === selectedCategoryId)
+                        ?.children?.map((sub: any) => (
+                          <Select.Option key={sub.id} value={sub.id} style={{ color: "#fff" }}>
+                            {sub.name}
+                          </Select.Option>
+                        ))}
                     </Select>
                   </Col>
                 </Row>
 
                 {gridProducts.length > 0 ? (
                   <div className="posh-drawer-product-grid">
-                    {gridProducts.map(p => (
-                      <Card 
-                        key={p.id} 
-                        hoverable 
+                    {gridProducts.map((p) => (
+                      <Card
+                        key={p.id}
+                        hoverable
                         size="small"
-                        onClick={() => { setSelectedGridProduct(p); setSelectedVariantSku(""); setSelectedAttributes({}); }}
-                        style={{ 
-                          border: selectedGridProduct?.id === p.id ? '2px solid #1677ff' : '1px solid #333',
+                        onClick={() => {
+                          setSelectedGridProduct(p);
+                          setSelectedAttributes({});
+                          setAddQty(1);
+                          setAddPriceOverride(undefined);
+                          const singleSimpleVariant =
+                            p.variants?.length === 1 &&
+                            (!p.variants[0].attributes || Object.keys(p.variants[0].attributes).length === 0)
+                              ? p.variants[0].sku
+                              : "";
+                          setSelectedVariantSku(singleSimpleVariant);
+                        }}
+                        style={{
+                          border: selectedGridProduct?.id === p.id ? "2px solid #1677ff" : "1px solid #333",
                           borderRadius: 8,
-                          overflow: 'hidden',
-                          background: '#1f1f1f',
-                          color: '#fff'
+                          overflow: "hidden",
+                          background: "#1f1f1f",
+                          color: "#fff",
                         }}
                         bodyStyle={{ padding: 8 }}
                       >
-                        <img 
-                          src={p.images?.[0]?.url ? (p.images[0].url.startsWith('http') ? p.images[0].url : `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}${p.images[0].url}`) : ''} 
-                          style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: 4 }} 
-                          alt={p.name} 
+                        <img
+                          src={
+                            p.images?.[0]?.url
+                              ? p.images[0].url.startsWith("http")
+                                ? p.images[0].url
+                                : `${
+                                    import.meta.env.VITE_SERVER_URL ||
+                                    (window.location.hostname === "admin.poshplexbd.com"
+                                      ? "https://poshplexbd.com"
+                                      : "http://localhost:8000")
+                                  }${p.images[0].url}`
+                              : ""
+                          }
+                          style={{ width: "100%", aspectRatio: "1/1", objectFit: "cover", borderRadius: 4 }}
+                          alt={p.name}
                         />
-                        <div style={{ fontSize: 10, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'center', fontWeight: 600, color: '#ccc' }}>{p.name}</div>
+                        <div
+                          style={{
+                            fontSize: 10,
+                            marginTop: 4,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            textAlign: "center",
+                            fontWeight: 600,
+                            color: "#ccc",
+                          }}
+                        >
+                          {p.name}
+                        </div>
                       </Card>
                     ))}
                   </div>
                 ) : (
-                  <div style={{ textAlign: 'center', padding: '40px 0', color: '#666' }}>No products found.</div>
+                  <div style={{ textAlign: "center", padding: "40px 0", color: "#666" }}>No products found.</div>
                 )}
               </div>
 
               {selectedGridProduct && (
-                <div style={{ padding: 24, background: '#1f1f1f', borderTop: '1px solid #333' }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#fff' }}>Select Variation for {selectedGridProduct.name}</div>
-                  
+                <div style={{ padding: 24, background: "#1f1f1f", borderTop: "1px solid #333" }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: "#fff" }}>
+                    Select Variation for {selectedGridProduct.name}
+                  </div>
+
                   {(() => {
                     const attrMap: Record<string, Set<string>> = {};
                     selectedGridProduct.variants.forEach((v: any) => {
@@ -1450,26 +1375,30 @@ export const Orders: React.FC = () => {
 
                     return Object.entries(attrMap).map(([attrKey, valuesSet]) => (
                       <div key={attrKey} style={{ marginBottom: 16 }}>
-                        <div style={{ fontSize: 12, color: '#aaa', marginBottom: 8 }}>Choose {attrKey}</div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                          {Array.from(valuesSet).map(val => {
+                        <div style={{ fontSize: 12, color: "#aaa", marginBottom: 8 }}>Choose {attrKey}</div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                          {Array.from(valuesSet).map((val) => {
                             const isSelected = selectedAttributes[attrKey] === val;
-                            if (attrKey.toLowerCase() === 'color') {
+                            if (attrKey.toLowerCase() === "color") {
                               return (
                                 <div
                                   key={val}
                                   onClick={() => {
                                     const newAttrs = { ...selectedAttributes, [attrKey]: val };
                                     setSelectedAttributes(newAttrs);
-                                    const matchingVariant = selectedGridProduct.variants.find((v: any) => Object.entries(newAttrs).every(([k, v_val]) => v.attributes?.[k] === v_val));
+                                    const matchingVariant = selectedGridProduct.variants.find((v: any) =>
+                                      Object.entries(newAttrs).every(([k, v_val]) => v.attributes?.[k] === v_val)
+                                    );
                                     setSelectedVariantSku(matchingVariant ? matchingVariant.sku : "");
                                   }}
                                   style={{
-                                    width: 30, height: 30, borderRadius: '50%',
+                                    width: 30,
+                                    height: 30,
+                                    borderRadius: "50%",
                                     backgroundColor: val.toLowerCase(),
-                                    border: isSelected ? '2px solid #1677ff' : '2px solid #444',
-                                    cursor: 'pointer',
-                                    boxShadow: isSelected ? '0 0 0 2px rgba(255,255,255,0.8)' : 'none'
+                                    border: isSelected ? "2px solid #1677ff" : "2px solid #444",
+                                    cursor: "pointer",
+                                    boxShadow: isSelected ? "0 0 0 2px rgba(255,255,255,0.8)" : "none",
                                   }}
                                   title={val}
                                 />
@@ -1481,15 +1410,20 @@ export const Orders: React.FC = () => {
                                 onClick={() => {
                                   const newAttrs = { ...selectedAttributes, [attrKey]: val };
                                   setSelectedAttributes(newAttrs);
-                                  const matchingVariant = selectedGridProduct.variants.find((v: any) => Object.entries(newAttrs).every(([k, v_val]) => v.attributes?.[k] === v_val));
+                                  const matchingVariant = selectedGridProduct.variants.find((v: any) =>
+                                    Object.entries(newAttrs).every(([k, v_val]) => v.attributes?.[k] === v_val)
+                                  );
                                   setSelectedVariantSku(matchingVariant ? matchingVariant.sku : "");
                                 }}
                                 style={{
-                                  padding: '4px 12px',
-                                  border: isSelected ? '1px solid #1677ff' : '1px solid #444',
-                                  background: isSelected ? 'rgba(22, 119, 255, 0.1)' : 'transparent',
-                                  color: isSelected ? '#1677ff' : '#ccc',
-                                  borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: isSelected ? 600 : 400
+                                  padding: "4px 12px",
+                                  border: isSelected ? "1px solid #1677ff" : "1px solid #444",
+                                  background: isSelected ? "rgba(22, 119, 255, 0.1)" : "transparent",
+                                  color: isSelected ? "#1677ff" : "#ccc",
+                                  borderRadius: 4,
+                                  cursor: "pointer",
+                                  fontSize: 12,
+                                  fontWeight: isSelected ? 600 : 400,
                                 }}
                               >
                                 {val}
@@ -1502,20 +1436,48 @@ export const Orders: React.FC = () => {
                   })()}
 
                   {!selectedVariantSku && Object.keys(selectedAttributes).length > 0 && (
-                    <div style={{ color: '#ff4d4f', fontSize: 12, marginBottom: 8 }}>Selected combination is unavailable.</div>
+                    <div style={{ color: "#ff4d4f", fontSize: 12, marginBottom: 8 }}>
+                      Selected combination is unavailable.
+                    </div>
                   )}
                   {selectedVariantSku && (() => {
                     const v = selectedGridProduct.variants.find((x: any) => x.sku === selectedVariantSku);
-                    return v ? <div style={{ color: '#52c41a', fontSize: 12, marginBottom: 8 }}>Price: ৳{Math.round(v.selling_price)}</div> : null;
+                    return v ? (
+                      <div style={{ color: "#52c41a", fontSize: 12, marginBottom: 8 }}>
+                        Price: ৳{Math.round(v.selling_price)}
+                      </div>
+                    ) : null;
                   })()}
-                  
-                  <Row gutter={16} align="middle" style={{ marginTop: 12 }}>
-                    <Col span={8}>
-                      <div style={{ fontSize: 12, color: '#aaa', marginBottom: 4 }}>Quantity</div>
-                      <InputNumber min={1} value={addQty} onChange={(val) => setAddQty(val || 1)} style={{ width: '100%', background: '#333', color: '#fff', border: '1px solid #444' }} />
+
+                  <Row gutter={12} align="bottom" style={{ marginTop: 12 }}>
+                    <Col xs={8} sm={6}>
+                      <div style={{ fontSize: 12, color: "#aaa", marginBottom: 4 }}>Quantity</div>
+                      <InputNumber
+                        min={1}
+                        value={addQty}
+                        onChange={(val) => setAddQty(val || 1)}
+                        style={{ width: "100%", background: "#333", color: "#fff", border: "1px solid #444" }}
+                      />
                     </Col>
-                    <Col span={16}>
-                      <Button type="primary" onClick={handleAddDraftItem} block size="large" disabled={!selectedVariantSku} style={{ marginTop: 22 }}>
+                    <Col xs={16} sm={8}>
+                      <div style={{ fontSize: 12, color: "#aaa", marginBottom: 4 }}>Unit Price Override (৳)</div>
+                      <InputNumber
+                        min={0}
+                        placeholder={
+                          selectedVariantSku
+                            ? `৳${Math.round(
+                                selectedGridProduct.variants.find((x: any) => x.sku === selectedVariantSku)
+                                  ?.selling_price || 0
+                              )}`
+                            : "Default"
+                        }
+                        value={addPriceOverride}
+                        onChange={(val) => setAddPriceOverride(val !== null ? val : undefined)}
+                        style={{ width: "100%", background: "#333", color: "#fff", border: "1px solid #444" }}
+                      />
+                    </Col>
+                    <Col xs={24} sm={10}>
+                      <Button type="primary" onClick={handleAddDraftItem} block size="large" disabled={!selectedVariantSku}>
                         Add to Order
                       </Button>
                     </Col>
@@ -1525,296 +1487,620 @@ export const Orders: React.FC = () => {
             </div>
           )}
 
-          <div className="posh-drawer-right-pane" style={{ width: isAddingProduct ? 'min(750px, 100vw)' : '100%', height: '100%', overflowY: 'auto', background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: '16px', flex: 1 }}>
-        {selectedOrder && (
-          <Space direction="vertical" size="large" style={{ width: "100%" }}>
-            
-            {/* Risk and Status Overview */}
-            <Alert
-              message={`Operational Risk Check Status: ${selectedOrder.risk_level?.toUpperCase()}`}
-              description={
-                selectedOrder.risk_reasons?.length > 0 ? (
-                  <ul>{selectedOrder.risk_reasons.map((r: string, idx: number) => <li key={idx}>{r}</li>)}</ul>
-                ) : (
-                  "Clear dataset. No order warning flags detected."
-                )
-              }
-              type={selectedOrder.risk_level === "high" ? "error" : selectedOrder.risk_level === "medium" ? "warning" : "success"}
-              showIcon
-            />
-
-            <div style={{ marginBottom: 24 }}>
-              <h3 style={{ fontSize: 16, marginBottom: 16, fontWeight: 600 }}>Order Coordinates & Editable Details</h3>
-              <Row gutter={[12, 12]}>
-                <Col xs={12} sm={12}>
-                  <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Order Status</div>
-                  <Select 
-                    value={selectedOrder.status} 
-                    style={{ width: '100%', marginTop: 4 }}
-                    onChange={(v) => setSelectedOrder({...selectedOrder, status: v})}
-                  >
-                    <Select.Option value="placed">Order Placed</Select.Option>
-                    <Select.Option value="review">In Review</Select.Option>
-                    <Select.Option value="pending">Pending</Select.Option>
-                    <Select.Option value="hold">Hold</Select.Option>
-                    <Select.Option value="approval_pending">Approval Pending</Select.Option>
-                    <Select.Option value="delivered">Delivered</Select.Option>
-                    <Select.Option value="partially_delivered">Partially Delivered</Select.Option>
-                    <Select.Option value="cancelled">Cancelled (Courier)</Select.Option>
-                    <Select.Option value="manually_cancelled">Manually Cancelled</Select.Option>
-                    <Select.Option value="returned">Returned</Select.Option>
-                    <Select.Option value="rto">RTO</Select.Option>
-                  </Select>
-                </Col>
-                <Col xs={12} sm={12}>
-                  <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Payment Status</div>
-                  <Select 
-                    value={selectedOrder.payment_status} 
-                    style={{ width: '100%', marginTop: 4 }}
-                    onChange={(v) => setSelectedOrder({...selectedOrder, payment_status: v})}
-                  >
-                    <Select.Option value="unpaid">Unpaid</Select.Option>
-                    <Select.Option value="pending_verification">Pending Verification</Select.Option>
-                    <Select.Option value="paid">Paid</Select.Option>
-                    <Select.Option value="partially_paid">Partially Paid</Select.Option>
-                    <Select.Option value="refunded">Refunded</Select.Option>
-                    <Select.Option value="failed">Failed</Select.Option>
-                  </Select>
-                </Col>
-                <Col xs={12} sm={12}>
-                  <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Customer Name</div>
-                  <Input value={selectedOrder.shipping_name || selectedOrder.customer_name} onChange={e => setSelectedOrder({...selectedOrder, shipping_name: e.target.value})} style={{ marginTop: 4 }} />
-                </Col>
-                <Col xs={12} sm={12}>
-                  <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Phone</div>
-                  <Input value={selectedOrder.shipping_phone || selectedOrder.customer_phone} onChange={e => setSelectedOrder({...selectedOrder, shipping_phone: e.target.value})} style={{ marginTop: 4 }} />
-                </Col>
-                <Col xs={12} sm={8}>
-                  <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>District</div>
-                  <Select
-                    showSearch
-                    value={selectedOrder.shipping_district}
-                    onChange={(val) => {
-                      const d = locationRates.find(l => l.name === val);
-                      setSelectedOrder({...selectedOrder, shipping_district: val, shipping_thana: d?.thanas?.[0] || '', shipping_cost: d?.shipping_cost || selectedOrder.shipping_cost});
-                    }}
-                    style={{ width: '100%', marginTop: 4 }}
-                  >
-                    {locationRates.map((d: any) => (
-                      <Select.Option key={d.name} value={d.name}>{d.name}</Select.Option>
-                    ))}
-                  </Select>
-                </Col>
-                <Col xs={12} sm={8}>
-                  <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Thana</div>
-                  <Select
-                    showSearch
-                    value={selectedOrder.shipping_thana}
-                    onChange={(val) => setSelectedOrder({...selectedOrder, shipping_thana: val})}
-                    style={{ width: '100%', marginTop: 4 }}
-                  >
-                    {locationRates.find((d: any) => d.name === selectedOrder.shipping_district)?.thanas?.map((t: string) => (
-                      <Select.Option key={t} value={t}>{t}</Select.Option>
-                    ))}
-                  </Select>
-                </Col>
-                <Col xs={24} sm={8}>
-                  <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Postal Code</div>
-                  <Input value={selectedOrder.shipping_postal_code} onChange={e => setSelectedOrder({...selectedOrder, shipping_postal_code: e.target.value})} style={{ marginTop: 4 }} />
-                </Col>
-                <Col span={24}>
-                  <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Detailed Address</div>
-                  <Input.TextArea value={selectedOrder.shipping_address} onChange={e => setSelectedOrder({...selectedOrder, shipping_address: e.target.value})} style={{ marginTop: 4 }} />
-                </Col>
-                <Col xs={12} sm={12}>
-                  <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Courier Tracking</div>
-                  <div style={{ fontWeight: 600 }}>{selectedOrder.courier_consignment_id || selectedOrder.tracking_number || "NOT DISPATCHED"}</div>
-                  <div style={{ color: '#888', fontSize: 13 }}>{selectedOrder.courier_status || "PENDING"}</div>
-                </Col>
-                <Col xs={12} sm={12}>
-                  <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Shipping Cost Override</div>
-                  <InputNumber min={0} value={selectedOrder.shipping_cost} onChange={v => setSelectedOrder({...selectedOrder, shipping_cost: v})} style={{ width: '100%', marginTop: 4 }} />
-                </Col>
-                <Col xs={24} sm={12}>
-                  <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Customer Notes</div>
-                  <Input.TextArea value={selectedOrder.customer_notes} onChange={e => setSelectedOrder({...selectedOrder, customer_notes: e.target.value})} style={{ marginTop: 4 }} />
-                </Col>
-                <Col xs={24} sm={12}>
-                  <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Internal Notes</div>
-                  <Input.TextArea value={selectedOrder.internal_notes} onChange={e => setSelectedOrder({...selectedOrder, internal_notes: e.target.value})} style={{ marginTop: 4 }} />
-                </Col>
-
-                {/* Steadfast Delivery Risk & Merchant Reports Card */}
-                {(selectedOrder.shipping_phone || selectedOrder.customer_phone) && (
-                  <Col span={24} style={{ marginTop: 14 }}>
-                    <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>
-                      Steadfast Delivery Risk & Merchant Reports
-                    </div>
-                    <SteadfastRiskCard phone={selectedOrder.shipping_phone || selectedOrder.customer_phone} />
-                  </Col>
-                )}
-              </Row>
-            </div>
-
-            <Divider>Drop Lines checklist</Divider>
-
-            <Table
-              scroll={{ x: 'max-content' }}
-              size="small"
-              dataSource={draftItems}
-              pagination={false}
-              rowKey={(rec) => rec.sku}
-              columns={[
-                { 
-                  title: "SKU Variant", 
-                  dataIndex: "sku", 
-                  key: "sku",
-                  render: (text, rec: any) => {
-                    const attrs = rec.attributes && Object.keys(rec.attributes).length > 0 
-                      ? Object.entries(rec.attributes).map(([k, v]) => `${k}: ${v}`).join(', ') 
-                      : '';
-                    return (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        {rec.image && (
-                          <div style={{ width: 44, height: 44, borderRadius: 4, overflow: 'hidden', flexShrink: 0, border: '1px solid rgba(255,255,255,0.1)' }}>
-                            <img src={rec.image} alt={rec.product_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          </div>
-                        )}
-                        <div>
-                          <div style={{ fontWeight: 500 }}>{rec.product_name || 'Unknown Product'}</div>
-                          <div style={{ fontSize: '0.85em', color: '#666' }}>{text}</div>
-                          {attrs && <div style={{ fontSize: '0.85em', color: '#888' }}>( {attrs} )</div>}
-                        </div>
-                      </div>
-                    );
-                  }
-                },
-                { title: "Price", dataIndex: "price", key: "price", render: (val) => `৳${Math.round(val)}` },
-                { title: "Qty Ordered", dataIndex: "quantity", key: "quantity" },
-                { title: "Returned Qty", dataIndex: "returned_quantity", key: "returned_quantity" },
-                { title: "Fulfillment State", dataIndex: "fulfillment_status", key: "fulfillment_status", render: (s) => <Tag>{s?.toUpperCase()}</Tag> },
-                { title: "Action", key: "action", render: (_, __, index) => <Popconfirm title="Remove item from draft?" onConfirm={() => handleRemoveDraftItem(index)}><Button danger size="small" type="text" icon={<DeleteOutlined />} /></Popconfirm> }
-              ]}
-            />
-
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-                <Button type="dashed" icon={<PlusOutlined />} onClick={handleOpenAddProduct}>
-                  Add New Product
-                </Button>
-                <Button type="dashed" icon={<GiftOutlined />} onClick={() => setIsReturnModalOpen(true)}>
-                  Process Return Request
-                </Button>
-              </div>
-
-            <Card size="small" style={{ marginTop: 16, borderColor: '#e5e5e5' }}>
-              <Row gutter={[12, 12]}>
-                <Col xs={24} sm={12}>
-                  <label style={{ fontSize: 12, fontWeight: 600 }}>Discount Amount (৳)</label>
-                  <InputNumber 
-                    style={{ width: '100%' }} 
-                    min={0} 
-                    value={draftDiscount} 
-                    onChange={(v) => setDraftDiscount(v || 0)} 
-                  />
-                </Col>
-                <Col xs={24} sm={12}>
-                  <label style={{ fontSize: 12, fontWeight: 600 }}>Promo Code (Optional)</label>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <Input 
-                      placeholder="Enter code" 
-                      value={promoCode} 
-                      onChange={e => setPromoCode(e.target.value)} 
-                    />
-                    <Button type="default" onClick={async () => {
-                      if (!promoCode) return;
-                      const subtotal = draftItems.reduce((acc, item) => acc + (parseFloat(item.price || 0) * (item.quantity || 1)), 0);
-                      try {
-                        const token = localStorage.getItem("poshplex_access_token");
-                        const res = await axios.post(`${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}/api/v1/marketing/promocodes/validate`, { code: promoCode, order_amount: subtotal }, {
-                          headers: { Authorization: `Bearer ${token}` }
-                        });
-                        if (res.data.valid) {
-                           setDraftDiscount(res.data.discount_amount);
-                           message.success(`Promo code applied: -৳${res.data.discount_amount}`);
-                        } else {
-                           message.error(res.data.message || "Invalid promo code");
-                        }
-                      } catch (e: any) {
-                         message.info("Code received, please apply discount manually if backend doesn't support promo code lookup yet.");
+          <div
+            className="posh-drawer-right-pane"
+            style={{
+              width: isAddingProduct ? "min(750px, 100vw)" : "100%",
+              height: "100%",
+              overflowY: "auto",
+              background: "var(--bg-primary)",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <div style={{ padding: "16px", flex: 1 }}>
+              {selectedOrder && (
+                <Space direction="vertical" size="large" style={{ width: "100%" }}>
+                  {/* Risk and Status Overview */}
+                  {drawerMode === "create" ? (
+                    (() => {
+                      const subtotal = draftItems.reduce(
+                        (acc, item) => acc + parseFloat(item.price || 0) * (item.quantity || 1),
+                        0
+                      );
+                      const reasons: string[] = [];
+                      if (subtotal > 800 && (selectedOrder.payment_status || "unpaid") === "unpaid") {
+                        reasons.push("High value Cash on Delivery (COD) order (> ৳800).");
                       }
-                    }}>Apply</Button>
+                      if (selectedOrder.shipping_phone && !isValidPhone(selectedOrder.shipping_phone)) {
+                        reasons.push("Phone number format does not match 11-digit BD standard.");
+                      }
+                      const riskLevel = reasons.length > 0 ? "MEDIUM" : "LOW";
+                      return (
+                        <Alert
+                          message={`Operational Risk Check Status: ${riskLevel}`}
+                          description={
+                            reasons.length > 0 ? (
+                              <ul style={{ margin: 0, paddingLeft: 18 }}>
+                                {reasons.map((r, idx) => (
+                                  <li key={idx}>{r}</li>
+                                ))}
+                              </ul>
+                            ) : (
+                              "New manual order draft. Fill customer coordinates and add product items below."
+                            )
+                          }
+                          type={riskLevel === "MEDIUM" ? "warning" : "success"}
+                          showIcon
+                        />
+                      );
+                    })()
+                  ) : (
+                    <Alert
+                      message={`Operational Risk Check Status: ${selectedOrder.risk_level?.toUpperCase()}`}
+                      description={
+                        selectedOrder.risk_reasons?.length > 0 ? (
+                          <ul>
+                            {selectedOrder.risk_reasons.map((r: string, idx: number) => (
+                              <li key={idx}>{r}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          "Clear dataset. No order warning flags detected."
+                        )
+                      }
+                      type={
+                        selectedOrder.risk_level === "high"
+                          ? "error"
+                          : selectedOrder.risk_level === "medium"
+                          ? "warning"
+                          : "success"
+                      }
+                      showIcon
+                    />
+                  )}
+
+                  <div style={{ marginBottom: 24 }}>
+                    <h3 style={{ fontSize: 16, marginBottom: 16, fontWeight: 600 }}>
+                      Order Coordinates &amp; Editable Details
+                    </h3>
+
+                    {drawerMode === "create" && (
+                      <div style={{ marginBottom: 14 }}>
+                        <div style={{ fontSize: 11, color: "#888", textTransform: "uppercase" }}>
+                          Quick Existing Customer Lookup (Optional)
+                        </div>
+                        <Select
+                          showSearch
+                          allowClear
+                          placeholder="Search existing customer by Name, Phone or Email (or fill fields directly below)"
+                          value={selectedOrder.user_id || undefined}
+                          filterOption={false}
+                          onSearch={setCustomerSearchQuery}
+                          onChange={(val) => handleCreateCustomerSelect(val)}
+                          style={{ width: "100%", marginTop: 4 }}
+                        >
+                          {crmCustomers.map((c) => (
+                            <Select.Option key={c.id} value={c.id}>
+                              {c.username} {c.phone ? `· ${c.phone}` : ""} {c.email ? `(${c.email})` : ""}
+                            </Select.Option>
+                          ))}
+                        </Select>
+                      </div>
+                    )}
+
+                    <Row gutter={[12, 12]}>
+                      <Col xs={12} sm={12}>
+                        <div style={{ fontSize: 11, color: "#888", textTransform: "uppercase" }}>Order Status</div>
+                        <Select
+                          value={selectedOrder.status}
+                          style={{ width: "100%", marginTop: 4 }}
+                          onChange={(v) => setSelectedOrder({ ...selectedOrder, status: v })}
+                        >
+                          <Select.Option value="placed">Order Placed</Select.Option>
+                          <Select.Option value="review">In Review</Select.Option>
+                          <Select.Option value="pending">Pending</Select.Option>
+                          <Select.Option value="hold">Hold</Select.Option>
+                          <Select.Option value="approval_pending">Approval Pending</Select.Option>
+                          {drawerMode === "edit" && (
+                            <>
+                              <Select.Option value="delivered">Delivered</Select.Option>
+                              <Select.Option value="partially_delivered">Partially Delivered</Select.Option>
+                              <Select.Option value="cancelled">Cancelled (Courier)</Select.Option>
+                              <Select.Option value="manually_cancelled">Manually Cancelled</Select.Option>
+                              <Select.Option value="returned">Returned</Select.Option>
+                              <Select.Option value="rto">RTO</Select.Option>
+                            </>
+                          )}
+                        </Select>
+                      </Col>
+                      <Col xs={12} sm={12}>
+                        <div style={{ fontSize: 11, color: "#888", textTransform: "uppercase" }}>Payment Status</div>
+                        <Select
+                          value={selectedOrder.payment_status}
+                          style={{ width: "100%", marginTop: 4 }}
+                          onChange={(v) => setSelectedOrder({ ...selectedOrder, payment_status: v })}
+                        >
+                          <Select.Option value="unpaid">Unpaid</Select.Option>
+                          <Select.Option value="pending_verification">Pending Verification</Select.Option>
+                          <Select.Option value="paid">Paid</Select.Option>
+                          <Select.Option value="partially_paid">Partially Paid</Select.Option>
+                          {drawerMode === "edit" && (
+                            <>
+                              <Select.Option value="refunded">Refunded</Select.Option>
+                              <Select.Option value="failed">Failed</Select.Option>
+                            </>
+                          )}
+                        </Select>
+                      </Col>
+                      <Col xs={12} sm={12}>
+                        <div style={{ fontSize: 11, color: "#888", textTransform: "uppercase" }}>Customer Name</div>
+                        <Input
+                          placeholder="Full name"
+                          value={selectedOrder.shipping_name || selectedOrder.customer_name}
+                          onChange={(e) => setSelectedOrder({ ...selectedOrder, shipping_name: e.target.value })}
+                          style={{ marginTop: 4 }}
+                        />
+                      </Col>
+                      <Col xs={12} sm={12}>
+                        <div style={{ fontSize: 11, color: "#888", textTransform: "uppercase" }}>Phone</div>
+                        <Input
+                          placeholder="01XXXXXXXXX"
+                          value={selectedOrder.shipping_phone || selectedOrder.customer_phone}
+                          onChange={(e) => setSelectedOrder({ ...selectedOrder, shipping_phone: e.target.value })}
+                          style={{ marginTop: 4 }}
+                        />
+                      </Col>
+                      <Col xs={12} sm={8}>
+                        <div style={{ fontSize: 11, color: "#888", textTransform: "uppercase" }}>District</div>
+                        <Select
+                          showSearch
+                          placeholder="Select district"
+                          value={selectedOrder.shipping_district}
+                          onChange={(val) => {
+                            const d = locationRates.find((l) => l.name === val);
+                            setSelectedOrder({
+                              ...selectedOrder,
+                              shipping_district: val,
+                              shipping_thana: d?.thanas?.[0] || "",
+                              shipping_cost: d?.shipping_cost ?? selectedOrder.shipping_cost,
+                            });
+                          }}
+                          style={{ width: "100%", marginTop: 4 }}
+                        >
+                          {locationRates.map((d: any) => (
+                            <Select.Option key={d.name} value={d.name}>
+                              {d.name}
+                            </Select.Option>
+                          ))}
+                        </Select>
+                      </Col>
+                      <Col xs={12} sm={8}>
+                        <div style={{ fontSize: 11, color: "#888", textTransform: "uppercase" }}>Thana</div>
+                        <Select
+                          showSearch
+                          placeholder="Select thana"
+                          value={selectedOrder.shipping_thana}
+                          onChange={(val) => setSelectedOrder({ ...selectedOrder, shipping_thana: val })}
+                          style={{ width: "100%", marginTop: 4 }}
+                        >
+                          {locationRates
+                            .find((d: any) => d.name === selectedOrder.shipping_district)
+                            ?.thanas?.map((t: string) => (
+                              <Select.Option key={t} value={t}>
+                                {t}
+                              </Select.Option>
+                            ))}
+                        </Select>
+                      </Col>
+                      <Col xs={24} sm={8}>
+                        <div style={{ fontSize: 11, color: "#888", textTransform: "uppercase" }}>Postal Code</div>
+                        <Input
+                          placeholder="Optional"
+                          value={selectedOrder.shipping_postal_code}
+                          onChange={(e) => setSelectedOrder({ ...selectedOrder, shipping_postal_code: e.target.value })}
+                          style={{ marginTop: 4 }}
+                        />
+                      </Col>
+                      <Col span={24}>
+                        <div style={{ fontSize: 11, color: "#888", textTransform: "uppercase" }}>Detailed Address</div>
+                        <Input.TextArea
+                          placeholder="House No, Road, Area..."
+                          value={selectedOrder.shipping_address}
+                          onChange={(e) => setSelectedOrder({ ...selectedOrder, shipping_address: e.target.value })}
+                          style={{ marginTop: 4 }}
+                        />
+                      </Col>
+                      {drawerMode === "edit" ? (
+                        <Col xs={12} sm={12}>
+                          <div style={{ fontSize: 11, color: "#888", textTransform: "uppercase" }}>Courier Tracking</div>
+                          <div style={{ fontWeight: 600 }}>
+                            {selectedOrder.courier_consignment_id || selectedOrder.tracking_number || "NOT DISPATCHED"}
+                          </div>
+                          <div style={{ color: "#888", fontSize: 13 }}>{selectedOrder.courier_status || "PENDING"}</div>
+                        </Col>
+                      ) : (
+                        <Col xs={12} sm={12}>
+                          <div style={{ fontSize: 11, color: "#888", textTransform: "uppercase" }}>Payment Method</div>
+                          <Select
+                            value={selectedOrder.payment_method || "COD"}
+                            onChange={(v) => setSelectedOrder({ ...selectedOrder, payment_method: v })}
+                            style={{ width: "100%", marginTop: 4 }}
+                          >
+                            <Select.Option value="COD">Cash on Delivery (COD)</Select.Option>
+                            {bankAccounts.map((ba: any) => (
+                              <Select.Option key={ba.id} value={ba.name}>
+                                {ba.name}
+                              </Select.Option>
+                            ))}
+                          </Select>
+                        </Col>
+                      )}
+                      <Col xs={12} sm={12}>
+                        <div style={{ fontSize: 11, color: "#888", textTransform: "uppercase" }}>
+                          Shipping Cost Override
+                        </div>
+                        <InputNumber
+                          min={0}
+                          value={selectedOrder.shipping_cost}
+                          onChange={(v) => setSelectedOrder({ ...selectedOrder, shipping_cost: v })}
+                          style={{ width: "100%", marginTop: 4 }}
+                        />
+                      </Col>
+
+                      {drawerMode === "create" &&
+                        (selectedOrder.payment_status === "paid" || selectedOrder.payment_status === "partially_paid") && (
+                          <>
+                            <Col xs={12} sm={12}>
+                              <div style={{ fontSize: 11, color: "#888", textTransform: "uppercase" }}>
+                                Paid / Advance Amount (৳)
+                              </div>
+                              <InputNumber
+                                min={0}
+                                value={selectedOrder.payment_amount}
+                                onChange={(v) => setSelectedOrder({ ...selectedOrder, payment_amount: v || 0 })}
+                                style={{ width: "100%", marginTop: 4 }}
+                              />
+                            </Col>
+                            <Col xs={12} sm={12}>
+                              <div style={{ fontSize: 11, color: "#888", textTransform: "uppercase" }}>
+                                Transaction Reference ID
+                              </div>
+                              <Input
+                                placeholder="e.g. TR-A1B2C3D4"
+                                value={selectedOrder.payment_reference}
+                                onChange={(e) => setSelectedOrder({ ...selectedOrder, payment_reference: e.target.value })}
+                                style={{ marginTop: 4 }}
+                              />
+                            </Col>
+                          </>
+                        )}
+
+                      <Col xs={24} sm={12}>
+                        <div style={{ fontSize: 11, color: "#888", textTransform: "uppercase" }}>Customer Notes</div>
+                        <Input.TextArea
+                          value={selectedOrder.customer_notes}
+                          onChange={(e) => setSelectedOrder({ ...selectedOrder, customer_notes: e.target.value })}
+                          style={{ marginTop: 4 }}
+                        />
+                      </Col>
+                      <Col xs={24} sm={12}>
+                        <div style={{ fontSize: 11, color: "#888", textTransform: "uppercase" }}>Internal Notes</div>
+                        <Input.TextArea
+                          value={selectedOrder.internal_notes}
+                          onChange={(e) => setSelectedOrder({ ...selectedOrder, internal_notes: e.target.value })}
+                          style={{ marginTop: 4 }}
+                        />
+                      </Col>
+
+                      {/* Steadfast Delivery Risk & Merchant Reports Card */}
+                      {(selectedOrder.shipping_phone || selectedOrder.customer_phone) &&
+                        String(selectedOrder.shipping_phone || selectedOrder.customer_phone).replace(/\D/g, "").length >= 10 && (
+                          <Col span={24} style={{ marginTop: 14 }}>
+                            <div
+                              style={{
+                                fontSize: 11,
+                                color: "#888",
+                                textTransform: "uppercase",
+                                marginBottom: 8,
+                                fontWeight: 700,
+                              }}
+                            >
+                              Steadfast Delivery Risk &amp; Merchant Reports
+                            </div>
+                            <SteadfastRiskCard phone={selectedOrder.shipping_phone || selectedOrder.customer_phone} />
+                          </Col>
+                        )}
+                    </Row>
                   </div>
-                </Col>
-              </Row>
 
-              {(() => {
-                const subtotal = draftItems.reduce((acc, item) => acc + (parseFloat(item.price || 0) * (item.quantity || 1)), 0);
-                const finalTotal = subtotal - (draftDiscount || 0) + parseFloat(selectedOrder?.shipping_cost || 0);
-                return (
-                  <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px dashed #444' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <span style={{ color: '#aaa' }}>Subtotal:</span>
-                      <strong>৳{Math.round(subtotal)}</strong>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, color: '#e11d48' }}>
-                      <span>Discount:</span>
-                      <strong>- ৳{Math.round(draftDiscount || 0)}</strong>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <span style={{ color: '#aaa' }}>Shipping:</span>
-                      <strong>৳{Math.round(parseFloat(selectedOrder?.shipping_cost || 0))}</strong>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 18, marginTop: 12, paddingTop: 12, borderTop: '1px solid #444' }}>
-                      <strong>Total:</strong>
-                      <strong>৳{Math.round(finalTotal)}</strong>
-                    </div>
+                  <Divider>Drop Lines checklist</Divider>
+
+                  <Table
+                    scroll={{ x: "max-content" }}
+                    size="small"
+                    dataSource={draftItems}
+                    pagination={false}
+                    rowKey={(rec) => rec.sku}
+                    columns={[
+                      {
+                        title: "SKU Variant",
+                        dataIndex: "sku",
+                        key: "sku",
+                        render: (text, rec: any) => {
+                          const attrs =
+                            rec.attributes && Object.keys(rec.attributes).length > 0
+                              ? Object.entries(rec.attributes)
+                                  .map(([k, v]) => `${k}: ${v}`)
+                                  .join(", ")
+                              : "";
+                          return (
+                            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                              {rec.image && (
+                                <div
+                                  style={{
+                                    width: 44,
+                                    height: 44,
+                                    borderRadius: 4,
+                                    overflow: "hidden",
+                                    flexShrink: 0,
+                                    border: "1px solid rgba(255,255,255,0.1)",
+                                  }}
+                                >
+                                  <img
+                                    src={rec.image}
+                                    alt={rec.product_name}
+                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                  />
+                                </div>
+                              )}
+                              <div>
+                                <div style={{ fontWeight: 500 }}>{rec.product_name || "Unknown Product"}</div>
+                                <div style={{ fontSize: "0.85em", color: "#666" }}>{text}</div>
+                                {attrs && <div style={{ fontSize: "0.85em", color: "#888" }}>( {attrs} )</div>}
+                              </div>
+                            </div>
+                          );
+                        },
+                      },
+                      {
+                        title: "Price",
+                        dataIndex: "price",
+                        key: "price",
+                        render: (val, _, idx) =>
+                          drawerMode === "create" ? (
+                            <InputNumber
+                              size="small"
+                              min={0}
+                              value={Math.round(parseFloat(val || 0))}
+                              onChange={(v) => {
+                                const updated = [...draftItems];
+                                updated[idx] = { ...updated[idx], price: v || 0 };
+                                setDraftItems(updated);
+                              }}
+                              style={{ width: 76 }}
+                            />
+                          ) : (
+                            `৳${Math.round(val)}`
+                          ),
+                      },
+                      {
+                        title: "Qty Ordered",
+                        dataIndex: "quantity",
+                        key: "quantity",
+                        render: (val, _, idx) => (
+                          <InputNumber
+                            size="small"
+                            min={1}
+                            value={val}
+                            onChange={(v) => {
+                              const updated = [...draftItems];
+                              updated[idx] = { ...updated[idx], quantity: v || 1 };
+                              setDraftItems(updated);
+                            }}
+                            style={{ width: 64 }}
+                          />
+                        ),
+                      },
+                      ...(drawerMode === "edit"
+                        ? [
+                            { title: "Returned Qty", dataIndex: "returned_quantity", key: "returned_quantity" },
+                            {
+                              title: "Fulfillment State",
+                              dataIndex: "fulfillment_status",
+                              key: "fulfillment_status",
+                              render: (s: string) => <Tag>{s?.toUpperCase()}</Tag>,
+                            },
+                          ]
+                        : []),
+                      {
+                        title: "Action",
+                        key: "action",
+                        render: (_, __, index) => (
+                          <Popconfirm title="Remove item from draft?" onConfirm={() => handleRemoveDraftItem(index)}>
+                            <Button danger size="small" type="text" icon={<DeleteOutlined />} />
+                          </Popconfirm>
+                        ),
+                      },
+                    ]}
+                  />
+
+                  <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+                    <Button type="dashed" icon={<PlusOutlined />} onClick={handleOpenAddProduct}>
+                      Add New Product
+                    </Button>
+                    {drawerMode === "edit" && (
+                      <Button type="dashed" icon={<GiftOutlined />} onClick={() => setIsReturnModalOpen(true)}>
+                        Process Return Request
+                      </Button>
+                    )}
                   </div>
-                );
-              })()}
-            </Card>
 
-            <Divider>Financial ledger allocations</Divider>
-            <Table
-              size="small"
-              dataSource={selectedOrder.payments}
-              pagination={false}
-              rowKey="id"
-              columns={[
-                { title: "Amount", dataIndex: "amount", key: "amount", render: (val) => `৳${Math.round(val)}` },
-                { title: "Method", dataIndex: "method", key: "method" },
-                { title: "Ref transaction", dataIndex: "reference_number", key: "reference_number" },
-                { title: "Sender No", dataIndex: "sender_number", key: "sender_number" },
-                { title: "Status", dataIndex: "status", key: "status", render: (s) => <Tag color="success">{s?.toUpperCase()}</Tag> }
-              ]}
-            />
+                  <Card size="small" style={{ marginTop: 16, borderColor: "#e5e5e5" }}>
+                    <Row gutter={[12, 12]}>
+                      <Col xs={24} sm={12}>
+                        <label style={{ fontSize: 12, fontWeight: 600 }}>Discount Amount (৳)</label>
+                        <InputNumber
+                          style={{ width: "100%" }}
+                          min={0}
+                          value={draftDiscount}
+                          onChange={(v) => setDraftDiscount(v || 0)}
+                        />
+                      </Col>
+                      <Col xs={24} sm={12}>
+                        <label style={{ fontSize: 12, fontWeight: 600 }}>Promo Code (Optional)</label>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <Input
+                            placeholder="Enter code"
+                            value={promoCode}
+                            onChange={(e) => setPromoCode(e.target.value)}
+                          />
+                          <Button
+                            type="default"
+                            onClick={async () => {
+                              if (!promoCode) return;
+                              const subtotal = draftItems.reduce(
+                                (acc, item) => acc + parseFloat(item.price || 0) * (item.quantity || 1),
+                                0
+                              );
+                              try {
+                                const token = localStorage.getItem("poshplex_access_token");
+                                const res = await axios.post(
+                                  `${
+                                    import.meta.env.VITE_SERVER_URL ||
+                                    (window.location.hostname === "admin.poshplexbd.com"
+                                      ? "https://poshplexbd.com"
+                                      : "http://localhost:8000")
+                                  }/api/v1/marketing/promocodes/validate`,
+                                  { code: promoCode, order_amount: subtotal },
+                                  {
+                                    headers: { Authorization: `Bearer ${token}` },
+                                  }
+                                );
+                                if (res.data.valid) {
+                                  setDraftDiscount(res.data.discount_amount);
+                                  message.success(`Promo code applied: -৳${res.data.discount_amount}`);
+                                } else {
+                                  message.error(res.data.message || "Invalid promo code");
+                                }
+                              } catch (e: any) {
+                                message.info(
+                                  "Code received, please apply discount manually if backend doesn't support promo code lookup yet."
+                                );
+                              }
+                            }}
+                          >
+                            Apply
+                          </Button>
+                        </div>
+                      </Col>
+                    </Row>
 
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 16 }}>
-              <Button type="primary" onClick={() => setIsPaymentModalOpen(true)} style={{ borderRadius: 0 }}>
-                Record Payment allocation
-              </Button>
-            </div>
+                    {(() => {
+                      const subtotal = draftItems.reduce(
+                        (acc, item) => acc + parseFloat(item.price || 0) * (item.quantity || 1),
+                        0
+                      );
+                      const finalTotal = subtotal - (draftDiscount || 0) + parseFloat(selectedOrder?.shipping_cost || 0);
+                      return (
+                        <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px dashed #444" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                            <span style={{ color: "#aaa" }}>Subtotal:</span>
+                            <strong>৳{Math.round(subtotal)}</strong>
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, color: "#e11d48" }}>
+                            <span>Discount:</span>
+                            <strong>- ৳{Math.round(draftDiscount || 0)}</strong>
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                            <span style={{ color: "#aaa" }}>Shipping:</span>
+                            <strong>৳{Math.round(parseFloat(selectedOrder?.shipping_cost || 0))}</strong>
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              fontSize: 18,
+                              marginTop: 12,
+                              paddingTop: 12,
+                              borderTop: "1px solid #444",
+                            }}
+                          >
+                            <strong>Total:</strong>
+                            <strong>৳{Math.round(finalTotal)}</strong>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </Card>
 
-            <Divider>Operational status log history</Divider>
-            <Timeline>
-              {selectedOrder.status_history?.map((h: any) => (
-                <Timeline.Item key={h.id}>
-                  <b>{h.status?.toUpperCase()}</b> - by <i>{h.admin_username || "system"}</i> <br />
-                  <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{new Date(h.timestamp).toLocaleString()}</span> <br />
-                  <span>{h.notes}</span>
-                </Timeline.Item>
-              ))}
-            </Timeline>
+                  {drawerMode === "edit" && (
+                    <>
+                      <Divider>Financial ledger allocations</Divider>
+                      <Table
+                        size="small"
+                        dataSource={selectedOrder.payments}
+                        pagination={false}
+                        rowKey="id"
+                        columns={[
+                          { title: "Amount", dataIndex: "amount", key: "amount", render: (val) => `৳${Math.round(val)}` },
+                          { title: "Method", dataIndex: "method", key: "method" },
+                          { title: "Ref transaction", dataIndex: "reference_number", key: "reference_number" },
+                          { title: "Sender No", dataIndex: "sender_number", key: "sender_number" },
+                          {
+                            title: "Status",
+                            dataIndex: "status",
+                            key: "status",
+                            render: (s) => <Tag color="success">{s?.toUpperCase()}</Tag>,
+                          },
+                        ]}
+                      />
 
-          </Space>
-        )}
+                      <div style={{ display: "flex", justifyContent: "flex-end", gap: 16 }}>
+                        <Button type="primary" onClick={() => setIsPaymentModalOpen(true)} style={{ borderRadius: 0 }}>
+                          Record Payment allocation
+                        </Button>
+                      </div>
 
-
+                      <Divider>Operational status log history</Divider>
+                      <Timeline>
+                        {selectedOrder.status_history?.map((h: any) => (
+                          <Timeline.Item key={h.id}>
+                            <b>{h.status?.toUpperCase()}</b> - by <i>{h.admin_username || "system"}</i> <br />
+                            <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                              {new Date(h.timestamp).toLocaleString()}
+                            </span>{" "}
+                            <br />
+                            <span>{h.notes}</span>
+                          </Timeline.Item>
+                        ))}
+                      </Timeline>
+                    </>
+                  )}
+                </Space>
+              )}
             </div>
             {isAddingProduct && (
-              <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border-glass)', textAlign: 'right', background: 'var(--bg-primary)', position: 'sticky', bottom: 0, zIndex: 10 }}>
-                <Button type="primary" size="large" icon={<SaveOutlined />} block onClick={handleSaveDrawerEdits} loading={isSavingDraft}>
-                  Save Order Changes
+              <div
+                style={{
+                  padding: "16px 24px",
+                  borderTop: "1px solid var(--border-glass)",
+                  textAlign: "right",
+                  background: "var(--bg-primary)",
+                  position: "sticky",
+                  bottom: 0,
+                  zIndex: 10,
+                }}
+              >
+                <Button
+                  type="primary"
+                  size="large"
+                  icon={<SaveOutlined />}
+                  block
+                  onClick={drawerMode === "create" ? handleSaveCreateOrder : handleSaveDrawerEdits}
+                  loading={isSavingDraft}
+                >
+                  {drawerMode === "create" ? "Create Order" : "Save Order Changes"}
                 </Button>
               </div>
             )}

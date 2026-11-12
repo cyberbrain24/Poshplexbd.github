@@ -7,6 +7,8 @@ export const setPixelId = (id: string) => {
 declare global {
   interface Window {
     fbq: any;
+    dataLayer: any[];
+    gtag: (...args: any[]) => void;
   }
 }
 
@@ -568,6 +570,51 @@ export const trackEvent = (
       }
     }
     window.fbq("track", eventName, eventData, { eventID: eventId });
+  }
+
+  // 1b. Mirror ecommerce events to Google Tag / GTM dataLayer & gtag
+  if (typeof window !== "undefined" && (window.dataLayer || typeof window.gtag === "function")) {
+    const gaEventMap: Record<string, string> = {
+      ViewContent: "view_item",
+      AddToCart: "add_to_cart",
+      InitiateCheckout: "begin_checkout",
+      Purchase: "purchase",
+      CompleteRegistration: "sign_up",
+      Search: "search",
+    };
+    const gaEventName = gaEventMap[eventName];
+    if (gaEventName) {
+      const gaPayload: Record<string, any> = {
+        event_id: eventId,
+        ...(eventData.currency ? { currency: eventData.currency } : { currency: "BDT" }),
+        ...(eventData.value !== undefined ? { value: Number(eventData.value) || 0 } : {}),
+        ...(eventData.transaction_id || eventData.order_id
+          ? { transaction_id: eventData.transaction_id || eventData.order_id }
+          : {}),
+        ...(eventData.search_string ? { search_term: eventData.search_string } : {}),
+      };
+      if (Array.isArray(eventData.contents) && eventData.contents.length > 0) {
+        gaPayload.items = eventData.contents.map((item: any) => ({
+          item_id: String(item.id || ""),
+          item_name: item.name || eventData.content_name || "",
+          price: item.item_price !== undefined ? Number(item.item_price) : undefined,
+          quantity: item.quantity !== undefined ? Number(item.quantity) : 1,
+        }));
+      } else if (Array.isArray(eventData.content_ids) && eventData.content_ids.length > 0) {
+        gaPayload.items = eventData.content_ids.map((id: any) => ({
+          item_id: String(id),
+          item_name: eventData.content_name || "",
+          price: eventData.value !== undefined ? Number(eventData.value) : undefined,
+          quantity: eventData.num_items !== undefined ? Number(eventData.num_items) : 1,
+        }));
+      }
+
+      if (typeof window.gtag === "function") {
+        window.gtag("event", gaEventName, gaPayload);
+      } else if (Array.isArray(window.dataLayer)) {
+        window.dataLayer.push({ event: gaEventName, ecommerce: gaPayload });
+      }
+    }
   }
 
   // 2. Fire Server-Side CAPI

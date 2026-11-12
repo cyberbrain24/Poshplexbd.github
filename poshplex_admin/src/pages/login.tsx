@@ -14,8 +14,12 @@ export const Login: React.FC = () => {
   const onFinish = (values: any) => {
     setErrorMsg(null);
     login(values, {
-      onSuccess: () => {
-        navigate("/");
+      onSuccess: (res: any) => {
+        if (res?.success) {
+          navigate("/");
+        } else {
+          setErrorMsg(res?.error?.message || "Invalid username or password.");
+        }
       },
       onError: (err: any) => {
         setErrorMsg(err?.message || "Invalid credentials.");
