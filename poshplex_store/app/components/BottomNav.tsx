@@ -3,16 +3,19 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Grid, Sparkles, ShoppingBag, User } from "lucide-react";
+import { Home, Grid, ShoppingBag, User } from "lucide-react";
 import { useCart } from "../../context/CartContext";
-import { useFitCheckConfig } from "../hooks/useFitCheckConfig";
-import VirtualTryOnModal from "./VirtualTryOnModal";
+// [TEMPORARY DISCONNECT] AI Fit Check module temporarily disconnected
+// import { Sparkles } from "lucide-react";
+// import { useFitCheckConfig } from "../hooks/useFitCheckConfig";
+// import VirtualTryOnModal from "./VirtualTryOnModal";
 
 export default function BottomNav() {
   const pathname = usePathname();
   const { cartCount, openCart, closeCart, isCartOpen } = useCart();
-  const { isFitCheckActive } = useFitCheckConfig();
-  const [isGlobalFitModalOpen, setIsGlobalFitModalOpen] = useState(false);
+  // [TEMPORARY DISCONNECT] AI Fit Check disabled temporarily
+  const isFitCheckActive = false;
+  // const [isGlobalFitModalOpen, setIsGlobalFitModalOpen] = useState(false);
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -37,8 +40,6 @@ export default function BottomNav() {
     handleNavCloseMenus();
     if (pathname.startsWith("/product/")) {
       document.dispatchEvent(new CustomEvent("open-ai-fit-check"));
-    } else {
-      setIsGlobalFitModalOpen(true);
     }
   };
 
@@ -73,8 +74,8 @@ export default function BottomNav() {
             <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Category</span>
           </Link>
 
-          {/* AI FIT CHECK Button - Raised Circular Center (Visible only when feature is ACTIVE) */}
-          {isFitCheckActive && (
+          {/* [TEMPORARY DISCONNECT] AI FIT CHECK Button temporarily disconnected */}
+          {/* {isFitCheckActive && (
             <div style={{ flex: 1, display: "flex", justifyContent: "center", position: "relative", height: "100%" }}>
               <button 
                 id="mobile-ai-fit-check-btn"
@@ -123,7 +124,7 @@ export default function BottomNav() {
                 AI FIT CHECK
               </span>
             </div>
-          )}
+          )} */}
 
           {/* Cart */}
           <button 
@@ -188,8 +189,8 @@ export default function BottomNav() {
         `}} />
       </div>
 
-      {/* Global Virtual Try-On Modal (triggered on non-product pages) */}
-      <VirtualTryOnModal
+      {/* [TEMPORARY DISCONNECT] Global Virtual Try-On Modal disconnected temporarily */}
+      {/* <VirtualTryOnModal
         isOpen={isGlobalFitModalOpen}
         onClose={() => setIsGlobalFitModalOpen(false)}
         product={{
@@ -197,7 +198,7 @@ export default function BottomNav() {
           name: "PoshPlex Signature Fit Check",
           image_url: "/logo.png"
         }}
-      />
+      /> */}
     </>
   );
 }

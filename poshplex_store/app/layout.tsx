@@ -2,9 +2,10 @@ import "./globals.css";
 import React from "react";
 import { Outfit } from "next/font/google";
 import { CartProvider } from "../context/CartContext";
-import { MusicProvider } from "../context/MusicContext";
+// [TEMPORARY DISCONNECT] Music player temporarily disconnected
+// import { MusicProvider } from "../context/MusicContext";
 import { GlobalErrorBoundary } from "./components/GlobalErrorBoundary";
-import FloatingPlayer from "./components/FloatingPlayer";
+// import FloatingPlayer from "./components/FloatingPlayer";
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
 import CartDrawer from "./components/CartDrawer";
@@ -140,7 +141,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </React.Suspense>
         <GlobalErrorBoundary>
           <CartProvider>
-            <MusicProvider>
+            {/* [TEMPORARY DISCONNECT] MusicProvider & FloatingPlayer temporarily disconnected */}
+            {/* <MusicProvider> */}
               <div className="flex flex-col min-h-screen w-full md:w-[80%] mx-auto relative bg-white">
               
               {/* Sticky Navigation Bar */}
@@ -155,13 +157,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               {/* Modular responsive footer */}
               <Footer />
 
-              {/* Persistent Audio Loop Player */}
-              <FloatingPlayer />
+              {/* Persistent Audio Loop Player (temporarily disconnected) */}
+              {/* <FloatingPlayer /> */}
 
               {/* Sticky Mobile/Tablet Bottom Menu */}
               <BottomNav />
             </div>
-            </MusicProvider>
+            {/* </MusicProvider> */}
           </CartProvider>
         </GlobalErrorBoundary>
       </body>

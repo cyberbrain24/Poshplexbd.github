@@ -63,7 +63,8 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
     { key: "/crm", icon: <TeamOutlined />, label: "CRM Profiles", module: "crm" },
     { key: "/catalog", icon: <AppstoreOutlined />, label: "Catalog Manager", module: "catalog" },
     { key: "/promo-codes", icon: <GiftOutlined />, label: "Discount Engine", module: "marketing" },
-    { key: "/fit-check", icon: <SkinOutlined />, label: "AI Fit Check Studio", module: "fitcheck" },
+    // [TEMPORARY DISCONNECT] AI Fit Check module temporarily disconnected
+    // { key: "/fit-check", icon: <SkinOutlined />, label: "AI Fit Check Studio", module: "fitcheck" },
     {
       key: "sub-meta-engine",
       icon: <ThunderboltOutlined />,
@@ -94,7 +95,8 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
         { key: "/roles", icon: <TeamOutlined />, label: "Roles & Permissions", module: "core" },
         { key: "/integrations", icon: <ApiOutlined />, label: "Integration Setup", module: "core" },
         { key: "/media", icon: <FolderOpenOutlined />, label: "Media Library", module: "media" },
-        { key: "/music", icon: <SoundOutlined />, label: "Music Library", module: "music" },
+        // [TEMPORARY DISCONNECT] Music Library module temporarily disconnected
+        // { key: "/music", icon: <SoundOutlined />, label: "Music Library", module: "music" },
         { key: "/system-monitor", icon: <DesktopOutlined />, label: "System Monitor", module: "core" },
       ],
     },
@@ -134,7 +136,7 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isActive = (key: string) => location.pathname === key;
   const isMetaActive = location.pathname.startsWith("/marketing");
-  const isSettingsActive = ["/settings", "/locations", "/staff", "/roles", "/integrations", "/media", "/music", "/system-monitor"].includes(location.pathname);
+  const isSettingsActive = ["/settings", "/locations", "/staff", "/roles", "/integrations", "/media", /* "/music", */ "/system-monitor"].includes(location.pathname);
   const defaultOpenKeys = [
     ...(isMetaActive ? ["sub-meta-engine"] : []),
     ...(isSettingsActive ? ["sub-settings"] : []),

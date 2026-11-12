@@ -17,7 +17,8 @@ const CRM = React.lazy(() => import("./pages/crm"));
 const Integrations = React.lazy(() => import("./pages/integrations"));
 const MediaLibrary = React.lazy(() => import("./pages/media"));
 const Login = React.lazy(() => import("./pages/login"));
-const MusicLibrary = React.lazy(() => import("./pages/music"));
+// [TEMPORARY DISCONNECT] Music & AI Fit Check modules temporarily disconnected
+// const MusicLibrary = React.lazy(() => import("./pages/music"));
 const SettingsPage = React.lazy(() => import("./pages/settings"));
 const PrintingQueue = React.lazy(() => import("./pages/printing"));
 const SystemMonitor = React.lazy(() => import("./pages/system-monitor"));
@@ -37,7 +38,8 @@ const MetaAccountsPage = React.lazy(() => import("./pages/marketing").then(m => 
 const MetaAgentPage = React.lazy(() => import("./pages/marketing").then(m => ({ default: m.MetaAgentPage })));
 const CompetitorSpyPage = React.lazy(() => import("./pages/marketing").then(m => ({ default: m.CompetitorSpyPage })));
 const ApiIntegrationPage = React.lazy(() => import("./pages/marketing").then(m => ({ default: m.ApiIntegrationPage })));
-const FitCheckPage = React.lazy(() => import("./pages/fit-check"));
+// [TEMPORARY DISCONNECT] AI Fit Check module temporarily disconnected
+// const FitCheckPage = React.lazy(() => import("./pages/fit-check"));
 const OrderAnalyticsPage = React.lazy(() => import("./pages/order-analytics"));
 
 
@@ -112,11 +114,12 @@ export const App: React.FC = () => {
                 list: "/marketing/api-integration",
                 meta: { label: "API Integration" },
               },
-              {
-                name: "fitcheck",
-                list: "/fit-check",
-                meta: { label: "AI Fit Check Studio" },
-              },
+              // [TEMPORARY DISCONNECT] AI Fit Check module temporarily disconnected
+              // {
+              //   name: "fitcheck",
+              //   list: "/fit-check",
+              //   meta: { label: "AI Fit Check Studio" },
+              // },
             ]}
           >
             <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#08080b' }}><Spin size="large" /></div>}>
@@ -135,7 +138,8 @@ export const App: React.FC = () => {
                   }
                 >
                   <Route path="/" element={<Dashboard />} />
-                  <Route path="/fit-check" element={<FitCheckPage />} />
+                  {/* [TEMPORARY DISCONNECT] AI Fit Check & Music Library temporarily disconnected */}
+                  {/* <Route path="/fit-check" element={<FitCheckPage />} /> */}
                   <Route path="/reports" element={<ReportsPage />} />
                   <Route path="/orders" element={<Orders />} />
                   <Route path="/order-analytics" element={<OrderAnalyticsPage />} />
@@ -146,7 +150,8 @@ export const App: React.FC = () => {
                   <Route path="/crm" element={<CRM />} />
                   <Route path="/integrations" element={<Integrations />} />
                   <Route path="/media" element={<MediaLibrary />} />
-                  <Route path="/music" element={<MusicLibrary />} />
+                  {/* [TEMPORARY DISCONNECT] Music Library temporarily disconnected */}
+                  {/* <Route path="/music" element={<MusicLibrary />} /> */}
                   <Route path="/tasks" element={<TasksPage />} />
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route path="/printing" element={<PrintingQueue />} />

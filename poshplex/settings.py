@@ -54,12 +54,13 @@ INSTALLED_APPS = [
     'apps.orders.apps.OrdersConfig',
     'apps.marketing.apps.MarketingConfig',
     'apps.integration.apps.IntegrationConfig',
-    'apps.music.apps.MusicConfig',
+    # [TEMPORARY DISCONNECT] Music player & AI Fit Check modules temporarily disconnected
+    # 'apps.music.apps.MusicConfig',
     'apps.printing.apps.PrintingConfig',
     'apps.image_optimizer.apps.ImageOptimizerConfig',
     'apps.monitor.apps.MonitorConfig',
     'apps.tasks.apps.TasksConfig',
-    'apps.fitcheck.apps.FitcheckConfig',
+    # 'apps.fitcheck.apps.FitcheckConfig',
     'django_cleanup.apps.CleanupConfig',
 ]
 

@@ -14,8 +14,9 @@ import { useCart } from "../../../context/CartContext";
 import ProductCard from "../../components/ProductCard";
 import BuyMoreAndSave from "./BuyMoreAndSave";
 import SizeChartModal from "./SizeChartModal";
-import VirtualTryOnModal from "../../components/VirtualTryOnModal";
-import { useFitCheckConfig } from "../../hooks/useFitCheckConfig";
+// [TEMPORARY DISCONNECT] AI Fit Check module temporarily disconnected
+// import VirtualTryOnModal from "../../components/VirtualTryOnModal";
+// import { useFitCheckConfig } from "../../hooks/useFitCheckConfig";
 import * as fpixel from "../../../lib/fpixel";
 
 const formatBDT = (n: string | number) => `৳${Math.round(Number(n))}`;
@@ -68,9 +69,11 @@ export default function ProductDetailClient({
 
   /* size chart modal state */
   const [showSizeChartModal, setShowSizeChartModal] = useState(false);
-  /* virtual fit check modal state */
-  const [showVirtualFitModal, setShowVirtualFitModal] = useState(false);
-  const { isFitCheckActive } = useFitCheckConfig();
+  /* virtual fit check modal state (temporarily disconnected) */
+  // const [showVirtualFitModal, setShowVirtualFitModal] = useState(false);
+  // const { isFitCheckActive } = useFitCheckConfig();
+  const isFitCheckActive = false;
+  const setShowVirtualFitModal = (_val: boolean) => {};
 
   /* bundle offer state */
   const [bundleData, setBundleData] = useState<any>({
@@ -1268,8 +1271,8 @@ export default function ProductDetailClient({
         product={product}
       />
 
-      {/* ── AI Virtual Fit Check Modal ── */}
-      <VirtualTryOnModal
+      {/* ── [TEMPORARY DISCONNECT] AI Virtual Fit Check Modal disconnected temporarily ── */}
+      {/* <VirtualTryOnModal
         isOpen={showVirtualFitModal}
         onClose={() => setShowVirtualFitModal(false)}
         product={{
@@ -1283,7 +1286,7 @@ export default function ProductDetailClient({
           const buyBtn = document.getElementById("add-to-cart-btn");
           if (buyBtn) buyBtn.click();
         }}
-      />
+      /> */}
 
       <style dangerouslySetInnerHTML={{
         __html: `

@@ -84,3 +84,17 @@ To ensure maximum performance and prevent Out-Of-Memory (OOM) crashes, the VPS i
    - Required for the Ubuntu 24.04 kernel, Nginx TLS termination, and serving the static Vite Admin panel.
 7. **Free Safety Cushion**: `0.9 - 1.0 GB`
    - A critical unassigned buffer to absorb temporary spikes (e.g., during `npm run build` or heavy database sorting) and prevent complete server lockups.
+
+## Temporarily Disconnected Modules (Notice for Future Agents & Developers)
+The following two modules are **temporarily disconnected** across the Backend, Storefront, and Admin Panel. **Do NOT delete their source directories, models, migrations, or database tables** — they remain intact in the repository and database so they can be cleanly reconnected later when needed:
+
+1. **Music Player Module (`apps.music` / Floating Audio Player / Music Library)**
+   - **Backend:** Commented out `'apps.music.apps.MusicConfig'` in `poshplex/settings.py` (`INSTALLED_APPS`) and `music_router` in `poshplex/api.py`.
+   - **Storefront (`poshplex_store`):** Commented out `MusicProvider` and `FloatingPlayer` in `app/layout.tsx` (preserving `context/MusicContext.tsx` and `app/components/FloatingPlayer.tsx`).
+   - **Admin (`poshplex_admin`):** Commented out `/music` route & sidebar item in `src/App.tsx`, `src/components/layout.tsx`, and `"music"` module entry in `src/pages/roles.tsx` (preserving `src/pages/music.tsx`).
+
+2. **AI Fit Check Module (`apps.fitcheck` / Virtual Try-On / AI Character Studio)**
+   - **Backend:** Commented out `'apps.fitcheck.apps.FitcheckConfig'` in `poshplex/settings.py` (`INSTALLED_APPS`) and `fitcheck_router` in `poshplex/api.py`.
+   - **Storefront (`poshplex_store`):** Disabled `useFitCheckConfig` in `app/hooks/useFitCheckConfig.ts` (`isFitCheckActive: false`, skipping `/api/v1/fit-check/config/public` calls), and commented out `VirtualTryOnModal` & AI Fit Check / AI Character triggers in `app/components/BottomNav.tsx`, `app/product/[slug]/ProductDetailClient.tsx`, and `app/profile/page.tsx` (preserving `app/components/VirtualTryOnModal.tsx`).
+   - **Admin (`poshplex_admin`):** Commented out `/fit-check` resource, route, and sidebar item in `src/App.tsx` and `src/components/layout.tsx` (preserving `src/pages/fit-check.tsx`).
+

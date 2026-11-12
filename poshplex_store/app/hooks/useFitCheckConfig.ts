@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-
+// [TEMPORARY DISCONNECT] AI Fit Check module is temporarily disconnected from backend & storefront.
+// Re-enable the /api/v1/fit-check/config/public fetch below when reconnecting AI Fit Check.
 export function useFitCheckConfig() {
+  /*
   const [isFitCheckActive, setIsFitCheckActive] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -30,6 +31,7 @@ export function useFitCheckConfig() {
       mounted = false;
     };
   }, []);
+  */
 
-  return { isFitCheckActive, isLoading };
+  return { isFitCheckActive: false, isLoading: false };
 }

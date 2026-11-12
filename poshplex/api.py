@@ -14,13 +14,14 @@ from apps.integration.api import router as integration_router
 from apps.orders.api import router as orders_router
 from apps.marketing.api import router as marketing_router
 from apps.crm.api import router as crm_router
-from apps.music.api import router as music_router
+# [TEMPORARY DISCONNECT] Music player & AI Fit Check modules temporarily disconnected
+# from apps.music.api import router as music_router
 from apps.printing.api import router as printing_router
 from apps.image_optimizer.api import router as image_optimizer_router
 from apps.monitor.api import router as monitor_router
 from apps.tasks.api import router as tasks_router
 from apps.report.api import router as report_router
-from apps.fitcheck.api import router as fitcheck_router
+# from apps.fitcheck.api import router as fitcheck_router
 
 # Register routers with clear namespaces
 api.add_router("/core", core_router)
@@ -30,13 +31,14 @@ api.add_router("/integration", integration_router)
 api.add_router("/orders", orders_router)
 api.add_router("/marketing", marketing_router)
 api.add_router("/crm", crm_router)
-api.add_router("/music", music_router)
+# [TEMPORARY DISCONNECT] Disconnected until future reactivation
+# api.add_router("/music", music_router)
 api.add_router("/printing", printing_router)
 api.add_router("/image-optimizer", image_optimizer_router)
 api.add_router("/monitor", monitor_router)
 api.add_router("/tasks", tasks_router)
 api.add_router("/report", report_router)
-api.add_router("/fit-check", fitcheck_router)
+# api.add_router("/fit-check", fitcheck_router)
 
 from django.db import connection
 from django.core.cache import cache

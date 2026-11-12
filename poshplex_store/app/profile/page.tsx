@@ -1242,7 +1242,8 @@ export default function ProfilePage() {
               <span className="nav-label">My Membership</span>
             </div>
 
-            <div 
+            {/* [TEMPORARY DISCONNECT] AI Fit Check / AI Character tab disconnected temporarily */}
+            {/* <div 
               className={`nav-grid-item ${activeTab === "character" ? "active" : ""}`}
               onClick={() => {
                 setActiveTab("character");
@@ -1270,7 +1271,7 @@ export default function ProfilePage() {
             >
               <Sparkles size={22} className="nav-icon" color="#8b5cf6" />
               <span className="nav-label">AI Character</span>
-            </div>
+            </div> */}
           </div>
 
           {/* Content Panel */}
