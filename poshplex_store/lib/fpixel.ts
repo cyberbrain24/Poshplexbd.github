@@ -591,19 +591,28 @@ export const trackEvent = (
         ...(eventData.transaction_id || eventData.order_id
           ? { transaction_id: eventData.transaction_id || eventData.order_id }
           : {}),
+        ...(gaEventName === "purchase" ? { affiliation: "POSHPLEX" } : {}),
+        ...(eventData.shipping !== undefined ? { shipping: Number(eventData.shipping) || 0 } : {}),
+        ...(eventData.tax !== undefined ? { tax: Number(eventData.tax) || 0 } : {}),
+        ...(eventData.coupon ? { coupon: eventData.coupon } : {}),
         ...(eventData.search_string ? { search_term: eventData.search_string } : {}),
       };
       if (Array.isArray(eventData.contents) && eventData.contents.length > 0) {
-        gaPayload.items = eventData.contents.map((item: any) => ({
+        gaPayload.items = eventData.contents.map((item: any, idx: number) => ({
           item_id: String(item.id || ""),
           item_name: item.name || eventData.content_name || "",
+          item_brand: "POSHPLEX",
+          ...(item.variant ? { item_variant: item.variant } : {}),
+          index: idx,
           price: item.item_price !== undefined ? Number(item.item_price) : undefined,
           quantity: item.quantity !== undefined ? Number(item.quantity) : 1,
         }));
       } else if (Array.isArray(eventData.content_ids) && eventData.content_ids.length > 0) {
-        gaPayload.items = eventData.content_ids.map((id: any) => ({
+        gaPayload.items = eventData.content_ids.map((id: any, idx: number) => ({
           item_id: String(id),
           item_name: eventData.content_name || "",
+          item_brand: "POSHPLEX",
+          index: idx,
           price: eventData.value !== undefined ? Number(eventData.value) : undefined,
           quantity: eventData.num_items !== undefined ? Number(eventData.num_items) : 1,
         }));

@@ -163,6 +163,7 @@ export default function CheckoutPage() {
     phone: "",
     email: "",
     address: "",
+    postalCode: "",
     district: "",
     districtId: 0,
     thana: "",
@@ -519,6 +520,12 @@ export default function CheckoutPage() {
       });
       
       if (res.ok) {
+        const orderData = await res.json().catch(() => ({}));
+        const txId =
+          orderData?.order_number ||
+          (orderData?.id ? String(orderData.id) : `ORD-${Date.now()}`);
+        const purchaseValue = Math.max(0, cartTotal + shippingCost - discountAmount);
+
         setSuccess(true);
         
         const finalGender = (formData.gender && ['m', 'f'].includes(formData.gender.toLowerCase())) 
@@ -543,13 +550,19 @@ export default function CheckoutPage() {
         const fbc = fpixel.getOrCreateFbc();
 
         fpixel.trackEvent("Purchase", {
-           value: Math.max(0, cartTotal + shippingCost - discountAmount),
+           transaction_id: txId,
+           value: purchaseValue,
+           shipping: shippingCost,
+           tax: 0,
+           coupon: appliedPromo || undefined,
            currency: "BDT",
            content_ids: allPurchaseContentIds,
            content_type: "product",
            num_items: cart.length,
            contents: cart.map((item: any) => ({
              id: item.product_sku || item.sku,
+             name: item.name || item.product_name || "",
+             variant: item.variant || [item.color, item.size].filter(Boolean).join(" / ") || undefined,
              quantity: item.quantity,
              item_price: item.price
            }))
@@ -583,7 +596,16 @@ export default function CheckoutPage() {
         clearCart();
         if (typeof window !== "undefined") {
           localStorage.removeItem("poshplex_bundle_free_shipping");
+          try {
+            sessionStorage.setItem(
+              "poshplex_last_order",
+              JSON.stringify({ orderNumber: txId, total: purchaseValue, currency: "BDT" })
+            );
+          } catch {
+            // Ignore storage quota errors
+          }
         }
+        router.push(`/checkout/success?order=${encodeURIComponent(txId)}`);
       } else {
         const errorData = await res.json();
         throw new Error(errorData.detail || "Failed to place order. Please try again.");
