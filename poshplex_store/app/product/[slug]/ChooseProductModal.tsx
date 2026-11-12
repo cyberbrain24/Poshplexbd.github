@@ -744,7 +744,7 @@ export default function ChooseProductModal({
               <div style={{ borderTop: "1px solid rgba(0,0,0,0.08)", paddingTop: 14, marginTop: 14 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                   <h5 style={{ fontSize: 12, fontWeight: 800, margin: 0, textTransform: "uppercase", color: "#111", letterSpacing: "0.5px" }}>
-                    Size Chart (Inches)
+                    Size Chart
                   </h5>
                   <span style={{ fontSize: 10, color: "#666", fontWeight: 600 }}>
                     {sizingProduct?.size_guide?.name || "Product Measurements"}

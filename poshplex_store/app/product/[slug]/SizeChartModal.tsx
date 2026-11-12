@@ -16,55 +16,11 @@ interface NormalizedTable {
   rows: string[][];
 }
 
-// Convert inch measurements into cm, preserving ranges (e.g. 30-32 -> 76.2-81.3 cm)
-function convertCellToCm(val: string): string {
-  if (!val || typeof val !== "string") return val;
-  const trimmed = val.trim();
-
-  // Match ranges like "30-32", "30 - 32", "30-32\"", "30"-32""
-  const rangeMatch = trimmed.match(/^(\d+(?:\.\d+)?)\s*[-–—/]\s*(\d+(?:\.\d+)?)\s*(?:\"|in|inch|inches)?$/i);
-  if (rangeMatch) {
-    const min = parseFloat(rangeMatch[1]);
-    const max = parseFloat(rangeMatch[2]);
-    if (!isNaN(min) && !isNaN(max)) {
-      const minCm = (min * 2.54).toFixed(1).replace(/\.0$/, "");
-      const maxCm = (max * 2.54).toFixed(1).replace(/\.0$/, "");
-      return `${minCm}-${maxCm} cm`;
-    }
-  }
-
-  // Match single number like "44", "44\"", "28.5", "28.5 in"
-  const singleMatch = trimmed.match(/^(\d+(?:\.\d+)?)\s*(?:\"|in|inch|inches)?$/i);
-  if (singleMatch) {
-    const num = parseFloat(singleMatch[1]);
-    if (!isNaN(num)) {
-      const cm = (num * 2.54).toFixed(1).replace(/\.0$/, "");
-      return `${cm} cm`;
-    }
-  }
-
-  return val;
-}
-
-function formatHeader(header: string, currentUnit: "in" | "cm"): string {
-  if (!header || typeof header !== "string") return "";
-  if (currentUnit === "cm") {
-    if (/\(in(?:ch(?:es)?)?\)/i.test(header)) {
-      return header.replace(/\(in(?:ch(?:es)?)?\)/gi, "(cm)");
-    }
-    if (/in(?:ch(?:es)?)?/i.test(header) && !/cm/i.test(header)) {
-      return header.replace(/in(?:ch(?:es)?)?/gi, "cm");
-    }
-  }
-  return header;
-}
-
 export default function SizeChartModal({
   isOpen,
   onClose,
   product
 }: SizeChartModalProps) {
-  const [unit, setUnit] = useState<"in" | "cm">("in");
   const [activeTab, setActiveTab] = useState<string>("all");
   const [fetchedGuide, setFetchedGuide] = useState<any | null>(null);
 
@@ -262,10 +218,9 @@ export default function SizeChartModal({
 
         {/* --- MODAL SCROLLABLE BODY --- */}
         <div className="scm-body">
-          {/* Controls Bar: Multi-table Tabs & Unit Switcher */}
-          <div className="scm-top-controls">
-            {/* Multi-table tab buttons (if product has 2+ charts, e.g. Tees + Baggy) */}
-            {normalizedTables.length > 1 ? (
+          {/* Multi-table Tabs (only shown when product has 2+ charts, e.g. Tees + Baggy) */}
+          {normalizedTables.length > 1 && (
+            <div className="scm-top-controls">
               <div className="scm-table-tabs">
                 <button
                   type="button"
@@ -285,29 +240,8 @@ export default function SizeChartModal({
                   </button>
                 ))}
               </div>
-            ) : <div />}
-
-            {/* Unit Switcher */}
-            <div className="scm-unit-bar">
-              <span className="scm-unit-label">Unit:</span>
-              <div className="scm-toggle-group">
-                <button
-                  type="button"
-                  onClick={() => setUnit("in")}
-                  className={`scm-toggle-btn ${unit === "in" ? "active" : ""}`}
-                >
-                  Inches
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setUnit("cm")}
-                  className={`scm-toggle-btn ${unit === "cm" ? "active" : ""}`}
-                >
-                  CM
-                </button>
-              </div>
             </div>
-          </div>
+          )}
 
           {/* Tables Rendering */}
           <div className="scm-tables-stack">
@@ -328,7 +262,7 @@ export default function SizeChartModal({
                         <tr>
                           {table.headers.map((h: string, idx: number) => (
                             <th key={idx} className={idx === 0 ? "size-col" : ""}>
-                              {formatHeader(h, unit)}
+                              {h}
                             </th>
                           ))}
                         </tr>
@@ -341,8 +275,6 @@ export default function SizeChartModal({
                                 <td key={cIdx} className={cIdx === 0 ? "size-cell" : ""}>
                                   {cIdx === 0 ? (
                                     <span className="scm-size-pill">{cell}</span>
-                                  ) : unit === "cm" ? (
-                                    convertCellToCm(cell)
                                   ) : (
                                     cell
                                   )}
@@ -521,47 +453,6 @@ export default function SizeChartModal({
         .scm-tab-pill.active {
           background-color: #111111;
           border-color: #111111;
-          color: #ffffff;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
-        }
-
-        .scm-unit-bar {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          margin-left: auto;
-        }
-
-        .scm-unit-label {
-          font-size: 11px;
-          font-weight: 700;
-          color: #555555;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .scm-toggle-group {
-          display: inline-flex;
-          background-color: #f0f0f0;
-          border-radius: 6px;
-          padding: 2px;
-        }
-
-        .scm-toggle-btn {
-          border: none;
-          background: transparent;
-          padding: 4px 12px;
-          border-radius: 4px;
-          font-size: 11px;
-          font-weight: 700;
-          color: #666666;
-          cursor: pointer;
-          transition: all 0.15s ease;
-          text-transform: uppercase;
-        }
-
-        .scm-toggle-btn.active {
-          background-color: #111111;
           color: #ffffff;
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
         }
