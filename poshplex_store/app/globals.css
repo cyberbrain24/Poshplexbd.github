@@ -1093,7 +1093,17 @@ input:focus, select:focus, textarea:focus {
 
 /* Media Query Display Utilities */
 
-@media (max-width: 768px) { .hide-on-mobile { display: none !important; } }
+.hero-banner-section {
+  position: relative;
+  width: 100%;
+  min-height: 70vh;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .hide-on-mobile { display: none !important; }
+  .hero-banner-section { min-height: 0 !important; height: auto !important; }
+}
 
 @media (min-width: 769px) { .hide-on-desktop { display: none !important; } }
 

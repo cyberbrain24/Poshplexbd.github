@@ -86,35 +86,32 @@ export default async function Home() {
   return (
     <div style={{ paddingBottom: 100 }}>
       {/* Hero Section */}
-      {desktopBannerUrl && (
-        <section
-          style={{
-            position: "relative",
-            width: "100%",
-            minHeight: "70vh",
-            overflow: "hidden",
-          }}
-        >
-          <Image
-            src={desktopBannerUrl}
-            alt="Streetwear Hero Desktop"
-            fill
-            priority
-            sizes="100vw"
-            className={mobileBannerUrl && mobileBannerUrl !== desktopBannerUrl ? "hide-on-mobile" : ""}
-            style={{ objectFit: "cover" }}
-            unoptimized
-          />
-          {mobileBannerUrl && mobileBannerUrl !== desktopBannerUrl && (
+      {(desktopBannerUrl || mobileBannerUrl) && (
+        <section className="hero-banner-section">
+          {desktopBannerUrl && (
             <Image
-              src={mobileBannerUrl}
-              alt="Streetwear Hero Mobile"
+              src={desktopBannerUrl}
+              alt="Streetwear Hero Desktop"
               fill
               priority
               sizes="100vw"
-              className="hide-on-desktop"
+              className="hide-on-mobile"
               style={{ objectFit: "cover" }}
               unoptimized
+            />
+          )}
+          {(mobileBannerUrl || desktopBannerUrl) && (
+            <img
+              src={(mobileBannerUrl || desktopBannerUrl) as string}
+              alt="Streetwear Hero Mobile"
+              fetchPriority="high"
+              className="hide-on-desktop"
+              style={{
+                width: "100%",
+                maxWidth: "100%",
+                height: "auto",
+                display: "block",
+              }}
             />
           )}
         </section>
