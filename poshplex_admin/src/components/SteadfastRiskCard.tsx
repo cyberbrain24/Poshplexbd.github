@@ -431,28 +431,45 @@ export const OrderCardRiskBadge: React.FC<OrderCardRiskBadgeProps> = ({
               strokeDashoffset={50.27 * (1 - (isNewCustomer ? 100 : deliveryRatio) / 100)}
               style={{ transition: "stroke-dashoffset 0.6s ease" }}
             />
-            <text
-              x="22"
-              y="18"
-              textAnchor="middle"
-              fill={statusColor}
-              fontSize="9.5"
-              fontWeight="900"
-              fontFamily="system-ui, -apple-system, sans-serif"
-            >
-              {isNewCustomer ? "NEW" : `${deliveryRatio}%`}
-            </text>
-            <text
-              x="22"
-              y="25"
-              textAnchor="middle"
-              fill="#9ca3af"
-              fontSize="6"
-              fontWeight="600"
-              fontFamily="system-ui, -apple-system, sans-serif"
-            >
-              {isNewCustomer ? "Client" : "Delivered"}
-            </text>
+            {isNewCustomer ? (
+              <text
+                x="22"
+                y="21"
+                textAnchor="middle"
+                fill={statusColor}
+                fontSize="8.5"
+                fontWeight="800"
+                fontFamily="system-ui, -apple-system, sans-serif"
+                letterSpacing="0.5"
+              >
+                NEW
+              </text>
+            ) : (
+              <>
+                <text
+                  x="22"
+                  y="18"
+                  textAnchor="middle"
+                  fill={statusColor}
+                  fontSize="9.5"
+                  fontWeight="900"
+                  fontFamily="system-ui, -apple-system, sans-serif"
+                >
+                  {deliveryRatio}%
+                </text>
+                <text
+                  x="22"
+                  y="25"
+                  textAnchor="middle"
+                  fill="#9ca3af"
+                  fontSize="6"
+                  fontWeight="600"
+                  fontFamily="system-ui, -apple-system, sans-serif"
+                >
+                  Delivered
+                </text>
+              </>
+            )}
           </svg>
         </div>
 

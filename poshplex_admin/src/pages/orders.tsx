@@ -170,12 +170,15 @@ export const Orders: React.FC = () => {
     }
   };
 
-  // Batch fetch Steadfast delivery risk for orders on the current page
+  // Batch fetch Steadfast delivery risk for orders on the current page (Placed status only)
   useEffect(() => {
     if (!orders || orders.length === 0) return;
 
     const phonesToFetch: string[] = [];
     orders.forEach((o: any) => {
+      // Steadfast delivery risk is only shown and queried for 'placed' status orders
+      if (String(o.status || "").toLowerCase() !== "placed") return;
+
       let ph = (o.shipping_phone || o.customer_phone || "").replace(/\D/g, "");
       if (ph.startsWith("8801") && ph.length === 13) ph = ph.slice(2);
       else if (ph.startsWith("008801") && ph.length === 15) ph = ph.slice(4);
@@ -754,6 +757,30 @@ export const Orders: React.FC = () => {
     }
   };
 
+  // Toggle Urgent status for fast fulfillment
+  const handleToggleUrgent = async (id: number) => {
+    try {
+      const token = localStorage.getItem("poshplex_access_token") || localStorage.getItem("poshplex_token") || "admin_imran";
+      const res = await axios.post(`${API_URL}/${id}/toggle-urgent`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const updatedOrder = res.data;
+      const isUrgent = updatedOrder?.is_urgent;
+      // Optimistically update local orders list
+      setOrders(prev => prev.map(o => o.id === id ? { ...o, is_urgent: isUrgent } : o));
+      if (selectedOrder && selectedOrder.id === id) {
+        setSelectedOrder((prev: any) => ({ ...prev, is_urgent: isUrgent }));
+      }
+      if (isUrgent) {
+        message.success(`Order #${updatedOrder?.order_number || id} marked as URGENT parcel! Prioritized at top of Fulfillment Queue.`);
+      } else {
+        message.info(`Order #${updatedOrder?.order_number || id} urgent priority removed.`);
+      }
+    } catch (err: any) {
+      message.error(err?.response?.data?.message || err?.response?.data?.detail || "Failed to toggle urgent status.");
+    }
+  };
+
   // Delete Order
   const handleDeleteOrder = async (id: number) => {
     Modal.confirm({
@@ -808,7 +835,21 @@ export const Orders: React.FC = () => {
   };
 
   const orderColumns = [
-    { title: "Order Number", dataIndex: "order_number", key: "order_number", render: (text: string, rec: any) => <a onClick={() => handleOpenDrawerWithDraft(rec)}>{text || `#${rec.id}`}</a> },
+    {
+      title: "Order Number",
+      dataIndex: "order_number",
+      key: "order_number",
+      render: (text: string, rec: any) => (
+        <Space size={6}>
+          <a onClick={() => handleOpenDrawerWithDraft(rec)}>{text || `#${rec.id}`}</a>
+          {rec.is_urgent && (
+            <Tag color="#ff4d4f" style={{ fontSize: 10, fontWeight: 800, padding: "0 4px", lineHeight: "16px", borderRadius: 3 }}>
+              ⚡ URGENT
+            </Tag>
+          )}
+        </Space>
+      )
+    },
     { title: "Customer Name", dataIndex: "shipping_name", key: "shipping_name", render: (text: string, rec: any) => <b>{text || rec.customer_name}</b> },
     { title: "Phone", dataIndex: "customer_phone", key: "customer_phone" },
     {
@@ -816,6 +857,10 @@ export const Orders: React.FC = () => {
       key: "delivery_risk",
       width: 140,
       render: (_: any, rec: any) => {
+        // Steadfast delivery risk is only shown for 'placed' status orders
+        if (String(rec.status || "").toLowerCase() !== "placed") {
+          return <span style={{ color: "#6b7280", fontSize: 12 }}>-</span>;
+        }
         const ph = rec.shipping_phone || rec.customer_phone;
         if (!ph) return <span style={{ color: "#9ca3af" }}>-</span>;
         let clean = ph.replace(/\D/g, "");
@@ -1006,7 +1051,15 @@ export const Orders: React.FC = () => {
             const items = order.items || [];
             
             return (
-              <Card key={order.id} className="posh-order-card" styles={{ body: { padding: '12px', display: 'flex', flexDirection: 'column', height: '100%' } }}>
+              <Card
+                key={order.id}
+                className="posh-order-card"
+                style={{
+                  border: order.is_urgent ? "1px solid rgba(255, 77, 79, 0.5)" : undefined,
+                  boxShadow: order.is_urgent ? "0 0 10px rgba(255, 77, 79, 0.18)" : undefined,
+                }}
+                styles={{ body: { padding: '12px', display: 'flex', flexDirection: 'column', height: '100%' } }}
+              >
                 {/* Images Top Section */}
                 <div className="posh-order-card-img">
                   {items.length === 1 ? (
@@ -1022,8 +1075,15 @@ export const Orders: React.FC = () => {
                 </div>
 
                 {/* PO & Date */}
-                <div className="posh-order-card-meta" style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
-                  <strong>{order.order_number || `#${order.id}`}</strong>
+                <div className="posh-order-card-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, marginBottom: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <strong>{order.order_number || `#${order.id}`}</strong>
+                    {order.is_urgent && (
+                      <Tag color="#ff4d4f" style={{ margin: 0, padding: "0 5px", fontSize: 10, lineHeight: "16px", fontWeight: 800, borderRadius: 3 }}>
+                        ⚡ URGENT
+                      </Tag>
+                    )}
+                  </div>
                   <span style={{ color: '#888' }}>{order.created_at ? new Date(order.created_at).toLocaleString('en-US', { timeZone: 'Asia/Dhaka', month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : ''}</span>
                 </div>
 
@@ -1055,8 +1115,8 @@ export const Orders: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Embedded Steadfast Delivery Risk Box */}
-                {(() => {
+                {/* Embedded Steadfast Delivery Risk Box - ONLY for 'placed' status orders */}
+                {String(order.status || "").toLowerCase() === "placed" && (() => {
                   let ph = (order.shipping_phone || order.customer_phone || "").replace(/\D/g, "");
                   if (ph.startsWith("8801") && ph.length === 13) ph = ph.slice(2);
                   else if (ph.startsWith("008801") && ph.length === 15) ph = ph.slice(4);
@@ -1166,7 +1226,7 @@ export const Orders: React.FC = () => {
 
                 {/* Bottom Icons */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: 4 }}>
-                  <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     {order.status !== 'cancelled' && order.status !== 'manually_cancelled' && (
                       <Popconfirm
                         title="Cancel Order Manually"
@@ -1186,6 +1246,33 @@ export const Orders: React.FC = () => {
                           Cancel
                         </Button>
                       </Popconfirm>
+                    )}
+
+                    {/* Urgent button beside Cancel on Placed & Review status orders */}
+                    {(String(order.status).toLowerCase() === 'placed' || String(order.status).toLowerCase() === 'review') && (
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<ThunderboltOutlined style={{ color: order.is_urgent ? '#fff' : '#ff4d4f', fontSize: 11 }} />}
+                        onClick={() => handleToggleUrgent(order.id)}
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          padding: "0 7px",
+                          height: 24,
+                          borderRadius: 4,
+                          color: order.is_urgent ? '#fff' : '#ff4d4f',
+                          background: order.is_urgent ? '#ff4d4f' : 'rgba(255, 77, 79, 0.1)',
+                          border: order.is_urgent ? '1px solid #ff4d4f' : '1px dashed rgba(255, 77, 79, 0.4)',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 3,
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        {order.is_urgent ? 'Urgent ✓' : 'Urgent'}
+                      </Button>
                     )}
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
@@ -1235,6 +1322,20 @@ export const Orders: React.FC = () => {
         extra={
           !isAddingProduct && drawerMode === "edit" ? (
             <Space>
+              {(selectedOrder?.status === "placed" || selectedOrder?.status === "review") && (
+                <Button
+                  icon={<ThunderboltOutlined />}
+                  onClick={() => handleToggleUrgent(selectedOrder.id)}
+                  style={{
+                    color: selectedOrder.is_urgent ? "#fff" : "#ff4d4f",
+                    background: selectedOrder.is_urgent ? "#ff4d4f" : "rgba(255, 77, 79, 0.1)",
+                    borderColor: selectedOrder.is_urgent ? "#ff4d4f" : "rgba(255, 77, 79, 0.4)",
+                    fontWeight: 700,
+                  }}
+                >
+                  {selectedOrder.is_urgent ? "Urgent Parcel ✓" : "Mark Urgent"}
+                </Button>
+              )}
               {selectedOrder?.status !== "cancelled" && selectedOrder?.status !== "manually_cancelled" && (
                 <Popconfirm
                   title="Cancel Order Manually"
@@ -1599,8 +1700,8 @@ export const Orders: React.FC = () => {
             <div style={{ padding: "16px", flex: 1 }}>
               {selectedOrder && (
                 <Space direction="vertical" size="large" style={{ width: "100%" }}>
-                  {/* Top Steadfast Delivery Risk & Merchant Reports (Create & Edit Order Drawers) */}
-                  {(() => {
+                  {/* Top Steadfast Delivery Risk & Merchant Reports (ONLY for 'placed' status orders or when creating a new order) */}
+                  {(drawerMode === "create" || String(selectedOrder.status || "").toLowerCase() === "placed") && (() => {
                     const activeDrawerPhone = selectedOrder.shipping_phone || selectedOrder.customer_phone || "";
                     const normalizedDigits = normalizePhoneDigits(activeDrawerPhone);
                     const rawDigits = String(activeDrawerPhone).replace(/\D/g, "");

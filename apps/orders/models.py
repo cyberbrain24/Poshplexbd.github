@@ -63,6 +63,7 @@ class Order(AuditedModelMixin):
     issue_status = models.CharField(max_length=100, default='None', blank=True, null=True)
     is_ready = models.BooleanField(default=False)
     is_print_ready = models.BooleanField(default=False)
+    is_urgent = models.BooleanField(default=False, db_index=True)
     
     # Risk flags
     risk_level = models.CharField(max_length=20, default='low')

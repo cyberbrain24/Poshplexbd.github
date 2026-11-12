@@ -16,28 +16,36 @@ class CorsMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        origin = request.META.get('HTTP_ORIGIN', '')
-        allowed_origins = getattr(settings, 'CORS_ALLOWED_ORIGINS', [])
+        raw_origin = request.META.get('HTTP_ORIGIN', '')
+        origin = raw_origin.rstrip('/')
+        allowed_origins = [o.rstrip('/') for o in getattr(settings, 'CORS_ALLOWED_ORIGINS', [])]
 
         # In DEBUG mode, also allow any localhost origin for convenience
         is_allowed = origin in allowed_origins
-        if not is_allowed and settings.DEBUG and ('localhost' in origin or '127.0.0.1' in origin):
+        if not is_allowed and (settings.DEBUG or 'localhost' in origin or '127.0.0.1' in origin or 'admin.poshplexbd.com' in origin):
             is_allowed = True
 
         if request.method == "OPTIONS":
-            response = HttpResponse()
+            response = HttpResponse(status=204)
         else:
             response = self.get_response(request)
 
-        if is_allowed:
-            response["Access-Control-Allow-Origin"] = origin
-        elif not origin:
+        if is_allowed and raw_origin:
+            response["Access-Control-Allow-Origin"] = raw_origin
+            response["Access-Control-Allow-Credentials"] = "true"
+        elif not raw_origin:
             # Non-browser requests (curl, server-to-server) — allow without CORS header
             pass
 
         response["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-        response["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
-        response["Access-Control-Allow-Credentials"] = "true"
+        
+        req_headers = request.META.get('HTTP_ACCESS_CONTROL_REQUEST_HEADERS')
+        if req_headers:
+            response["Access-Control-Allow-Headers"] = req_headers
+        else:
+            response["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, Pragma, X-CSRFToken"
+            
+        response["Access-Control-Max-Age"] = "86400"
         
         # Ensure API responses are never cached by edge networks (like Cloudflare) or browsers
         if request.path.startswith('/api/'):
@@ -49,17 +57,23 @@ class CorsMiddleware:
 class RateLimitMiddleware:
     """
     Simple in-memory rate limiting middleware.
-    Limits requests per IP to RATE_LIMIT_PER_MINUTE (default: 100).
+    Limits requests per IP to RATE_LIMIT_PER_MINUTE (default: 1000).
     For production with multiple workers, use Redis-based rate limiting.
     """
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        rate_limit = getattr(settings, 'RATE_LIMIT_PER_MINUTE', 100)
+        rate_limit = getattr(settings, 'RATE_LIMIT_PER_MINUTE', 1000)
         
         # Skip rate limiting for health checks, static files, and in DEBUG mode
         if settings.DEBUG or request.path.startswith('/static/') or request.path.startswith('/media/') or request.path == '/api/v1/health':
+            return self.get_response(request)
+
+        # Skip rate limiting for Admin panel operations to prevent blocking staff during bulk actions or order processing
+        origin = request.META.get('HTTP_ORIGIN', '')
+        referer = request.META.get('HTTP_REFERER', '')
+        if 'admin.poshplexbd.com' in origin or 'admin.poshplexbd.com' in referer:
             return self.get_response(request)
 
         ip = self._get_client_ip(request)

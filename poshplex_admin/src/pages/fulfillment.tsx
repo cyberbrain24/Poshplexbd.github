@@ -89,7 +89,15 @@ export const Fulfillment: React.FC = () => {
         params,
         headers: { Authorization: `Bearer ${token}` }
       });
-      setOrders(res.data.results || []);
+      const rawOrders = res.data.results || [];
+      // Prioritize urgent parcels at the very top for fast fulfillment
+      const sortedOrders = [...rawOrders].sort((a: any, b: any) => {
+        if (Boolean(b.is_urgent) !== Boolean(a.is_urgent)) {
+          return b.is_urgent ? 1 : -1;
+        }
+        return 0;
+      });
+      setOrders(sortedOrders);
 
       const countsRes = await axios.get(`${API_URL}/counts`, { headers: { Authorization: `Bearer ${token}` } });
       setOrderCounts(countsRes.data);
@@ -368,7 +376,16 @@ export const Fulfillment: React.FC = () => {
           const isReady = order.is_ready;
           
           return (
-            <Card key={order.id} styles={{ body: { padding: '24px 16px' } }} style={{ borderRadius: 8, borderColor: '#e5e5e5' }}>
+            <Card
+              key={order.id}
+              styles={{ body: { padding: '24px 16px' } }}
+              style={{
+                borderRadius: 8,
+                borderColor: order.is_urgent ? '#ff4d4f' : '#e5e5e5',
+                boxShadow: order.is_urgent ? '0 0 14px rgba(255, 77, 79, 0.25)' : undefined,
+                background: order.is_urgent ? 'rgba(255, 77, 79, 0.03)' : undefined,
+              }}
+            >
               <Row gutter={[24, 24]} align="middle">
                 {/* Left: Products list */}
                 <Col xs={24} md={10} lg={8}>
@@ -393,8 +410,13 @@ export const Fulfillment: React.FC = () => {
 
                 {/* Middle: Order Info */}
                 <Col xs={24} md={10} lg={12} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
                     <strong style={{ fontSize: 16 }}>{order.order_number || `#${order.id}`}</strong>
+                    {order.is_urgent && (
+                      <Tag color="#ff4d4f" style={{ borderRadius: 4, fontWeight: 800, fontSize: 12, padding: '2px 8px', border: '1px solid #ff4d4f' }}>
+                        ⚡ URGENT PARCEL
+                      </Tag>
+                    )}
                     <Tag style={{ borderRadius: 12, border: '1px solid #d9d9d9', background: '#fff', color: '#666', margin: 0 }}>Confirmed</Tag>
                   </div>
                   

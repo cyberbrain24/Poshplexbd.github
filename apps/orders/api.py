@@ -57,6 +57,7 @@ class OrderCreateInputSchema(Schema):
     issue_status: Optional[str] = "None"
     is_ready: Optional[bool] = False
     is_print_ready: Optional[bool] = False
+    is_urgent: Optional[bool] = False
     
     # Optional payment on creation
     payment_method: Optional[str] = "COD"
@@ -133,6 +134,7 @@ class OrderResponseSchema(Schema):
     issue_status: Optional[str] = "None"
     is_ready: Optional[bool] = False
     is_print_ready: Optional[bool] = False
+    is_urgent: Optional[bool] = False
     
     # OrderPulse Analytics fields
     delay_reason: Optional[str] = None
@@ -320,6 +322,7 @@ def compile_order_response(order: Order, sku_to_details: dict = None) -> dict:
         "issue_status": getattr(order, 'issue_status', 'None'),
         "is_ready": getattr(order, 'is_ready', False),
         "is_print_ready": getattr(order, 'is_print_ready', False),
+        "is_urgent": getattr(order, 'is_urgent', False),
         "delay_reason": getattr(order, 'delay_reason', None),
         "delay_notes": getattr(order, 'delay_notes', None),
         "cancellation_reason": getattr(order, 'cancellation_reason', None),
@@ -516,10 +519,10 @@ def list_orders(
 
     total_count = qs.count()
 
-    # Pagination slicing
+    # Pagination slicing (Urgent orders prioritized at top)
     start = (page - 1) * limit
     end = start + limit
-    paginated_qs = qs.order_by('-created_at')[start:end]
+    paginated_qs = qs.order_by('-is_urgent', '-created_at')[start:end]
 
     # Bulk fetch images and attributes for SKUs
     all_skus = set()
@@ -1092,6 +1095,8 @@ def update_order_endpoint(request, order_id: int, data: OrderCreateInputSchema):
                 order.is_ready = data.is_ready
             if hasattr(data, 'is_print_ready'):
                 order.is_print_ready = data.is_print_ready
+            if hasattr(data, 'is_urgent') and data.is_urgent is not None:
+                order.is_urgent = data.is_urgent
             
             # Sync CRM profile if it exists
             if hasattr(order.user, 'crm_profile'):
@@ -1224,6 +1229,25 @@ def record_payment_endpoint(request, order_id: int, data: RecordPaymentInputSche
         return compile_order_response(order)
     except Exception as e:
         raise HttpError(400, str(e))
+
+@router.post("/{int:order_id}/toggle-urgent", response=OrderResponseSchema, auth=BearerAuth())
+def toggle_order_urgent_endpoint(request, order_id: int):
+    """Toggle urgent priority status for fast fulfillment queue dispatch (Admin only)."""
+    enforce_permission(request, "orders", "edit_orders")
+    order = get_object_or_404(Order, id=order_id)
+    order.is_urgent = not getattr(order, 'is_urgent', False)
+    order.save(update_fields=['is_urgent', 'updated_at'])
+    
+    # Log to order status history for staff visibility
+    admin_user = getattr(request.auth, 'username', 'Admin') if request.auth else 'Admin'
+    status_label = "Marked as URGENT parcel for expedited fulfillment." if order.is_urgent else "Removed URGENT parcel priority flag."
+    OrderStatusHistory.objects.create(
+        order=order,
+        status=order.status,
+        admin_username=admin_user,
+        notes=status_label
+    )
+    return compile_order_response(order)
 
 @router.post("/{int:order_id}/ship", response=OrderResponseSchema, auth=BearerAuth())
 def ship_order_endpoint(request, order_id: int):
@@ -1434,9 +1458,9 @@ def list_fulfillment_queue(
             qs = qs.filter(tracking_number__icontains=courier)
             
     if sort_by in ["created_at", "-created_at", "total_amount", "-total_amount"]:
-        qs = qs.order_by(sort_by)
+        qs = qs.order_by("-is_urgent", sort_by)
     else:
-        qs = qs.order_by("-created_at")
+        qs = qs.order_by("-is_urgent", "-created_at")
         
     total_count = qs.count()
     start = (page - 1) * limit

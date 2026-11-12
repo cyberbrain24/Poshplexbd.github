@@ -68,13 +68,22 @@ body {
 /* Shared Responsive Box Grids */
 .posh-orders-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(195px, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 12px;
+}
+@media (max-width: 1600px) {
+  .posh-orders-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+@media (max-width: 1350px) {
+  .posh-orders-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 1050px) {
+  .posh-orders-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 .posh-order-card {
   border-radius: 8px;
   overflow: hidden;
-  min-width: 200px;
+  min-width: 0;
 }
 .posh-order-card-img {
   margin: -12px -12px 12px -12px;
@@ -100,7 +109,7 @@ body {
 }
 .posh-drawer-product-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 12px;
 }
 @media (max-width: 1200px) {

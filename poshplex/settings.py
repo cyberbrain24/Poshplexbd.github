@@ -190,6 +190,17 @@ JWT_REFRESH_EXPIRATION_DAYS = env('JWT_REFRESH_EXPIRATION_DAYS')
 # --------------------------
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = env('CORS_ALLOWED_ORIGINS')
+for default_cors_origin in [
+    'https://admin.poshplexbd.com',
+    'https://poshplexbd.com',
+    'https://store.poshplexbd.com',
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:3001',
+]:
+    if default_cors_origin not in CORS_ALLOWED_ORIGINS:
+        CORS_ALLOWED_ORIGINS.append(default_cors_origin)
 
 # --------------------------
 # RATE LIMITING CONFIGURATION
