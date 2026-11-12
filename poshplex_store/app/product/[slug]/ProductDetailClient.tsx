@@ -1233,7 +1233,7 @@ export default function ProductDetailClient({
         ) : relatedProducts.length > 0 ? (
           <div className="related-products-grid" style={{
             display: "grid",
-            gridTemplateColumns: "repeat(6, 1fr)",
+            gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
             gap: 24,
           }}>
             {relatedProducts.slice(0, 6).map((rp) => (
@@ -1403,7 +1403,7 @@ export default function ProductDetailClient({
             padding: 0 16px 40px !important;
           }
           .related-products-grid {
-            grid-template-columns: repeat(3, 1fr) !important;
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
             gap: 10px !important;
           }
           .product-selectors-container {
@@ -1489,7 +1489,7 @@ export default function ProductDetailClient({
 
         @media (max-width: 480px) {
           .related-products-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
           }
         }
       ` }} />
