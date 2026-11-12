@@ -131,10 +131,13 @@ export default async function Home() {
         >
           Shop by Category
         </h2>
-        <div className="home-categories-grid">
+        <div
+          className="home-categories-grid"
+          style={{ ["--cat-count" as any]: Math.max(categories.length, 1) }}
+        >
           {categories.map((cat: any) => (
-            <Link key={cat.id} href={`/catalog/${cat.slug}`} style={{ textDecoration: "none" }}>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+            <Link key={cat.id} href={`/catalog/${cat.slug}`} className="category-card-link" style={{ textDecoration: "none" }}>
+              <div className="category-card-inner" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
                 <div
                   className="category-image-wrapper"
                   style={{
@@ -187,8 +190,17 @@ export default async function Home() {
           @media (max-width: 768px) {
             .home-categories-grid {
               display: grid;
-              grid-template-columns: repeat(4, 1fr);
-              gap: 12px;
+              grid-template-columns: repeat(var(--cat-count, 4), minmax(0, 1fr));
+              gap: clamp(4px, 1.8vw, 10px);
+              width: 100%;
+            }
+            .category-card-link,
+            .category-card-inner {
+              min-width: 0;
+              width: 100%;
+            }
+            .category-card-inner {
+              gap: 5px !important;
             }
             .category-image-wrapper {
               width: 100%;
@@ -196,7 +208,12 @@ export default async function Home() {
               height: auto;
             }
             .category-name-text {
-              font-size: 11px;
+              font-size: clamp(7.5px, calc(12vw / var(--cat-count, 4)), 12px);
+              line-height: 1.15;
+              letter-spacing: 0.2px !important;
+              max-width: 100%;
+              overflow-wrap: anywhere;
+              word-break: break-word;
             }
           }
         `}} />
