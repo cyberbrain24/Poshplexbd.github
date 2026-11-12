@@ -181,6 +181,7 @@ class Product(models.Model):
     is_featured = models.BooleanField(default=False)
     is_sold_out = models.BooleanField(default=False)
     base_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    purchase_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, help_text="Costing / purchase price for simple product")
     
     # Category links
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='products')
@@ -220,6 +221,9 @@ class Product(models.Model):
             
         if self.base_price is not None and self.base_price < 0:
             raise ValidationError("Base price cannot be negative.")
+            
+        if self.purchase_price is not None and self.purchase_price < 0:
+            raise ValidationError("Purchase price cannot be negative.")
             
         if self.product_type == 'variable' and self.is_active:
             if self.pk:

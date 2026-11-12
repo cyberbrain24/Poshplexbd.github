@@ -111,6 +111,7 @@ class ProductCreateInputSchema(Schema):
     is_sold_out: Optional[bool] = False
     listing_order: int = 0
     base_price: Optional[Decimal] = None
+    purchase_price: Optional[Decimal] = None
     brand_id: Optional[int] = None
     category_ids: List[int]
     size_guide_template_id: Optional[int] = None
@@ -148,6 +149,7 @@ class ProductDetailResponseSchema(Schema):
     is_sold_out: bool = False
     listing_order: int
     base_price: Optional[Decimal]
+    purchase_price: Optional[Decimal] = None
     price: Optional[Decimal] = None
     brand: Optional[BrandSchema]
     categories: List[CategoryTreeSchema]
@@ -353,6 +355,7 @@ def post_product_endpoint(request, data: ProductCreateInputSchema):
                 is_sold_out=getattr(data, 'is_sold_out', False) or False,
                 listing_order=data.listing_order,
                 base_price=data.base_price,
+                purchase_price=data.purchase_price,
                 brand_id=data.brand_id,
                 size_guide_template_id=data.size_guide_template_id,
                 care_instructions_template_id=data.care_instructions_template_id,
@@ -420,6 +423,17 @@ def post_product_endpoint(request, data: ProductCreateInputSchema):
                     except Exception:
                         pass
                 
+            # For simple products without explicit variants, initialize the default variant
+            if data.product_type == 'simple' and not data.variants:
+                ProductVariant.objects.create(
+                    product=product,
+                    sku=product.sku or f"PROD-{product.id}",
+                    purchase_price=product.purchase_price,
+                    selling_price=product.base_price or Decimal('0.00'),
+                    is_active=product.is_active,
+                    attributes={}
+                )
+
             # Handle base product image_urls download
             if getattr(data, 'image_urls', None):
                 for idx, img_url in enumerate(data.image_urls):
@@ -596,6 +610,7 @@ def update_product_endpoint(request, slug: str, data: ProductCreateInputSchema):
                 product.is_sold_out = data.is_sold_out
             product.listing_order = data.listing_order
             product.base_price = data.base_price
+            product.purchase_price = data.purchase_price
             product.brand_id = data.brand_id
             product.size_guide_template_id = data.size_guide_template_id
             product.care_instructions_template_id = data.care_instructions_template_id
@@ -678,8 +693,28 @@ def update_product_endpoint(request, slug: str, data: ProductCreateInputSchema):
                     except Exception:
                         pass
                     
-            # Strict clean: Hard delete any variants not in input as requested by user
-            product.variants.exclude(id__in=incoming_variant_ids).delete()
+            if data.product_type == 'simple':
+                # For simple products, maintain a single default variant synced with base_price and purchase_price
+                default_var = product.variants.first()
+                if default_var:
+                    default_var.sku = data.sku or product.sku or default_var.sku or f"PROD-{product.id}"
+                    default_var.selling_price = data.base_price or Decimal('0.00')
+                    default_var.purchase_price = data.purchase_price
+                    default_var.is_active = data.is_active
+                    default_var.save()
+                    product.variants.exclude(id=default_var.id).delete()
+                else:
+                    ProductVariant.objects.create(
+                        product=product,
+                        sku=data.sku or product.sku or f"PROD-{product.id}",
+                        selling_price=data.base_price or Decimal('0.00'),
+                        purchase_price=data.purchase_price,
+                        is_active=data.is_active,
+                        attributes={}
+                    )
+            else:
+                # Strict clean: Hard delete any variants not in input as requested by user
+                product.variants.exclude(id__in=incoming_variant_ids).delete()
             
             # Explicitly delete any images marked for deletion by admin
             if getattr(data, 'deleted_image_ids', None):

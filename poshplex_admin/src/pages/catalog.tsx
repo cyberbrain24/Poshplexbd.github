@@ -1159,6 +1159,9 @@ export const Catalog: React.FC = () => {
       is_featured: product.is_featured,
       is_sold_out: !!product.is_sold_out,
       base_price: product.base_price,
+      purchase_price: product.purchase_price !== undefined && product.purchase_price !== null 
+        ? product.purchase_price 
+        : (product.variants?.[0]?.purchase_price ?? null),
       brand_id: product.brand?.id,
       category_ids: product.categories.map((c: any) => c.id),
       size_guide_template_id: product.size_guide_template_id,
@@ -1206,7 +1209,7 @@ export const Catalog: React.FC = () => {
     setDeletedImageIds([]);
     setVariantBuilderOptions({});
     productForm.resetFields();
-    productForm.setFieldsValue({ is_active: true, is_featured: false, is_sold_out: false, product_type: "simple", image_filenames: "" });
+    productForm.setFieldsValue({ is_active: true, is_featured: false, is_sold_out: false, product_type: "simple", purchase_price: null, image_filenames: "" });
     setIsProductModalOpen(true);
   };
 
@@ -1331,6 +1334,7 @@ export const Catalog: React.FC = () => {
           await axios.put(`${API_URL}/products/${productId}`, {
              ...cleanValues,
              base_price: cleanValues.base_price !== undefined ? cleanValues.base_price : (editingProduct?.base_price || 0),
+             purchase_price: cleanValues.purchase_price !== undefined ? cleanValues.purchase_price : (editingProduct?.purchase_price ?? null),
              variants: updatedVariants
           }, { headers: { Authorization: `Bearer ${token}` } });
         }
@@ -2034,10 +2038,22 @@ export const Catalog: React.FC = () => {
     {
       title: "Pricing",
       key: "pricing",
-      width: 120,
+      width: 130,
       render: (record: any) => {
         if (record.product_type === "simple") {
-          return <span>৳{Math.round(record.base_price || 0)}</span>;
+          const cost = record.purchase_price !== undefined && record.purchase_price !== null
+            ? record.purchase_price
+            : record.variants?.[0]?.purchase_price;
+          return (
+            <div>
+              <div style={{ fontWeight: 600 }}>৳{Math.round(record.base_price || 0)}</div>
+              {cost !== null && cost !== undefined && Number(cost) > 0 ? (
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)" }}>
+                  Cost: ৳{Math.round(cost)}
+                </div>
+              ) : null}
+            </div>
+          );
         } else {
           const prices = record.variants?.map((v: any) => v.selling_price) || [];
           const min = prices.length ? Math.min(...prices) : 0;
@@ -3109,10 +3125,78 @@ export const Catalog: React.FC = () => {
           { label: "Pricing & Variants", key: "pricing", forceRender: true, children: (
               productType === "simple" ? (
                 <div>
-                  <Form.Item name="base_price" label="Base Retail Price (৳)" rules={[{ required: true, message: "Please input base price!" }]}>
-                    <InputNumber style={{ width: "100%", borderRadius: 0 }} min={0} precision={2} />
+                  <Row gutter={16}>
+                    <Col xs={24} sm={12}>
+                      <Form.Item
+                        name="base_price"
+                        label="Base Retail Price (৳)"
+                        rules={[{ required: true, message: "Please input base retail price!" }]}
+                      >
+                        <InputNumber
+                          style={{ width: "100%", borderRadius: 0 }}
+                          min={0}
+                          precision={2}
+                          placeholder="e.g. 199.00"
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={12}>
+                      <Form.Item
+                        name="purchase_price"
+                        label="Purchase / Costing Price (৳)"
+                        tooltip="Cost of acquiring or manufacturing this item for profit & report tracking"
+                      >
+                        <InputNumber
+                          style={{ width: "100%", borderRadius: 0 }}
+                          min={0}
+                          precision={2}
+                          placeholder="e.g. 120.00 (Optional)"
+                        />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
+                  {/* Dynamic Margin Preview */}
+                  <Form.Item noStyle shouldUpdate={(prev, curr) => prev.base_price !== curr.base_price || prev.purchase_price !== curr.purchase_price}>
+                    {({ getFieldValue }) => {
+                      const retail = Number(getFieldValue("base_price")) || 0;
+                      const cost = Number(getFieldValue("purchase_price")) || 0;
+                      if (retail > 0 && cost > 0) {
+                        const margin = retail - cost;
+                        const marginPercent = ((margin / retail) * 100).toFixed(1);
+                        return (
+                          <div style={{
+                            padding: "10px 14px",
+                            marginBottom: 16,
+                            borderRadius: 4,
+                            background: margin >= 0 ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)",
+                            border: `1px solid ${margin >= 0 ? "rgba(16, 185, 129, 0.3)" : "rgba(239, 68, 68, 0.3)"}`,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            fontSize: 13
+                          }}>
+                            <span>
+                              Estimated Gross Profit per Unit:{" "}
+                              <strong style={{ color: margin >= 0 ? "#10b981" : "#ef4444" }}>
+                                ৳{margin.toFixed(2)} ({marginPercent}%)
+                              </strong>
+                            </span>
+                            <Tag color={margin >= 0 ? "green" : "red"}>
+                              {margin >= 0 ? "PROFITABLE" : "LOSS"}
+                            </Tag>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
                   </Form.Item>
-                  <Alert message="Simple products use a single base pricing value mapped to the default variant SKU." type="info" showIcon />
+
+                  <Alert
+                    message="Simple products use a single base pricing & costing value mapped to the default variant SKU for profit reporting."
+                    type="info"
+                    showIcon
+                  />
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>

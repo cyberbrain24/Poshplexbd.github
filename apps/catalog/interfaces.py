@@ -13,6 +13,7 @@ def get_variant_details_by_sku(sku: str) -> Optional[dict]:
         return {
             "sku": variant.sku,
             "price": variant.price if variant.price is not None else variant.selling_price,
+            "purchase_price": variant.purchase_price,
             "product_id": variant.product.id,
             "product_name": variant.product.name,
             "attributes": variant.attributes
@@ -26,6 +27,7 @@ def get_variant_details_by_sku(sku: str) -> Optional[dict]:
         return {
             "sku": product.sku,
             "price": product.base_price or 0,
+            "purchase_price": product.purchase_price,
             "product_id": product.id,
             "product_name": product.name,
             "attributes": {}

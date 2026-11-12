@@ -1,9 +1,10 @@
 from ninja import Router, Schema
 from django.db.models import Sum, Subquery, OuterRef, F, DecimalField, ExpressionWrapper
+from django.db.models.functions import Coalesce
 from typing import Optional
 from apps.core.api import BearerAuth, enforce_permission
 from apps.orders.models import Order, OrderItem
-from apps.catalog.models import ProductVariant
+from apps.catalog.models import ProductVariant, Product
 from apps.core.models import SiteSetting
 from django.utils.dateparse import parse_datetime, parse_date
 from django.utils import timezone
@@ -69,8 +70,16 @@ def get_sales_report(request, date_from: Optional[str] = None, date_to: Optional
         
         # Calculate product costing for this specific status
         scost = OrderItem.objects.filter(order__in=sqs).annotate(
-            unit_cost=Subquery(
-                ProductVariant.objects.filter(sku=OuterRef('sku')).values('purchase_price')[:1],
+            unit_cost=Coalesce(
+                Subquery(
+                    ProductVariant.objects.filter(sku=OuterRef('sku')).values('purchase_price')[:1],
+                    output_field=DecimalField()
+                ),
+                Subquery(
+                    Product.objects.filter(sku=OuterRef('sku')).values('purchase_price')[:1],
+                    output_field=DecimalField()
+                ),
+                0,
                 output_field=DecimalField()
             )
         ).aggregate(

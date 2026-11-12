@@ -105,6 +105,9 @@ def get_product_details(slug: str = None, product: Product = None) -> dict:
         "is_sold_out": getattr(product, 'is_sold_out', False),
         "listing_order": product.listing_order,
         "base_price": float(product.base_price) if product.base_price else None,
+        "purchase_price": float(product.purchase_price) if getattr(product, 'purchase_price', None) is not None else (
+            float(product.variants.first().purchase_price) if product.variants.exists() and product.variants.first().purchase_price is not None else None
+        ),
         "price": float(product.base_price) if product.base_price else None,
         "brand": {
             "id": product.brand.id,

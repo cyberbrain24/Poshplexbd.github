@@ -246,6 +246,7 @@ def import_products_from_csv(file_content: str, column_mapping: dict) -> dict:
                         product=product,
                         sku=var_sku or f"VAR-{uuid.uuid4().hex[:8].upper()}",
                         selling_price=var_price,
+                        purchase_price=product.purchase_price,
                         is_active=True
                     )
                 else:
