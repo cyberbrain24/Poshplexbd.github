@@ -80,6 +80,80 @@ body {
 @media (max-width: 1050px) {
   .posh-orders-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* Order Card desktop wrappers use display: contents to maintain identical layout */
+.posh-order-card-top-section,
+.posh-order-card-primary,
+.posh-order-card-bottom-section {
+  display: contents;
+}
+
+/* Smooth Horizontal Sliding Status Tabs Bar */
+.posh-status-slider-container {
+  width: 100%;
+  margin-bottom: 14px;
+  overflow: hidden;
+  position: relative;
+}
+.posh-status-slider-track {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  padding: 4px 2px 8px 2px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.posh-status-slider-track::-webkit-scrollbar {
+  display: none;
+}
+.posh-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  background: var(--bg-secondary, #1a1a24);
+  border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08));
+  color: var(--text-muted, #a1a1aa);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  user-select: none;
+  outline: none;
+}
+.posh-status-pill:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+.posh-status-pill-active {
+  background: rgba(139, 92, 246, 0.18) !important;
+  border-color: var(--accent-purple, #8b5cf6) !important;
+  color: #fff !important;
+  font-weight: 600;
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.25);
+}
+
+/* Filter Row Styles */
+.posh-orders-filter-container {
+  width: 100%;
+}
+.posh-orders-filter-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.posh-orders-filter-dropdowns {
+  display: flex;
+  gap: 8px;
+}
 .posh-order-card {
   border-radius: 8px;
   overflow: hidden;
@@ -169,8 +243,16 @@ body {
   .ant-card-head-title { font-size: 12.5px !important; padding: 2px 0 !important; flex: 1 1 auto !important; white-space: normal !important; }
   .ant-card-extra { margin-inline-start: 0 !important; padding: 2px 0 !important; max-width: 100%; }
 
-  /* Strict 2-Columns-Per-Row Box Grids on Mobile */
-  .posh-orders-grid,
+  /* Single-Column Grid for Order Queue on Mobile */
+  .posh-orders-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Strict 2-Columns-Per-Row Box Grids on Mobile for Product Catalogs / Media */
   .posh-featured-grid,
   .posh-media-grid,
   .posh-modal-product-grid,
@@ -183,25 +265,150 @@ body {
     width: 100% !important;
   }
 
-  /* Compact Order Cards in 2-Column Mobile Grid */
-  .posh-order-card { min-width: 0 !important; width: 100% !important; border-radius: 8px !important; }
-  .posh-order-card .ant-card-body { padding: 6px !important; }
-  .posh-order-card-img { margin: -6px -6px 6px -6px !important; height: 104px !important; }
-  .posh-order-card-meta { font-size: 9.5px !important; gap: 2px !important; flex-wrap: wrap !important; margin-bottom: 3px !important; }
-  .posh-order-card-title { font-size: 11px !important; line-height: 14px !important; margin-bottom: 2px !important; }
-  .posh-order-card-phone { font-size: 11px !important; margin-bottom: 4px !important; gap: 3px !important; }
-  .posh-order-card-row { font-size: 10.5px !important; margin-bottom: 3px !important; }
-  .posh-order-card-sub { font-size: 9.5px !important; line-height: 13px !important; }
-  .posh-order-card-actions { gap: 4px !important; margin-bottom: 6px !important; }
-  .posh-order-card .ant-btn-sm { font-size: 10px !important; min-height: 24px !important; height: 24px !important; padding: 0 5px !important; }
-  .posh-order-card .ant-tag { font-size: 9px !important; padding: 0 4px !important; line-height: 15px !important; margin-inline-end: 0 !important; }
-  .posh-order-card .ant-input-sm { font-size: 10.5px !important; padding: 2px 6px !important; }
+  /* Filter row & Dropdowns on Mobile */
+  .posh-orders-filter-row {
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .posh-orders-search-input {
+    width: 100% !important;
+    min-width: 100% !important;
+  }
+  .posh-orders-filter-dropdowns {
+    width: 100% !important;
+    display: flex !important;
+    gap: 8px !important;
+  }
+  .posh-orders-filter-dropdowns .ant-select {
+    flex: 1 !important;
+    min-width: 0 !important;
+  }
+  .posh-orders-bulk-btn {
+    width: 100% !important;
+  }
 
-  /* Compact Steadfast Mini Risk Badge inside 2-Column Order Card */
-  .posh-risk-badge-mini { padding: 3px 5px !important; gap: 4px !important; margin-bottom: 5px !important; border-radius: 6px !important; }
-  .posh-risk-badge-mini-gauge { width: 34px !important; height: 22px !important; }
-  .posh-risk-badge-mini-gauge svg { width: 34px !important; height: 22px !important; }
-  .posh-risk-badge-mini-metrics { font-size: 8.5px !important; line-height: 11px !important; flex-wrap: wrap !important; gap: 2px !important; }
+  /* Single-Column Order Card on Mobile */
+  .posh-order-card {
+    min-width: 0 !important;
+    width: 100% !important;
+    border-radius: 10px !important;
+    background: var(--bg-secondary) !important;
+    border: 1px solid var(--border-glass) !important;
+  }
+  .posh-order-card .ant-card-body {
+    padding: 12px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    height: auto !important;
+  }
+  .posh-order-card-top-section {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 12px !important;
+    align-items: flex-start !important;
+    width: 100% !important;
+  }
+  .posh-order-card-img {
+    width: 92px !important;
+    height: 92px !important;
+    min-width: 92px !important;
+    max-width: 92px !important;
+    margin: 0 !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    flex-shrink: 0 !important;
+    background-color: rgba(255, 255, 255, 0.04) !important;
+  }
+  .posh-order-card-img img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+  }
+  .posh-order-card-primary {
+    flex: 1 !important;
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+  }
+  .posh-order-card-bottom-section {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 6px !important;
+  }
+  .posh-order-card-meta {
+    font-size: 11px !important;
+    gap: 4px !important;
+    flex-wrap: wrap !important;
+    margin-bottom: 2px !important;
+  }
+  .posh-order-card-title {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    line-height: 16px !important;
+    margin-bottom: 2px !important;
+  }
+  .posh-order-card-phone {
+    font-size: 12px !important;
+    margin-bottom: 4px !important;
+    gap: 4px !important;
+  }
+  .posh-order-card-row {
+    font-size: 11.5px !important;
+    margin-bottom: 3px !important;
+  }
+  .posh-order-card-tags {
+    gap: 4px !important;
+    margin-bottom: 2px !important;
+  }
+  .posh-order-card-sub {
+    font-size: 11px !important;
+    line-height: 15px !important;
+  }
+  .posh-order-card-actions {
+    gap: 6px !important;
+    margin-bottom: 6px !important;
+  }
+  .posh-order-card .ant-btn-sm {
+    font-size: 11px !important;
+    min-height: 28px !important;
+    height: 28px !important;
+    padding: 0 8px !important;
+  }
+  .posh-order-card .ant-tag {
+    font-size: 10px !important;
+    padding: 0 6px !important;
+    line-height: 18px !important;
+  }
+  .posh-order-card .ant-input-sm {
+    font-size: 11.5px !important;
+    padding: 4px 8px !important;
+  }
+
+  /* Steadfast Mini Risk Badge inside Order Card on Mobile */
+  .posh-risk-badge-mini {
+    padding: 5px 8px !important;
+    gap: 6px !important;
+    margin-bottom: 6px !important;
+    border-radius: 8px !important;
+  }
+  .posh-risk-badge-mini-gauge {
+    width: 40px !important;
+    height: 26px !important;
+  }
+  .posh-risk-badge-mini-gauge svg {
+    width: 40px !important;
+    height: 26px !important;
+  }
+  .posh-risk-badge-mini-metrics {
+    font-size: 9.5px !important;
+    line-height: 13px !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+  }
 
   /* Mobile App Table-to-Card Conversion */
   .ant-table { font-size: 11.5px !important; }

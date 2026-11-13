@@ -1003,45 +1003,80 @@ export const Orders: React.FC = () => {
       </div>
 
       <Card styles={{ body: { padding: '12px 14px' } }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div className="posh-orders-filter-container" style={{ marginBottom: 14 }}>
+          <div className="posh-orders-filter-row">
             <Input
+              className="posh-orders-search-input"
               placeholder="Search Order / Phone / Name / Consignment ID..."
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
+              allowClear
               style={{ flex: 1, minWidth: 160, borderRadius: 6 }}
             />
-            <Select placeholder="Pay Status" allowClear onChange={setFilterPaymentStatus} style={{ minWidth: 120, flex: 1 }}>
-              <Select.Option value="unpaid">Unpaid</Select.Option>
-              <Select.Option value="paid">Paid</Select.Option>
-              <Select.Option value="refunded">Refunded</Select.Option>
-            </Select>
-            <Select placeholder="Method" allowClear onChange={setFilterPaymentMethod} style={{ minWidth: 100, flex: 1 }}>
-              <Select.Option value="COD">COD</Select.Option>
-              <Select.Option value="bKash">bKash</Select.Option>
-              <Select.Option value="Nagad">Nagad</Select.Option>
-            </Select>
+            <div className="posh-orders-filter-dropdowns">
+              <Select placeholder="Pay Status" allowClear onChange={setFilterPaymentStatus} style={{ flex: 1, minWidth: 110 }}>
+                <Select.Option value="unpaid">Unpaid</Select.Option>
+                <Select.Option value="paid">Paid</Select.Option>
+                <Select.Option value="refunded">Refunded</Select.Option>
+              </Select>
+              <Select placeholder="Method" allowClear onChange={setFilterPaymentMethod} style={{ flex: 1, minWidth: 95 }}>
+                <Select.Option value="COD">COD</Select.Option>
+                <Select.Option value="bKash">bKash</Select.Option>
+                <Select.Option value="Nagad">Nagad</Select.Option>
+              </Select>
+            </div>
             {selectedRowKeys.length > 0 && (
-              <Button type="primary" icon={<SyncOutlined />} onClick={handleBulkCourierSync}>
+              <Button type="primary" icon={<SyncOutlined />} onClick={handleBulkCourierSync} className="posh-orders-bulk-btn">
                 Bulk Sync ({selectedRowKeys.length})
               </Button>
             )}
           </div>
         </div>
-        <Tabs activeKey={activeTab} onChange={setActiveTab} type="card" items={[
-          { label: <span>All <Badge count={orderCounts.all || 0} overflowCount={99999} showZero style={{ backgroundColor: '#52c41a' }} /></span>, key: "all" },
-          { label: <span>Placed <Badge count={orderCounts.placed || 0} overflowCount={99999} showZero color="gold" /></span>, key: "placed" },
-          { label: <span>Review <Badge count={orderCounts.review || 0} overflowCount={99999} showZero color="cyan" /></span>, key: "review" },
-          { label: <span>Pending <Badge count={orderCounts.pending || 0} overflowCount={99999} showZero color="orange" /></span>, key: "pending" },
-          { label: <span>Delayed <Badge count={orderCounts.delayed || 0} overflowCount={99999} showZero color="#ff4d4f" /></span>, key: "delayed" },
-          { label: <span>Hold <Badge count={orderCounts.hold || 0} overflowCount={99999} showZero color="volcano" /></span>, key: "hold" },
-          { label: <span>Approval Pending <Badge count={orderCounts.approval_pending || 0} overflowCount={99999} showZero color="blue" /></span>, key: "approval_pending" },
-          { label: <span>Delivered <Badge count={orderCounts.delivered || 0} overflowCount={99999} showZero color="green" /></span>, key: "delivered" },
-          { label: <span>Partially Delivered <Badge count={orderCounts.partially_delivered || 0} overflowCount={99999} showZero color="#fa8c16" /></span>, key: "partially_delivered" },
-          { label: <span>Returned <Badge count={orderCounts.returned || 0} overflowCount={99999} showZero color="purple" /></span>, key: "returned" },
-          { label: <span>Cancelled <Badge count={orderCounts.cancelled || 0} overflowCount={99999} showZero color="red" /></span>, key: "cancelled" },
-          { label: <span>Manually Cancelled <Badge count={orderCounts.manually_cancelled || 0} overflowCount={99999} showZero color="#eb2f96" /></span>, key: "manually_cancelled" },
-        ]} />
+
+        {/* Horizontal Sliding Status Tabs Bar (Smooth sliding left-to-right on mobile touch) */}
+        <div className="posh-status-slider-container">
+          <div className="posh-status-slider-track">
+            {[
+              { label: "All", key: "all", countKey: "all", color: "#52c41a" },
+              { label: "Placed", key: "placed", countKey: "placed", color: "gold" },
+              { label: "Review", key: "review", countKey: "review", color: "cyan" },
+              { label: "Pending", key: "pending", countKey: "pending", color: "orange" },
+              { label: "Delayed", key: "delayed", countKey: "delayed", color: "#ff4d4f" },
+              { label: "Hold", key: "hold", countKey: "hold", color: "volcano" },
+              { label: "Approval Pending", key: "approval_pending", countKey: "approval_pending", color: "blue" },
+              { label: "Delivered", key: "delivered", countKey: "delivered", color: "green" },
+              { label: "Partially Delivered", key: "partially_delivered", countKey: "partially_delivered", color: "#fa8c16" },
+              { label: "Returned", key: "returned", countKey: "returned", color: "purple" },
+              { label: "Cancelled", key: "cancelled", countKey: "cancelled", color: "red" },
+              { label: "Manually Cancelled", key: "manually_cancelled", countKey: "manually_cancelled", color: "#eb2f96" },
+            ].map(tab => {
+              const isActive = activeTab === tab.key;
+              const count = (orderCounts as any)[tab.countKey] || 0;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={(e) => {
+                    setActiveTab(tab.key);
+                    try {
+                      (e.currentTarget as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                    } catch {}
+                  }}
+                  className={`posh-status-pill ${isActive ? "posh-status-pill-active" : ""}`}
+                >
+                  <span>{tab.label}</span>
+                  <Badge
+                    count={count}
+                    overflowCount={99999}
+                    showZero
+                    color={tab.color}
+                    style={tab.key === "all" ? { backgroundColor: "#52c41a" } : undefined}
+                  />
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         <div className="posh-orders-grid">
           {orders.map(order => {
@@ -1060,224 +1095,231 @@ export const Orders: React.FC = () => {
                 }}
                 styles={{ body: { padding: '12px', display: 'flex', flexDirection: 'column', height: '100%' } }}
               >
-                {/* Images Top Section */}
-                <div className="posh-order-card-img">
-                  {items.length === 1 ? (
-                    <img src={items[0].image ? (items[0].image.startsWith('http') ? items[0].image : `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}${items[0].image}`) : ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="product" />
-                  ) : items.length > 1 ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', width: '100%', height: '100%' }}>
-                      <img src={items[0].image ? (items[0].image.startsWith('http') ? items[0].image : `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}${items[0].image}`) : ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="product 1" />
-                      <img src={items[1].image ? (items[1].image.startsWith('http') ? items[1].image : `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}${items[1].image}`) : ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="product 2" />
-                    </div>
-                  ) : (
-                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa' }}>No Items</div>
-                  )}
-                </div>
-
-                {/* PO & Date */}
-                <div className="posh-order-card-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, marginBottom: 4 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <strong>{order.order_number || `#${order.id}`}</strong>
-                    {order.is_urgent && (
-                      <Tag color="#ff4d4f" style={{ margin: 0, padding: "0 5px", fontSize: 10, lineHeight: "16px", fontWeight: 800, borderRadius: 3 }}>
-                        ⚡ URGENT
-                      </Tag>
-                    )}
-                  </div>
-                  <span style={{ color: '#888' }}>{order.created_at ? new Date(order.created_at).toLocaleString('en-US', { timeZone: 'Asia/Dhaka', month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : ''}</span>
-                </div>
-
-                {/* Customer Name & Phone */}
-                <div className="posh-order-card-title" style={{ fontSize: 13, marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {order.shipping_name || order.customer_name}
-                </div>
-                <div className="posh-order-card-phone" style={{ fontSize: 13, fontWeight: 'bold', marginBottom: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span>{order.customer_phone}</span>
-                    {!isValidPhone(order.shipping_phone || order.customer_phone) && (
-                      <Tooltip title="Invalid Phone Number. Cannot Ship. Click eye icon to edit.">
-                        <WarningOutlined style={{ color: 'red' }} />
-                      </Tooltip>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {activePhones[order.id] ? (
-                      <PhoneOutlined 
-                        style={{ color: '#25D366', cursor: 'pointer', fontSize: 15 }} 
-                        onClick={() => setActivePhones(prev => ({...prev, [order.id]: false}))} 
-                      />
+                {/* Card Top Section: Product thumbnail on left, primary metadata & amounts on right */}
+                <div className="posh-order-card-top-section">
+                  <div className="posh-order-card-img">
+                    {items.length === 1 ? (
+                      <img src={items[0].image ? (items[0].image.startsWith('http') ? items[0].image : `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}${items[0].image}`) : ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="product" />
+                    ) : items.length > 1 ? (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', width: '100%', height: '100%' }}>
+                        <img src={items[0].image ? (items[0].image.startsWith('http') ? items[0].image : `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}${items[0].image}`) : ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="product 1" />
+                        <img src={items[1].image ? (items[1].image.startsWith('http') ? items[1].image : `${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}${items[1].image}`) : ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="product 2" />
+                      </div>
                     ) : (
-                      <PhoneOutlined 
-                        style={{ color: '#888', cursor: 'pointer', fontSize: 15 }} 
-                        onClick={() => setActivePhones(prev => ({...prev, [order.id]: true}))} 
-                      />
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa' }}>No Items</div>
                     )}
+                  </div>
+
+                  <div className="posh-order-card-primary">
+                    {/* PO & Date */}
+                    <div className="posh-order-card-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, marginBottom: 4 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <strong>{order.order_number || `#${order.id}`}</strong>
+                        {order.is_urgent && (
+                          <Tag color="#ff4d4f" style={{ margin: 0, padding: "0 5px", fontSize: 10, lineHeight: "16px", fontWeight: 800, borderRadius: 3 }}>
+                            ⚡ URGENT
+                          </Tag>
+                        )}
+                      </div>
+                      <span style={{ color: '#888' }}>{order.created_at ? new Date(order.created_at).toLocaleString('en-US', { timeZone: 'Asia/Dhaka', month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : ''}</span>
+                    </div>
+
+                    {/* Customer Name & Phone */}
+                    <div className="posh-order-card-title" style={{ fontSize: 13, marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {order.shipping_name || order.customer_name}
+                    </div>
+                    <div className="posh-order-card-phone" style={{ fontSize: 13, fontWeight: 'bold', marginBottom: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span>{order.customer_phone}</span>
+                        {!isValidPhone(order.shipping_phone || order.customer_phone) && (
+                          <Tooltip title="Invalid Phone Number. Cannot Ship. Click eye icon to edit.">
+                            <WarningOutlined style={{ color: 'red' }} />
+                          </Tooltip>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {activePhones[order.id] ? (
+                          <PhoneOutlined 
+                            style={{ color: '#25D366', cursor: 'pointer', fontSize: 15 }} 
+                            onClick={() => setActivePhones(prev => ({...prev, [order.id]: false}))} 
+                          />
+                        ) : (
+                          <PhoneOutlined 
+                            style={{ color: '#888', cursor: 'pointer', fontSize: 15 }} 
+                            onClick={() => setActivePhones(prev => ({...prev, [order.id]: true}))} 
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Qty & Price */}
+                    <div className="posh-order-card-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                      <span>{items.reduce((acc: number, item: any) => acc + item.quantity, 0)} items</span>
+                      <strong style={{ color: '#fff' }}>৳{total}</strong>
+                    </div>
+
+                    {/* Paid & Due */}
+                    <div className="posh-order-card-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 8 }}>
+                      <span style={{ color: '#888' }}>Paid: ৳{paid}</span>
+                      <strong style={{ color: '#e11d48' }}>Due: ৳{due}</strong>
+                    </div>
+
+                    {/* Status Tags */}
+                    <div className="posh-order-card-tags" style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
+                      {getStatusTag(order.status)}
+                      {getPaymentStatusTag(order.payment_status)}
+                      <Tag color="default">Web Order</Tag>
+                    </div>
                   </div>
                 </div>
 
-                {/* Embedded Steadfast Delivery Risk Box - ONLY for 'placed' status orders */}
-                {String(order.status || "").toLowerCase() === "placed" && (() => {
-                  let ph = (order.shipping_phone || order.customer_phone || "").replace(/\D/g, "");
-                  if (ph.startsWith("8801") && ph.length === 13) ph = ph.slice(2);
-                  else if (ph.startsWith("008801") && ph.length === 15) ph = ph.slice(4);
-                  return (
-                    <OrderCardRiskBadge 
-                      phone={order.shipping_phone || order.customer_phone} 
-                      data={deliveryRiskMap[ph]} 
-                      loading={loadingRiskMap && !deliveryRiskMap[ph]} 
-                    />
-                  );
-                })()}
+                {/* Card Bottom Section: Risk badge, blocker, shipping, call notes, actions */}
+                <div className="posh-order-card-bottom-section">
+                  {/* Embedded Steadfast Delivery Risk Box - ONLY for 'placed' status orders */}
+                  {String(order.status || "").toLowerCase() === "placed" && (() => {
+                    let ph = (order.shipping_phone || order.customer_phone || "").replace(/\D/g, "");
+                    if (ph.startsWith("8801") && ph.length === 13) ph = ph.slice(2);
+                    else if (ph.startsWith("008801") && ph.length === 15) ph = ph.slice(4);
+                    return (
+                      <OrderCardRiskBadge 
+                        phone={order.shipping_phone || order.customer_phone} 
+                        data={deliveryRiskMap[ph]} 
+                        loading={loadingRiskMap && !deliveryRiskMap[ph]} 
+                      />
+                    );
+                  })()}
 
-                {order.customer_notes && (
-                  <Tooltip title={order.customer_notes} placement="top">
-                    <div style={{
-                      fontSize: 11,
-                      color: "#c084fc",
-                      backgroundColor: "rgba(192, 132, 252, 0.1)",
-                      padding: "4px 8px",
-                      borderRadius: 4,
-                      marginBottom: 8,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      cursor: "pointer",
-                      border: "1px solid rgba(192, 132, 252, 0.2)"
-                    }}>
-                      <strong style={{ color: "#e879f9" }}>Note:</strong> {order.customer_notes}
-                    </div>
-                  </Tooltip>
-                )}
-
-                {/* Qty & Price */}
-                <div className="posh-order-card-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-                  <span>{items.reduce((acc: number, item: any) => acc + item.quantity, 0)} items</span>
-                  <strong style={{ color: '#fff' }}>৳{total}</strong>
-                </div>
-
-                {/* Paid & Due */}
-                <div className="posh-order-card-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 8 }}>
-                  <span style={{ color: '#888' }}>Paid: ৳{paid}</span>
-                  <strong style={{ color: '#e11d48' }}>Due: ৳{due}</strong>
-                </div>
-
-                {/* Status Tags */}
-                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
-                  {getStatusTag(order.status)}
-                  {getPaymentStatusTag(order.payment_status)}
-                  <Tag color="default">Web Order</Tag>
-                </div>
-
-                {/* OrderPulse Blocker & Root Cause Diagnostics */}
-                <OrderPulseTag
-                  order={order}
-                  apiUrl={API_URL}
-                  onRefresh={fetchOrders}
-                  onOpenSplitModal={(o) => {
-                    setSplitSelectedOrder(o);
-                    setIsSplitModalOpen(true);
-                  }}
-                />
-
-                {/* Payment Method & Location */}
-                <div className="posh-order-card-sub" style={{ fontSize: 11, color: '#888', marginBottom: 2 }}>{order.payments?.[0]?.method || 'Cash on Delivery'}</div>
-                <div className="posh-order-card-sub" style={{ fontSize: 11, color: '#10b981', fontWeight: 600, marginBottom: 12 }}>
-                  Location: {getOrderLocationZone(order)}
-                </div>
-
-                {/* Actions */}
-                <div className="posh-order-card-actions" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                  {!order.tracking_number ? (
-                    <Button size="small" type="default" style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4 }} onClick={() => handleBookShipment(order.id)}>
-                      <CarOutlined /> Ship
-                    </Button>
-                  ) : (
-                    <>
-                      <Button size="small" style={{ flex: 1, borderColor: '#10b981', color: '#10b981', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4, overflow: 'hidden' }} onClick={() => { navigator.clipboard.writeText(order.courier_consignment_id || order.tracking_number); message.success('Parcel ID copied to clipboard'); }}>
-                        <CheckCircleOutlined style={{ flexShrink: 0 }} /> 
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          Shipped: {order.courier_consignment_id || order.tracking_number}
-                        </span>
-                      </Button>
-                      <Button size="small" danger icon={<DeleteOutlined />} onClick={() => handleRemoveShipment(order.id)} />
-                    </>
+                  {order.customer_notes && (
+                    <Tooltip title={order.customer_notes} placement="top">
+                      <div style={{
+                        fontSize: 11,
+                        color: "#c084fc",
+                        backgroundColor: "rgba(192, 132, 252, 0.1)",
+                        padding: "4px 8px",
+                        borderRadius: 4,
+                        marginBottom: 8,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        cursor: "pointer",
+                        border: "1px solid rgba(192, 132, 252, 0.2)"
+                      }}>
+                        <strong style={{ color: "#e879f9" }}>Note:</strong> {order.customer_notes}
+                      </div>
+                    </Tooltip>
                   )}
-                </div>
 
-                {/* Call Note */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 12 }}>
-                  <Input 
-                    size="small" 
-                    placeholder="+ Add call note" 
-                    defaultValue={order.internal_notes || ''}
-                    onChange={(e) => setCallNotes({ ...callNotes, [order.id]: e.target.value })}
-                    style={{ fontSize: 11 }}
+                  {/* OrderPulse Blocker & Root Cause Diagnostics */}
+                  <OrderPulseTag
+                    order={order}
+                    apiUrl={API_URL}
+                    onRefresh={fetchOrders}
+                    onOpenSplitModal={(o) => {
+                      setSplitSelectedOrder(o);
+                      setIsSplitModalOpen(true);
+                    }}
                   />
-                  <Button 
-                    size="small" 
-                    type="text" 
-                    icon={<SaveOutlined />} 
-                    onClick={() => handleSaveCallNote(order.id)}
-                    style={{ fontSize: 11, color: '#888', alignSelf: 'flex-start', padding: 0 }}
-                  >
-                    Save note
-                  </Button>
-                </div>
 
-                {/* Bottom Icons */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: 4 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {order.status !== 'cancelled' && order.status !== 'manually_cancelled' && (
-                      <Popconfirm
-                        title="Cancel Order Manually"
-                        description="Mark this order as Manually Cancelled?"
-                        onConfirm={() => handleManualCancelOrder(order.id)}
-                        okText="Yes, Cancel"
-                        cancelText="No"
-                        okButtonProps={{ danger: true }}
-                      >
+                  {/* Payment Method & Location */}
+                  <div className="posh-order-card-sub" style={{ fontSize: 11, color: '#888', marginBottom: 2 }}>{order.payments?.[0]?.method || 'Cash on Delivery'}</div>
+                  <div className="posh-order-card-sub" style={{ fontSize: 11, color: '#10b981', fontWeight: 600, marginBottom: 12 }}>
+                    Location: {getOrderLocationZone(order)}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="posh-order-card-actions" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    {!order.tracking_number ? (
+                      <Button size="small" type="default" style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4 }} onClick={() => handleBookShipment(order.id)}>
+                        <CarOutlined /> Ship
+                      </Button>
+                    ) : (
+                      <>
+                        <Button size="small" style={{ flex: 1, borderColor: '#10b981', color: '#10b981', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4, overflow: 'hidden' }} onClick={() => { navigator.clipboard.writeText(order.courier_consignment_id || order.tracking_number); message.success('Parcel ID copied to clipboard'); }}>
+                          <CheckCircleOutlined style={{ flexShrink: 0 }} /> 
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            Shipped: {order.courier_consignment_id || order.tracking_number}
+                          </span>
+                        </Button>
+                        <Button size="small" danger icon={<DeleteOutlined />} onClick={() => handleRemoveShipment(order.id)} />
+                      </>
+                    )}
+                  </div>
+
+                  {/* Call Note */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 12 }}>
+                    <Input 
+                      size="small" 
+                      placeholder="+ Add call note" 
+                      defaultValue={order.internal_notes || ''}
+                      onChange={(e) => setCallNotes({ ...callNotes, [order.id]: e.target.value })}
+                      style={{ fontSize: 11 }}
+                    />
+                    <Button 
+                      size="small" 
+                      type="text" 
+                      icon={<SaveOutlined />} 
+                      onClick={() => handleSaveCallNote(order.id)}
+                      style={{ fontSize: 11, color: '#888', alignSelf: 'flex-start', padding: 0 }}
+                    >
+                      Save note
+                    </Button>
+                  </div>
+
+                  {/* Bottom Icons */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {order.status !== 'cancelled' && order.status !== 'manually_cancelled' && (
+                        <Popconfirm
+                          title="Cancel Order Manually"
+                          description="Mark this order as Manually Cancelled?"
+                          onConfirm={() => handleManualCancelOrder(order.id)}
+                          okText="Yes, Cancel"
+                          cancelText="No"
+                          okButtonProps={{ danger: true }}
+                        >
+                          <Button
+                            type="text"
+                            size="small"
+                            danger
+                            icon={<CloseCircleOutlined />}
+                            style={{ fontSize: 11, padding: "0 6px", color: "#c41d7f", height: 24, borderRadius: 4, background: "rgba(196, 29, 127, 0.08)" }}
+                          >
+                            Cancel
+                          </Button>
+                        </Popconfirm>
+                      )}
+
+                      {/* Urgent button beside Cancel on Placed & Review status orders */}
+                      {(String(order.status).toLowerCase() === 'placed' || String(order.status).toLowerCase() === 'review') && (
                         <Button
                           type="text"
                           size="small"
-                          danger
-                          icon={<CloseCircleOutlined />}
-                          style={{ fontSize: 11, padding: "0 6px", color: "#c41d7f", height: 24, borderRadius: 4, background: "rgba(196, 29, 127, 0.08)" }}
+                          icon={<ThunderboltOutlined style={{ color: order.is_urgent ? '#fff' : '#ff4d4f', fontSize: 11 }} />}
+                          onClick={() => handleToggleUrgent(order.id)}
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: "0 7px",
+                            height: 24,
+                            borderRadius: 4,
+                            color: order.is_urgent ? '#fff' : '#ff4d4f',
+                            background: order.is_urgent ? '#ff4d4f' : 'rgba(255, 77, 79, 0.1)',
+                            border: order.is_urgent ? '1px solid #ff4d4f' : '1px dashed rgba(255, 77, 79, 0.4)',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 3,
+                            transition: 'all 0.2s ease',
+                          }}
                         >
-                          Cancel
+                          {order.is_urgent ? 'Urgent ✓' : 'Urgent'}
                         </Button>
-                      </Popconfirm>
-                    )}
-
-                    {/* Urgent button beside Cancel on Placed & Review status orders */}
-                    {(String(order.status).toLowerCase() === 'placed' || String(order.status).toLowerCase() === 'review') && (
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<ThunderboltOutlined style={{ color: order.is_urgent ? '#fff' : '#ff4d4f', fontSize: 11 }} />}
-                        onClick={() => handleToggleUrgent(order.id)}
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          padding: "0 7px",
-                          height: 24,
-                          borderRadius: 4,
-                          color: order.is_urgent ? '#fff' : '#ff4d4f',
-                          background: order.is_urgent ? '#ff4d4f' : 'rgba(255, 77, 79, 0.1)',
-                          border: order.is_urgent ? '1px solid #ff4d4f' : '1px dashed rgba(255, 77, 79, 0.4)',
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 3,
-                          transition: 'all 0.2s ease',
-                        }}
-                      >
-                        {order.is_urgent ? 'Urgent ✓' : 'Urgent'}
-                      </Button>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => handleOpenDrawerWithDraft(order)} />
-                    <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDeleteOrder(order.id)} />
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => handleOpenDrawerWithDraft(order)} />
+                      <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDeleteOrder(order.id)} />
+                    </div>
                   </div>
                 </div>
               </Card>
