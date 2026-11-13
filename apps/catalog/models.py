@@ -216,7 +216,15 @@ class Product(models.Model):
         
         # Unique SKU checks across products and variants
         if self.sku:
-            if Product.objects.filter(sku=self.sku).exclude(pk=self.pk).exists() or ProductVariant.objects.filter(sku=self.sku).exists():
+            if Product.objects.filter(sku=self.sku).exclude(pk=self.pk).exists():
+                raise ValidationError(f"SKU '{self.sku}' is already taken.")
+            
+            # Cross-check variants: other products' variants cannot share this SKU
+            other_variants = ProductVariant.objects.filter(sku=self.sku)
+            if self.pk:
+                if self.product_type == 'simple':
+                    other_variants = other_variants.exclude(product_id=self.pk)
+            if other_variants.exists():
                 raise ValidationError(f"SKU '{self.sku}' is already taken.")
             
         if self.base_price is not None and self.base_price < 0:
@@ -362,7 +370,19 @@ class ProductVariant(models.Model):
             
         # Unique SKU checking across products and variants
         if self.sku:
-            if Product.objects.filter(sku=self.sku).exists() or ProductVariant.objects.filter(sku=self.sku).exclude(pk=self.pk).exists():
+            if ProductVariant.objects.filter(sku=self.sku).exclude(pk=self.pk).exists():
+                raise ValidationError(f"SKU '{self.sku}' is already taken.")
+                
+            # Cross-check products: other products cannot share this SKU
+            other_products = Product.objects.filter(sku=self.sku)
+            if self.product_id:
+                try:
+                    parent_prod = self.product if hasattr(self, 'product') else Product.objects.filter(pk=self.product_id).first()
+                    if parent_prod and parent_prod.product_type == 'simple':
+                        other_products = other_products.exclude(pk=self.product_id)
+                except Exception:
+                    other_products = other_products.exclude(pk=self.product_id)
+            if other_products.exists():
                 raise ValidationError(f"SKU '{self.sku}' is already taken.")
 
         # Dynamic validation
