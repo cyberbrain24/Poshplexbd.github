@@ -471,6 +471,264 @@ def get_orderpulse_analytics(request):
         "top_returned_skus": top_returned_skus
     }
 
+@router.get("/analytics/timestamps", auth=BearerAuth())
+def get_order_timestamp_analytics(
+    request,
+    preset: str = "lifetime",
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    status: Optional[str] = None,
+):
+    """
+    Advanced Order Timestamp Analytics (Admin only).
+    Analyzes 24-hour distribution, Day-of-Week shopping patterns,
+    Peak Ordering Windows, Dayparts, and a 7x24 Day-by-Hour Heatmap in Asia/Dhaka time.
+    """
+    enforce_permission(request, "orders", "view_orders")
+
+    import zoneinfo
+    from datetime import datetime, time as dtime
+    from decimal import Decimal
+
+    dhaka_tz = zoneinfo.ZoneInfo("Asia/Dhaka")
+    now_dhaka = timezone.now().astimezone(dhaka_tz)
+
+    qs = Order.objects.all()
+
+    if status and status.lower() != "all":
+        qs = qs.filter(status=status.lower())
+
+    # Apply date filters
+    selected_preset = preset.lower() if preset else "lifetime"
+    period_label = "Lifetime (All Time)"
+
+    if selected_preset == "today":
+        start_dt = now_dhaka.replace(hour=0, minute=0, second=0, microsecond=0)
+        qs = qs.filter(created_at__gte=start_dt)
+        period_label = "Today"
+    elif selected_preset == "yesterday":
+        yesterday_dhaka = now_dhaka - timedelta(days=1)
+        start_dt = yesterday_dhaka.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_dt = yesterday_dhaka.replace(hour=23, minute=59, second=59, microsecond=999999)
+        qs = qs.filter(created_at__gte=start_dt, created_at__lte=end_dt)
+        period_label = "Yesterday"
+    elif selected_preset == "7d":
+        start_dt = now_dhaka - timedelta(days=7)
+        qs = qs.filter(created_at__gte=start_dt)
+        period_label = "Last 7 Days"
+    elif selected_preset == "30d":
+        start_dt = now_dhaka - timedelta(days=30)
+        qs = qs.filter(created_at__gte=start_dt)
+        period_label = "Last 30 Days"
+    elif selected_preset == "this_month":
+        start_dt = now_dhaka.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        qs = qs.filter(created_at__gte=start_dt)
+        period_label = "This Month"
+    elif selected_preset == "last_month":
+        first_this_month = now_dhaka.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        last_day_prev_month = first_this_month - timedelta(days=1)
+        start_dt = last_day_prev_month.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        end_dt = last_day_prev_month.replace(hour=23, minute=59, second=59, microsecond=999999)
+        qs = qs.filter(created_at__gte=start_dt, created_at__lte=end_dt)
+        period_label = "Last Month"
+    elif selected_preset == "custom" and start_date and end_date:
+        try:
+            s_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+            e_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+            start_dt = datetime.combine(s_date, dtime.min).replace(tzinfo=dhaka_tz)
+            end_dt = datetime.combine(e_date, dtime.max).replace(tzinfo=dhaka_tz)
+            qs = qs.filter(created_at__gte=start_dt, created_at__lte=end_dt)
+            period_label = f"{start_date} to {end_date}"
+        except Exception:
+            pass
+
+    orders_data = list(qs.values("id", "total_amount", "created_at", "status"))
+    total_orders = len(orders_data)
+    total_revenue = Decimal("0.00")
+
+    def get_daypart(hour: int) -> str:
+        if 0 <= hour < 6:
+            return "Late Night"
+        elif 6 <= hour < 12:
+            return "Morning"
+        elif 12 <= hour < 18:
+            return "Afternoon"
+        else:
+            return "Prime Evening"
+
+    def format_12h(hour: int) -> str:
+        if hour == 0:
+            return "12 AM"
+        elif hour < 12:
+            return f"{hour} AM"
+        elif hour == 12:
+            return "12 PM"
+        else:
+            return f"{hour - 12} PM"
+
+    hourly_stats = []
+    for h in range(24):
+        hourly_stats.append({
+            "hour": h,
+            "label_12h": format_12h(h),
+            "full_label": f"{format_12h(h)} - {format_12h((h + 1) % 24)}",
+            "daypart": get_daypart(h),
+            "orders": 0,
+            "revenue": Decimal("0.00"),
+            "aov": Decimal("0.00"),
+            "share_percent": 0.0,
+            "is_peak": False,
+        })
+
+    day_names = [
+        ("Monday", "Mon"),
+        ("Tuesday", "Tue"),
+        ("Wednesday", "Wed"),
+        ("Thursday", "Thu"),
+        ("Friday", "Fri"),
+        ("Saturday", "Sat"),
+        ("Sunday", "Sun")
+    ]
+    day_stats = []
+    for idx, (d_name, d_short) in enumerate(day_names):
+        day_stats.append({
+            "day_index": idx,
+            "day_name": d_name,
+            "day_short": d_short,
+            "orders": 0,
+            "revenue": Decimal("0.00"),
+            "aov": Decimal("0.00"),
+            "share_percent": 0.0,
+            "is_busiest": False,
+        })
+
+    heatmap_matrix = [
+        [{"orders": 0, "revenue": Decimal("0.00")} for _ in range(24)]
+        for _ in range(7)
+    ]
+
+    status_counts = {}
+
+    for order in orders_data:
+        amt = Decimal(str(order["total_amount"] or 0))
+        total_revenue += amt
+
+        st = (order["status"] or "unknown").lower()
+        status_counts[st] = status_counts.get(st, 0) + 1
+
+        dt = order["created_at"].astimezone(dhaka_tz)
+        h = dt.hour
+        w = dt.weekday()
+
+        hourly_stats[h]["orders"] += 1
+        hourly_stats[h]["revenue"] += amt
+
+        day_stats[w]["orders"] += 1
+        day_stats[w]["revenue"] += amt
+
+        heatmap_matrix[w][h]["orders"] += 1
+        heatmap_matrix[w][h]["revenue"] += amt
+
+    max_hour_orders = max([h["orders"] for h in hourly_stats]) if total_orders > 0 else 0
+    max_day_orders = max([d["orders"] for d in day_stats]) if total_orders > 0 else 0
+    max_matrix_cell_orders = max(
+        [heatmap_matrix[w][h]["orders"] for w in range(7) for h in range(24)]
+    ) if total_orders > 0 else 0
+
+    for h in hourly_stats:
+        if h["orders"] > 0:
+            h["aov"] = round(h["revenue"] / h["orders"], 2)
+            h["share_percent"] = round((h["orders"] / total_orders) * 100, 2) if total_orders > 0 else 0.0
+        h["revenue"] = float(h["revenue"])
+        h["aov"] = float(h["aov"])
+        h["is_peak"] = (h["orders"] == max_hour_orders and max_hour_orders > 0)
+
+    for d in day_stats:
+        if d["orders"] > 0:
+            d["aov"] = round(d["revenue"] / d["orders"], 2)
+            d["share_percent"] = round((d["orders"] / total_orders) * 100, 2) if total_orders > 0 else 0.0
+        d["revenue"] = float(d["revenue"])
+        d["aov"] = float(d["aov"])
+        d["is_busiest"] = (d["orders"] == max_day_orders and max_day_orders > 0)
+
+    formatted_heatmap = []
+    for w in range(7):
+        row = []
+        for h in range(24):
+            c_orders = heatmap_matrix[w][h]["orders"]
+            c_rev = float(heatmap_matrix[w][h]["revenue"])
+            intensity = round((c_orders / max_matrix_cell_orders) * 100, 1) if max_matrix_cell_orders > 0 else 0
+            row.append({
+                "day_index": w,
+                "day_short": day_names[w][1],
+                "hour": h,
+                "hour_label": format_12h(h),
+                "orders": c_orders,
+                "revenue": c_rev,
+                "intensity": intensity
+            })
+        formatted_heatmap.append({
+            "day_index": w,
+            "day_name": day_names[w][0],
+            "day_short": day_names[w][1],
+            "hours": row
+        })
+
+    dayparts = [
+        {"name": "Late Night (12 AM - 6 AM)", "key": "late_night", "orders": 0, "revenue": 0.0, "color": "#818cf8"},
+        {"name": "Morning (6 AM - 12 PM)", "key": "morning", "orders": 0, "revenue": 0.0, "color": "#38bdf8"},
+        {"name": "Afternoon (12 PM - 6 PM)", "key": "afternoon", "orders": 0, "revenue": 0.0, "color": "#f59e0b"},
+        {"name": "Prime Evening (6 PM - 12 AM)", "key": "prime_evening", "orders": 0, "revenue": 0.0, "color": "#ec4899"},
+    ]
+    for h in hourly_stats:
+        part_idx = 0 if h["hour"] < 6 else (1 if h["hour"] < 12 else (2 if h["hour"] < 18 else 3))
+        dayparts[part_idx]["orders"] += h["orders"]
+        dayparts[part_idx]["revenue"] += h["revenue"]
+
+    for dp in dayparts:
+        dp["share_percent"] = round((dp["orders"] / total_orders) * 100, 1) if total_orders > 0 else 0.0
+        dp["revenue"] = round(dp["revenue"], 2)
+
+    best_3h_window = {"label": "N/A", "orders": 0, "percentage": 0.0}
+    if total_orders > 0:
+        max_3h_sum = -1
+        best_start = 0
+        for i in range(24):
+            three_hr_orders = hourly_stats[i]["orders"] + hourly_stats[(i + 1) % 24]["orders"] + hourly_stats[(i + 2) % 24]["orders"]
+            if three_hr_orders > max_3h_sum:
+                max_3h_sum = three_hr_orders
+                best_start = i
+        end_hr = (best_start + 3) % 24
+        best_3h_window = {
+            "label": f"{format_12h(best_start)} - {format_12h(end_hr)}",
+            "orders": max_3h_sum,
+            "percentage": round((max_3h_sum / total_orders) * 100, 1)
+        }
+
+    peak_hour_obj = next((h for h in hourly_stats if h["is_peak"]), None)
+    busiest_day_obj = next((d for d in day_stats if d["is_busiest"]), None)
+
+    return {
+        "period": {
+            "preset": selected_preset,
+            "label": period_label,
+            "timezone": "Asia/Dhaka (UTC+6)"
+        },
+        "kpi": {
+            "total_orders": total_orders,
+            "total_revenue": round(float(total_revenue), 2),
+            "avg_order_value": round(float(total_revenue / total_orders), 2) if total_orders > 0 else 0.0,
+            "peak_hour": peak_hour_obj,
+            "busiest_day": busiest_day_obj,
+            "peak_3h_window": best_3h_window
+        },
+        "hourly_distribution": hourly_stats,
+        "day_of_week_distribution": day_stats,
+        "dayparts": dayparts,
+        "heatmap": formatted_heatmap,
+        "status_breakdown": status_counts
+    }
+
 @router.get("", response=PaginatedOrdersResponse, auth=BearerAuth())
 def list_orders(
     request,

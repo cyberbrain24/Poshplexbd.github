@@ -27,6 +27,7 @@ import {
   OrderPulseTag 
 } from "../components/OrderPulseTag";
 import { PartialSplitModal } from "../components/PartialSplitModal";
+import { OrderTimestampAnalytics } from "../components/OrderTimestampAnalytics";
 
 const { Title, Text } = Typography;
 
@@ -105,7 +106,7 @@ export const OrderAnalyticsPage: React.FC = () => {
   };
 
   const fetchTabOrders = async (tabKey: string, page = 1) => {
-    if (tabKey === "overview" || tabKey === "catalog_rd") return;
+    if (tabKey === "overview" || tabKey === "catalog_rd" || tabKey === "order_timestamp") return;
     setTableLoading(true);
     try {
       const token = localStorage.getItem("poshplex_access_token");
@@ -543,6 +544,19 @@ export const OrderAnalyticsPage: React.FC = () => {
                     </Col>
                   </Row>
                 </Space>
+              ),
+            },
+            {
+              key: "order_timestamp",
+              label: (
+                <span>
+                  🕒 Order Timestamp
+                </span>
+              ),
+              children: (
+                <div style={{ marginTop: 12 }}>
+                  <OrderTimestampAnalytics apiUrl={ORDERS_API_URL} />
+                </div>
               ),
             },
             {
