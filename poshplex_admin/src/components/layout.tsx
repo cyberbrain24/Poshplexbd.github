@@ -56,7 +56,6 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
 
   const rawMenuItems = [
     { key: "/reports", icon: <BarChartOutlined />, label: "Sales Reports", module: "report" },
-    { key: "/", icon: <DashboardOutlined />, label: "Dashboard", module: null },
     { key: "/abandoned-checkouts", icon: <PhoneOutlined style={{ color: "#f59e0b" }} />, label: "Abandoned Queue", module: "orders" },
     { key: "/orders", icon: <ShoppingCartOutlined />, label: "Orders Queue", module: "orders" },
     { key: "/printing", icon: <PrinterOutlined />, label: "Printing Queue", module: "orders" },
@@ -102,10 +101,10 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
   ];
 
   const rawBottomNavItems = [
-    { key: "/", icon: <DashboardOutlined />, label: "Dashboard", module: null },
+    { key: "/reports", icon: <BarChartOutlined />, label: "Reports", module: "report" },
+    { key: "/abandoned-checkouts", icon: <PhoneOutlined style={{ color: "#f59e0b" }} />, label: "Abandoned", module: "orders" },
     { key: "/orders", icon: <ShoppingCartOutlined />, label: "Orders", module: "orders" },
     { key: "/fulfillment", icon: <CarOutlined />, label: "Fulfill", module: "orders" },
-    { key: "/crm", icon: <TeamOutlined />, label: "CRM", module: "crm" },
     { key: "/catalog", icon: <AppstoreOutlined />, label: "Catalog", module: "catalog" },
   ];
 

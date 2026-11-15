@@ -16,7 +16,7 @@ export const Login: React.FC = () => {
     login(values, {
       onSuccess: (res: any) => {
         if (res?.success) {
-          navigate("/");
+          navigate("/reports");
         } else {
           setErrorMsg(res?.error?.message || "Invalid username or password.");
         }

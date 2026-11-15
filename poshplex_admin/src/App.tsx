@@ -138,7 +138,7 @@ export const App: React.FC = () => {
                     </Authenticated>
                   }
                 >
-                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/" element={<Navigate to="/reports" replace />} />
                   {/* [TEMPORARY DISCONNECT] AI Fit Check & Music Library temporarily disconnected */}
                   {/* <Route path="/fit-check" element={<FitCheckPage />} /> */}
                   <Route path="/reports" element={<ReportsPage />} />
@@ -176,7 +176,7 @@ export const App: React.FC = () => {
 
                 
                 {/* Fallbacks */}
-                <Route path="*" element={<Navigate to="/" />} />
+                <Route path="*" element={<Navigate to="/reports" replace />} />
               </Routes>
             </Suspense>
           </Refine>
