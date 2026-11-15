@@ -239,3 +239,51 @@ class DraftCart(models.Model):
 
     def __str__(self):
         return f"DraftCart {self.token}"
+
+class AbandonedCheckout(AuditedModelMixin):
+    """
+    Tracks shoppers who started checkout, filled in contact information (phone number),
+    but abandoned the session before placing an order. Tele-sales agents use this
+    for recovery calls, WhatsApp outreach, and 1-click conversion.
+    """
+    STATUS_CHOICES = (
+        ('pending', 'Pending Call'),
+        ('called_busy', 'Called - No Answer / Busy'),
+        ('called_followup', 'Follow-up Needed'),
+        ('converted', 'Converted to Order'),
+        ('declined', 'Declined / Cancelled'),
+    )
+
+    session_token = models.CharField(max_length=100, unique=True, db_index=True)
+    phone = models.CharField(max_length=50, db_index=True)
+    customer_name = models.CharField(max_length=255, blank=True, default='')
+    customer_email = models.EmailField(blank=True, default='')
+
+    # Location details
+    shipping_district = models.CharField(max_length=100, blank=True, default='')
+    shipping_thana = models.CharField(max_length=100, blank=True, default='')
+    shipping_address = models.TextField(blank=True, default='')
+
+    # Cart snapshot and valuation
+    cart_items = models.JSONField(default=list)  # [{'sku': '...', 'product_name': '...', 'price': 100, 'quantity': 1, 'image': '...', 'size': '...'}]
+    cart_total = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+
+    # Recovery state
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='pending', db_index=True)
+    call_notes = models.TextField(blank=True, default='')
+    last_called_at = models.DateTimeField(blank=True, null=True)
+    followup_at = models.DateTimeField(blank=True, null=True)
+    assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_abandoned_checkouts')
+
+    # Link to successfully placed order if converted
+    converted_order = models.ForeignKey('Order', on_delete=models.SET_NULL, null=True, blank=True, related_name='abandoned_source')
+
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f"Abandoned Checkout ({self.phone} - ৳{self.cart_total}) [{self.status}]"
+
