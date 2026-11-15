@@ -425,7 +425,7 @@ export const OrderAnalyticsPage: React.FC = () => {
                         <div style={{ marginBottom: 12 }}>
                           <Text strong style={{ color: "#e4e4e7", fontSize: 13 }}>Warehouse Aging Breakdown</Text>
                           <p style={{ color: "#a1a1aa", fontSize: 12, margin: "2px 0 14px" }}>
-                            Unshipped orders in Placed, Review, or Pending beyond 24 hours.
+                            Unshipped orders in Placed or Review beyond 24 hours.
                           </p>
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>

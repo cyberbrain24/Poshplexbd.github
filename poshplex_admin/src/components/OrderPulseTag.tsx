@@ -92,7 +92,7 @@ export const OrderPulseTag: React.FC<OrderPulseTagProps> = ({
     }
   };
 
-  const isUnshipped = ["placed", "review", "pending", "hold", "approval_pending"].includes(order.status);
+  const isUnshipped = ["placed", "review"].includes(order.status);
   const isCancelled = ["cancelled", "manually_cancelled"].includes(order.status);
   const isPartial = order.status === "partially_delivered";
 

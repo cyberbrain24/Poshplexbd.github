@@ -285,8 +285,8 @@ def compile_order_response(order: Order, sku_to_details: dict = None) -> dict:
         "notes": h.notes
     } for h in order.status_history.all()]
 
-    # Calculate delay metrics
-    is_unshipped = order.status in ['placed', 'review', 'pending', 'hold', 'approval_pending']
+    # Calculate delay metrics - strictly for 'placed' & 'review' orders beyond 24h
+    is_unshipped = order.status in ['placed', 'review']
     delay_hours = 0
     is_delayed = False
     if order.created_at and is_unshipped:
@@ -355,10 +355,10 @@ def get_order_counts(request):
         
     counts["all"] = total_all
     
-    # OrderPulse: Delayed (>24h unshipped) count
+    # OrderPulse: Delayed (>24h unshipped) count strictly for 'placed' and 'review'
     cutoff_24h = timezone.now() - timedelta(hours=24)
     counts["delayed"] = Order.objects.filter(
-        status__in=['placed', 'review', 'pending', 'hold', 'approval_pending'],
+        status__in=['placed', 'review'],
         created_at__lt=cutoff_24h
     ).count()
 
@@ -375,7 +375,7 @@ def get_orderpulse_analytics(request):
     cutoff_72h = now - timedelta(hours=72)
     
     total_orders = Order.objects.count()
-    unshipped_statuses = ['placed', 'review', 'pending', 'hold', 'approval_pending']
+    unshipped_statuses = ['placed', 'review']
     
     # 1. Hub Delayed Orders breakdown
     delayed_qs = Order.objects.filter(status__in=unshipped_statuses, created_at__lt=cutoff_24h)
@@ -760,7 +760,7 @@ def list_orders(
         if status == "delayed":
             cutoff_24h = timezone.now() - timedelta(hours=24)
             qs = qs.filter(
-                status__in=['placed', 'review', 'pending', 'hold', 'approval_pending'],
+                status__in=['placed', 'review'],
                 created_at__lt=cutoff_24h
             )
         else:
@@ -1696,7 +1696,7 @@ def list_fulfillment_queue(
         if status == "delayed":
             cutoff_24h = timezone.now() - timedelta(hours=24)
             qs = qs.filter(
-                status__in=['placed', 'review', 'pending', 'hold', 'approval_pending'],
+                status__in=['placed', 'review'],
                 created_at__lt=cutoff_24h
             )
         else:

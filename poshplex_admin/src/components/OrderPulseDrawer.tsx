@@ -233,7 +233,7 @@ export const OrderPulseDrawer: React.FC<OrderPulseDrawerProps> = ({
                 <div style={{ marginBottom: 12 }}>
                   <Text strong style={{ color: "#e2e8f0", fontSize: 13 }}>Warehouse Aging Breakdown</Text>
                   <p style={{ color: "#94a3b8", fontSize: 12, margin: "2px 0 12px" }}>
-                    Orders sitting in Placed, Review, or Pending without shipping.
+                    Orders sitting in Placed or Review without shipping.
                   </p>
                 </div>
 
