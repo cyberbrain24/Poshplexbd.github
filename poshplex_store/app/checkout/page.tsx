@@ -172,6 +172,20 @@ export default function CheckoutPage() {
   const [discountAmount, setDiscountAmount] = useState(0);
   const [appliedPromo, setAppliedPromo] = useState("");
   const [isCheckingPromo, setIsCheckingPromo] = useState(false);
+  const checkoutSessionToken = useRef<string>("");
+  const abandonCaptureDebounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+  // Initialize unique checkout session token
+  useEffect(() => {
+    try {
+      let tok = sessionStorage.getItem("poshplex_checkout_session");
+      if (!tok) {
+        tok = `cs_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        sessionStorage.setItem("poshplex_checkout_session", tok);
+      }
+      checkoutSessionToken.current = tok;
+    } catch {}
+  }, []);
   const hasTrackedInitiateCheckout = useRef(false);
   const initiateCheckoutEventId = useRef<string>(
     typeof crypto !== "undefined" && crypto.randomUUID
@@ -259,6 +273,47 @@ export default function CheckoutPage() {
         typeof window !== "undefined" ? window.location.href : ""
       );
     }, 600);
+  };
+
+  // Silent capture for Abandoned Checkout Recovery
+  const captureAbandonedCheckout = (latestData: typeof formData) => {
+    const rawPh = latestData.phone || "";
+    const cleanPh = normalizeBDPhone(rawPh);
+    if (!isValidBDPhone(cleanPh) || cart.length === 0) return;
+
+    if (abandonCaptureDebounceTimer.current) {
+      clearTimeout(abandonCaptureDebounceTimer.current);
+    }
+
+    abandonCaptureDebounceTimer.current = setTimeout(() => {
+      try {
+        const payload = {
+          session_token: checkoutSessionToken.current || `cs_${Date.now()}`,
+          phone: cleanPh,
+          customer_name: (latestData.name || "").trim(),
+          customer_email: (latestData.email || "").trim(),
+          shipping_district: (latestData.district || "").trim(),
+          shipping_thana: (latestData.thana || "").trim(),
+          shipping_address: (latestData.address || "").trim(),
+          cart_total: cartTotal,
+          cart_items: cart.map((item: any) => ({
+            sku: item.sku || item.product_sku,
+            product_name: item.name || item.product_name || "Streetwear Item",
+            price: Number(item.price || 0),
+            quantity: Number(item.quantity || 1),
+            image: item.image || item.thumbnail || "",
+            size: item.size || item.variant || ""
+          }))
+        };
+
+        const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        fetch(`${apiUrl}/api/v1/orders/abandoned/capture`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        }).catch(() => {});
+      } catch {}
+    }, 1200);
   };
 
   useEffect(() => {
@@ -501,6 +556,7 @@ export default function CheckoutPage() {
         fpixel.saveUserData({ em: newValue });
       }
       reEnrichInitiateCheckout(updated);
+      captureAbandonedCheckout(updated);
     }
   };
 
@@ -511,8 +567,10 @@ export default function CheckoutPage() {
       const updated = { ...formData, phone: cleaned };
       setFormData(updated);
       reEnrichInitiateCheckout(updated);
+      captureAbandonedCheckout(updated);
     } else {
       reEnrichInitiateCheckout(formData);
+      captureAbandonedCheckout(formData);
     }
   };
 
@@ -556,6 +614,7 @@ export default function CheckoutPage() {
         promo_code: appliedPromo,
         customer_notes: formData.notes,
         payment_method: "Cash on Delivery",
+        checkout_session_token: checkoutSessionToken.current || undefined,
         items: cart.map(item => ({
           sku: item.sku,
           quantity: item.quantity,

@@ -12,7 +12,7 @@ from datetime import timedelta
 from ninja import Router, Schema
 from ninja.errors import HttpError
 
-from apps.orders.models import Order, OrderItem, OrderStatusHistory
+from apps.orders.models import Order, OrderItem, OrderStatusHistory, District, Thana, AbandonedCheckout
 
 from apps.marketing.models import PromoCode, PromoUsageHistory
 from apps.orders.services import (
@@ -65,6 +65,7 @@ class OrderCreateInputSchema(Schema):
     payment_reference: Optional[str] = ""
     payment_sender: Optional[str] = ""
     payment_amount: Optional[Decimal] = None
+    checkout_session_token: Optional[str] = None
 
 class OrderItemSchema(Schema):
     id: int
@@ -1248,6 +1249,30 @@ def customer_checkout_endpoint(request, data: OrderCreateInputSchema):
                     "email": user.email if user else getattr(locals().get('resolved_user'), 'email', "")
                 }
             )
+
+            # Auto-mark AbandonedCheckout as converted if a session token was linked
+            session_tok = getattr(data, 'checkout_session_token', None)
+            if session_tok:
+                try:
+                    AbandonedCheckout.objects.filter(session_token=session_tok).update(
+                        status='converted',
+                        converted_order=order
+                    )
+                except Exception:
+                    pass
+            elif final_phone:
+                # Fallback: Mark most recent pending abandoned checkout for this phone number as converted
+                try:
+                    recent_abandoned = AbandonedCheckout.objects.filter(
+                        phone=final_phone,
+                        status__in=['pending', 'called_busy', 'called_followup']
+                    ).order_by('-updated_at').first()
+                    if recent_abandoned:
+                        recent_abandoned.status = 'converted'
+                        recent_abandoned.converted_order = order
+                        recent_abandoned.save(update_fields=['status', 'converted_order', 'updated_at'])
+                except Exception:
+                    pass
                 
             return compile_order_response(order)
             
@@ -1968,3 +1993,319 @@ def get_my_orders(request):
     user = request.auth
     qs = Order.objects.filter(user=user).prefetch_related('items', 'payments', 'returns', 'status_history')
     return [compile_order_response(o) for o in qs.order_by('-created_at')]
+
+
+# ==============================================================================
+# ABANDONED CHECKOUT RECOVERY MODULE ENDPOINTS
+# ==============================================================================
+
+class AbandonedCheckoutItemSchema(Schema):
+    sku: str
+    product_name: str
+    price: Decimal
+    quantity: int
+    image: Optional[str] = None
+    size: Optional[str] = None
+
+class AbandonedCheckoutCaptureInput(Schema):
+    session_token: str
+    phone: str
+    customer_name: Optional[str] = ""
+    customer_email: Optional[str] = ""
+    shipping_district: Optional[str] = ""
+    shipping_thana: Optional[str] = ""
+    shipping_address: Optional[str] = ""
+    cart_items: List[AbandonedCheckoutItemSchema]
+    cart_total: Decimal
+
+class AbandonedCheckoutUpdateStatusInput(Schema):
+    status: str
+    call_notes: Optional[str] = ""
+    followup_at: Optional[Any] = None
+
+class AbandonedCheckoutResponseSchema(Schema):
+    id: int
+    session_token: str
+    phone: str
+    customer_name: str
+    customer_email: str
+    shipping_district: str
+    shipping_thana: str
+    shipping_address: str
+    cart_items: List[Any]
+    cart_total: Decimal
+    status: str
+    call_notes: str
+    last_called_at: Optional[Any] = None
+    followup_at: Optional[Any] = None
+    assigned_to_username: Optional[str] = None
+    converted_order_id: Optional[int] = None
+    converted_order_number: Optional[str] = None
+    created_at: Any
+    updated_at: Any
+
+class PaginatedAbandonedResponse(Schema):
+    items: List[AbandonedCheckoutResponseSchema]
+    total: int
+    page: int
+    limit: int
+    total_pages: int
+    kpi: dict
+
+def compile_abandoned_response(obj: AbandonedCheckout) -> dict:
+    return {
+        "id": obj.id,
+        "session_token": obj.session_token,
+        "phone": obj.phone,
+        "customer_name": obj.customer_name or "",
+        "customer_email": obj.customer_email or "",
+        "shipping_district": obj.shipping_district or "",
+        "shipping_thana": obj.shipping_thana or "",
+        "shipping_address": obj.shipping_address or "",
+        "cart_items": obj.cart_items or [],
+        "cart_total": obj.cart_total,
+        "status": obj.status,
+        "call_notes": obj.call_notes or "",
+        "last_called_at": obj.last_called_at,
+        "followup_at": obj.followup_at,
+        "assigned_to_username": obj.assigned_to.username if obj.assigned_to else None,
+        "converted_order_id": obj.converted_order_id,
+        "converted_order_number": obj.converted_order.order_number if obj.converted_order else None,
+        "created_at": obj.created_at,
+        "updated_at": obj.updated_at,
+    }
+
+@router.post("/abandoned/capture")
+def capture_abandoned_checkout(request, data: AbandonedCheckoutCaptureInput):
+    """
+    Public storefront endpoint.
+    Silently captures checkout contact and cart items when phone number is entered.
+    Updates existing record if matching session_token or recent phone exists.
+    """
+    raw_phone = (data.phone or "").strip()
+    # Normalize phone: extract digits, handle +88
+    digits = re.sub(r'\D', '', raw_phone)
+    if digits.startswith("8801") and len(digits) == 13:
+        clean_phone = digits[2:]
+    elif digits.startswith("008801") and len(digits) == 15:
+        clean_phone = digits[4:]
+    elif digits.startswith("1") and len(digits) == 10:
+        clean_phone = "0" + digits
+    else:
+        clean_phone = digits
+
+    if len(clean_phone) < 11 or not clean_phone.startswith("01"):
+        return {"success": False, "message": "Incomplete or invalid phone number"}
+
+    # If this phone placed an order within the last 15 minutes, skip recording
+    recent_order = Order.objects.filter(
+        shipping_phone__icontains=clean_phone[-10:],
+        created_at__gte=timezone.now() - timedelta(minutes=15)
+    ).first()
+    if recent_order:
+        return {"success": True, "status": "already_placed_order"}
+
+    items_data = [item.dict() for item in data.cart_items]
+    items_json = []
+    for itm in items_data:
+        items_json.append({
+            "sku": itm.get("sku"),
+            "product_name": itm.get("product_name"),
+            "price": float(itm.get("price") or 0),
+            "quantity": int(itm.get("quantity") or 1),
+            "image": itm.get("image"),
+            "size": itm.get("size")
+        })
+
+    # Update by session token if exists, otherwise create
+    record, created = AbandonedCheckout.objects.get_or_create(
+        session_token=data.session_token,
+        defaults={
+            "phone": clean_phone,
+            "customer_name": (data.customer_name or "").strip(),
+            "customer_email": (data.customer_email or "").strip(),
+            "shipping_district": (data.shipping_district or "").strip(),
+            "shipping_thana": (data.shipping_thana or "").strip(),
+            "shipping_address": (data.shipping_address or "").strip(),
+            "cart_items": items_json,
+            "cart_total": data.cart_total,
+            "status": "pending",
+        }
+    )
+
+    if not created and record.status != "converted":
+        record.phone = clean_phone
+        if data.customer_name:
+            record.customer_name = data.customer_name.strip()
+        if data.customer_email:
+            record.customer_email = data.customer_email.strip()
+        if data.shipping_district:
+            record.shipping_district = data.shipping_district.strip()
+        if data.shipping_thana:
+            record.shipping_thana = data.shipping_thana.strip()
+        if data.shipping_address:
+            record.shipping_address = data.shipping_address.strip()
+        if items_json:
+            record.cart_items = items_json
+            record.cart_total = data.cart_total
+        record.save()
+
+    return {"success": True, "id": record.id}
+
+@router.get("/abandoned/list", response=PaginatedAbandonedResponse, auth=BearerAuth())
+def list_abandoned_checkouts(
+    request,
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    page: int = 1,
+    limit: int = 20
+):
+    """
+    List abandoned checkouts for tele-sales and recovery outreach (Admin only).
+    """
+    enforce_permission(request, "orders", "view_orders")
+    qs = AbandonedCheckout.objects.select_related('assigned_to', 'converted_order').all()
+
+    if status and status.lower() != "all":
+        qs = qs.filter(status=status.lower())
+
+    if search:
+        search_term = search.strip()
+        qs = qs.filter(
+            Q(phone__icontains=search_term) |
+            Q(customer_name__icontains=search_term) |
+            Q(shipping_district__icontains=search_term) |
+            Q(call_notes__icontains=search_term)
+        )
+
+    # Compute high-level recovery metrics
+    all_qs = AbandonedCheckout.objects.all()
+    total_captured = all_qs.count()
+    pending_count = all_qs.filter(status="pending").count()
+    followup_count = all_qs.filter(status="called_followup").count()
+    converted_count = all_qs.filter(status="converted").count()
+    declined_count = all_qs.filter(status="declined").count()
+
+    total_recoverable_value = all_qs.filter(status__in=["pending", "called_followup", "called_busy"]).aggregate(
+        val=Sum('cart_total')
+    )['val'] or Decimal('0.00')
+
+    total_recovered_value = all_qs.filter(status="converted").aggregate(
+        val=Sum('cart_total')
+    )['val'] or Decimal('0.00')
+
+    conversion_rate = round((converted_count / total_captured * 100), 1) if total_captured > 0 else 0.0
+
+    kpi = {
+        "total_captured": total_captured,
+        "pending_count": pending_count,
+        "followup_count": followup_count,
+        "converted_count": converted_count,
+        "declined_count": declined_count,
+        "recoverable_value": float(total_recoverable_value),
+        "recovered_value": float(total_recovered_value),
+        "conversion_rate": conversion_rate,
+    }
+
+    total = qs.count()
+    total_pages = (total + limit - 1) // limit if limit > 0 else 1
+    offset = (page - 1) * limit
+    paginated_items = qs.order_by('-updated_at')[offset:offset + limit]
+
+    return {
+        "items": [compile_abandoned_response(obj) for obj in paginated_items],
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "total_pages": total_pages,
+        "kpi": kpi
+    }
+
+@router.patch("/abandoned/{int:abandoned_id}/status", response=AbandonedCheckoutResponseSchema, auth=BearerAuth())
+def update_abandoned_status(request, abandoned_id: int, data: AbandonedCheckoutUpdateStatusInput):
+    """
+    Update tele-sales call notes, follow-up schedule, and status for an abandoned checkout.
+    """
+    enforce_permission(request, "orders", "edit_orders")
+    record = get_object_or_404(AbandonedCheckout, id=abandoned_id)
+
+    record.status = data.status
+    if data.call_notes is not None:
+        record.call_notes = data.call_notes
+    record.last_called_at = timezone.now()
+    if data.followup_at:
+        record.followup_at = data.followup_at
+    if request.auth and hasattr(request.auth, 'id'):
+        record.assigned_to = request.auth
+
+    record.save()
+    return compile_abandoned_response(record)
+
+@router.post("/abandoned/{int:abandoned_id}/convert-to-order", response=OrderResponseSchema, auth=BearerAuth())
+def convert_abandoned_to_order(request, abandoned_id: int):
+    """
+    1-Click tele-sales conversion: Creates a Cash on Delivery Order from the abandoned checkout cart.
+    """
+    enforce_permission(request, "orders", "edit_orders")
+    record = get_object_or_404(AbandonedCheckout, id=abandoned_id)
+
+    if record.status == "converted" and record.converted_order:
+        return compile_order_response(record.converted_order)
+
+    # Validate items
+    if not record.cart_items:
+        raise HttpError(400, "Abandoned checkout has no cart items to order.")
+
+    items_list = []
+    for itm in record.cart_items:
+        items_list.append({
+            "sku": itm.get("sku"),
+            "quantity": int(itm.get("quantity") or 1),
+            "price": Decimal(str(itm.get("price") or 0))
+        })
+
+    # Resolve customer user
+    phone_clean = record.phone.replace("+88", "").strip()
+    u, _ = User.objects.get_or_create(
+        username=phone_clean,
+        defaults={
+            "phone": phone_clean,
+            "first_name": record.customer_name or "Guest",
+            "is_active": True
+        }
+    )
+
+    # Determine default shipping cost (inside Dhaka 70, outside 120)
+    dist = (record.shipping_district or "").lower()
+    shipping_cost = Decimal('70.00') if 'dhaka' in dist else Decimal('120.00')
+
+    with transaction.atomic():
+        order = create_order(
+            user_id=u.id,
+            items_data=items_list,
+            shipping_address=record.shipping_address or (record.shipping_district or "Customer Address"),
+            shipping_name=record.customer_name or f"Customer {phone_clean}",
+            shipping_phone=record.phone,
+            shipping_district=record.shipping_district or "Dhaka",
+            shipping_thana=record.shipping_thana or "Dhaka",
+            shipping_postal_code="",
+            discount_amount=Decimal('0.00'),
+            shipping_cost=shipping_cost,
+            customer_notes="Converted from Abandoned Checkout by Tele-sales",
+            internal_notes=f"Converted by {request.auth.username if request.auth else 'admin'}. Notes: {record.call_notes}"
+        )
+
+        record.status = "converted"
+        record.converted_order = order
+        record.save(update_fields=['status', 'converted_order', 'updated_at'])
+
+        # Log history
+        OrderStatusHistory.objects.create(
+            order=order,
+            status=order.status,
+            admin_username=request.auth.username if request.auth else "admin",
+            notes=f"Order created via Abandoned Checkout Recovery (Ref #{record.id})."
+        )
+
+    return compile_order_response(order)
+

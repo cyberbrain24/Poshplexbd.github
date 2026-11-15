@@ -41,6 +41,7 @@ const ApiIntegrationPage = React.lazy(() => import("./pages/marketing").then(m =
 // [TEMPORARY DISCONNECT] AI Fit Check module temporarily disconnected
 // const FitCheckPage = React.lazy(() => import("./pages/fit-check"));
 const OrderAnalyticsPage = React.lazy(() => import("./pages/order-analytics"));
+const AbandonedCheckoutsPage = React.lazy(() => import("./pages/abandoned-checkouts"));
 
 
 
@@ -143,6 +144,7 @@ export const App: React.FC = () => {
                   <Route path="/reports" element={<ReportsPage />} />
                   <Route path="/orders" element={<Orders />} />
                   <Route path="/order-analytics" element={<OrderAnalyticsPage />} />
+                  <Route path="/abandoned-checkouts" element={<AbandonedCheckoutsPage />} />
                   <Route path="/fulfillment" element={<Fulfillment />} />
                   <Route path="/promo-codes" element={<PromoCodes />} />
                   <Route path="/catalog" element={<Catalog />} />
