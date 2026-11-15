@@ -1254,23 +1254,16 @@ def customer_checkout_endpoint(request, data: OrderCreateInputSchema):
             session_tok = getattr(data, 'checkout_session_token', None)
             if session_tok:
                 try:
-                    AbandonedCheckout.objects.filter(session_token=session_tok).update(
-                        status='converted',
-                        converted_order=order
-                    )
+                    # When customer places the order themselves, remove or mark as converted
+                    AbandonedCheckout.objects.filter(session_token=session_tok).delete()
                 except Exception:
                     pass
-            elif final_phone:
-                # Fallback: Mark most recent pending abandoned checkout for this phone number as converted
+            if final_phone:
+                # Also delete any pending/recent abandoned drops for this phone so it never shows in Abandoned drops
                 try:
-                    recent_abandoned = AbandonedCheckout.objects.filter(
-                        phone=final_phone,
-                        status__in=['pending', 'called_busy', 'called_followup']
-                    ).order_by('-updated_at').first()
-                    if recent_abandoned:
-                        recent_abandoned.status = 'converted'
-                        recent_abandoned.converted_order = order
-                        recent_abandoned.save(update_fields=['status', 'converted_order', 'updated_at'])
+                    AbandonedCheckout.objects.filter(
+                        phone__icontains=final_phone[-10:]
+                    ).delete()
                 except Exception:
                     pass
                 
@@ -2164,10 +2157,15 @@ def list_abandoned_checkouts(
     List abandoned checkouts for tele-sales and recovery outreach (Admin only).
     """
     enforce_permission(request, "orders", "view_orders")
+    # Only list actual unrecovered abandoned drops needing outreach (pending, busy, followup, declined).
+    # Once converted into a real order, it belongs strictly in the Orders Queue.
     qs = AbandonedCheckout.objects.select_related('assigned_to', 'converted_order').all()
 
     if status and status.lower() != "all":
         qs = qs.filter(status=status.lower())
+    else:
+        # Default view: hide converted orders so they don't clutter the recovery call list
+        qs = qs.exclude(status="converted")
 
     if search:
         search_term = search.strip()

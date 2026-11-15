@@ -55,18 +55,18 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const rawMenuItems = [
-    { key: "/", icon: <DashboardOutlined />, label: "Dashboard", module: null },
     { key: "/reports", icon: <BarChartOutlined />, label: "Sales Reports", module: "report" },
+    { key: "/", icon: <DashboardOutlined />, label: "Dashboard", module: null },
     { key: "/orders", icon: <ShoppingCartOutlined />, label: "Orders Queue", module: "orders" },
-    { key: "/abandoned-checkouts", icon: <PhoneOutlined style={{ color: "#f59e0b" }} />, label: "Abandoned Drops", module: "orders" },
-    { key: "/order-analytics", icon: <ThunderboltOutlined style={{ color: "#a855f7" }} />, label: "Order Analytics", module: "orders" },
     { key: "/printing", icon: <PrinterOutlined />, label: "Printing Queue", module: "orders" },
     { key: "/fulfillment", icon: <CarOutlined />, label: "Fulfillment Queue", module: "orders" },
+    { key: "/abandoned-checkouts", icon: <PhoneOutlined style={{ color: "#f59e0b" }} />, label: "Abandoned Queue", module: "orders" },
+    { key: "/order-analytics", icon: <ThunderboltOutlined style={{ color: "#a855f7" }} />, label: "Order Analytics", module: "orders" },
     { key: "/crm", icon: <TeamOutlined />, label: "CRM Profiles", module: "crm" },
     { key: "/catalog", icon: <AppstoreOutlined />, label: "Catalog Manager", module: "catalog" },
     { key: "/promo-codes", icon: <GiftOutlined />, label: "Discount Engine", module: "marketing" },
-    // [TEMPORARY DISCONNECT] AI Fit Check module temporarily disconnected
-    // { key: "/fit-check", icon: <SkinOutlined />, label: "AI Fit Check Studio", module: "fitcheck" },
+    { key: "/tasks", icon: <CheckSquareOutlined />, label: "Task Management", module: "tasks" },
+    { key: "/finance", icon: <AuditOutlined />, label: "Financial Ledger", module: "finance" },
     {
       key: "sub-meta-engine",
       icon: <ThunderboltOutlined />,
@@ -81,10 +81,7 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
         { key: "/marketing/rules", icon: <CheckSquareOutlined />, label: "Ad Automation Rules", module: "marketing" },
         { key: "/marketing/accounts", icon: <SettingOutlined />, label: "Meta Ad Accounts", module: "marketing" },
       ],
-
     },
-    { key: "/finance", icon: <AuditOutlined />, label: "Financial Ledger", module: "finance" },
-    { key: "/tasks", icon: <CheckSquareOutlined />, label: "Task Management", module: "tasks" },
     {
       key: "sub-settings",
       icon: <SettingOutlined />,

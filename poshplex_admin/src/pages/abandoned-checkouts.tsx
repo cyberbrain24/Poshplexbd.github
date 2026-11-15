@@ -411,10 +411,9 @@ export const AbandonedCheckoutsPage: React.FC = () => {
             }}
           >
             {[
-              { key: "all", label: "All Drops", count: kpi.total_captured, color: "#52c41a" },
+              { key: "all", label: "Active Drops", count: kpi.pending_count + kpi.followup_count, color: "#f59e0b" },
               { key: "pending", label: "Pending Call", count: kpi.pending_count, color: "#f59e0b" },
               { key: "called_followup", label: "Follow-up Needed", count: kpi.followup_count, color: "#3b82f6" },
-              { key: "converted", label: "Converted", count: kpi.converted_count, color: "#10b981" },
               { key: "declined", label: "Declined / Lost", count: kpi.declined_count, color: "#ef4444" },
             ].map(tab => {
               const isActive = activeTab === tab.key;
