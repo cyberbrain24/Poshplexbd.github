@@ -37,35 +37,29 @@ export const ReportsPage: React.FC = () => {
   };
   const fetchReport = async () => {
     setLoading(true);
-    let fromDate = null;
-    let toDate = null;
-    const now = dayjs();
+    let fromDate: string | null = null;
+    let toDate: string | null = null;
+    let preset: string | null = null;
 
-    if (filterType === "today") {
-      fromDate = now.startOf("day").toISOString();
-      toDate = now.endOf("day").toISOString();
-    } else if (filterType === "yesterday") {
-      fromDate = now.subtract(1, "day").startOf("day").toISOString();
-      toDate = now.subtract(1, "day").endOf("day").toISOString();
-    } else if (filterType === "day_before_yesterday") {
-      fromDate = now.subtract(2, "day").startOf("day").toISOString();
-      toDate = now.subtract(2, "day").endOf("day").toISOString();
-    } else if (filterType === "7_days") {
-      fromDate = now.subtract(7, "day").startOf("day").toISOString();
-      toDate = now.endOf("day").toISOString();
-    } else if (filterType === "1_month") {
-      fromDate = now.subtract(1, "month").startOf("day").toISOString();
-      toDate = now.endOf("day").toISOString();
-    } else if (filterType === "custom" && dateRange[0] && dateRange[1]) {
-      fromDate = dateRange[0].startOf("day").toISOString();
-      toDate = dateRange[1].endOf("day").toISOString();
+    if (filterType === "custom") {
+      if (dateRange[0] && dateRange[1]) {
+        // Send YYYY-MM-DD for clean timezone-agnostic boundaries
+        fromDate = dateRange[0].format("YYYY-MM-DD");
+        toDate = dateRange[1].format("YYYY-MM-DD");
+      }
+    } else {
+      preset = filterType;
     }
 
     try {
       const token = localStorage.getItem("poshplex_access_token");
       const res = await axios.get(`${API_URL}/report/sales`, {
         headers: { Authorization: `Bearer ${token}` },
-        params: { date_from: fromDate, date_to: toDate }
+        params: { 
+          preset: preset || undefined,
+          date_from: fromDate || undefined, 
+          date_to: toDate || undefined 
+        }
       });
       setData(res.data);
     } catch (err: any) {

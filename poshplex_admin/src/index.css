@@ -103,6 +103,8 @@ body {
   white-space: nowrap;
   padding: 4px 2px 8px 2px;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -126,6 +128,7 @@ body {
   transition: all 0.2s ease;
   user-select: none;
   outline: none;
+  -webkit-tap-highlight-color: transparent;
 }
 .posh-status-pill:hover {
   background: rgba(255, 255, 255, 0.06);
@@ -138,6 +141,19 @@ body {
   color: #fff !important;
   font-weight: 600;
   box-shadow: 0 0 10px rgba(139, 92, 246, 0.25);
+}
+
+/* Responsive Single-Column Breakpoint for Order Queue (up to 850px tablets & mobile) */
+@media (max-width: 850px) {
+  .posh-orders-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
 }
 
 /* Filter Row Styles */
@@ -292,9 +308,12 @@ body {
   .posh-order-card {
     min-width: 0 !important;
     width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
     border-radius: 10px !important;
     background: var(--bg-secondary) !important;
     border: 1px solid var(--border-glass) !important;
+    overflow: hidden !important;
   }
   .posh-order-card .ant-card-body {
     padding: 12px !important;
@@ -302,6 +321,10 @@ body {
     flex-direction: column !important;
     gap: 8px !important;
     height: auto !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
   }
   .posh-order-card-top-section {
     display: flex !important;
@@ -309,6 +332,9 @@ body {
     gap: 12px !important;
     align-items: flex-start !important;
     width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
   }
   .posh-order-card-img {
     width: 92px !important;
@@ -329,48 +355,70 @@ body {
   .posh-order-card-primary {
     flex: 1 !important;
     min-width: 0 !important;
+    max-width: calc(100% - 104px) !important;
+    box-sizing: border-box !important;
     display: flex !important;
     flex-direction: column !important;
     gap: 2px !important;
+    overflow: hidden !important;
   }
   .posh-order-card-bottom-section {
     display: flex !important;
     flex-direction: column !important;
     width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
     gap: 6px !important;
+    overflow: hidden !important;
   }
   .posh-order-card-meta {
     font-size: 11px !important;
     gap: 4px !important;
     flex-wrap: wrap !important;
     margin-bottom: 2px !important;
+    width: 100% !important;
   }
   .posh-order-card-title {
     font-size: 13px !important;
     font-weight: 600 !important;
     line-height: 16px !important;
     margin-bottom: 2px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    width: 100% !important;
   }
   .posh-order-card-phone {
     font-size: 12px !important;
     margin-bottom: 4px !important;
     gap: 4px !important;
+    width: 100% !important;
   }
   .posh-order-card-row {
     font-size: 11.5px !important;
     margin-bottom: 3px !important;
+    width: 100% !important;
   }
   .posh-order-card-tags {
     gap: 4px !important;
     margin-bottom: 2px !important;
+    flex-wrap: wrap !important;
+    width: 100% !important;
   }
   .posh-order-card-sub {
     font-size: 11px !important;
     line-height: 15px !important;
+    word-break: break-word !important;
   }
   .posh-order-card-actions {
     gap: 6px !important;
     margin-bottom: 6px !important;
+    width: 100% !important;
+    flex-wrap: wrap !important;
+  }
+  .posh-order-card-actions > * {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
   .posh-order-card .ant-btn-sm {
     font-size: 11px !important;

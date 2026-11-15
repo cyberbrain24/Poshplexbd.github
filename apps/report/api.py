@@ -8,7 +8,7 @@ from apps.catalog.models import ProductVariant, Product
 from apps.core.models import SiteSetting
 from django.utils.dateparse import parse_datetime, parse_date
 from django.utils import timezone
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 
 router = Router(auth=BearerAuth())
 
@@ -16,28 +16,61 @@ class FixedExpenseInputSchema(Schema):
     amount: float
 
 @router.get("/sales")
-def get_sales_report(request, date_from: Optional[str] = None, date_to: Optional[str] = None):
+def get_sales_report(
+    request, 
+    date_from: Optional[str] = None, 
+    date_to: Optional[str] = None,
+    preset: Optional[str] = None
+):
     enforce_permission(request, "report", "view")
+
+    import zoneinfo
+    dhaka_tz = zoneinfo.ZoneInfo("Asia/Dhaka")
+    now_dhaka = timezone.now().astimezone(dhaka_tz)
 
     qs = Order.objects.all()
 
-    if date_from:
-        parsed_dt = parse_datetime(date_from)
-        if not parsed_dt:
-            parsed_d = parse_date(date_from)
-            if parsed_d:
-                parsed_dt = timezone.make_aware(datetime.combine(parsed_d, time.min))
-        if parsed_dt:
-            qs = qs.filter(created_at__gte=parsed_dt)
-            
-    if date_to:
-        parsed_dt = parse_datetime(date_to)
-        if not parsed_dt:
-            parsed_d = parse_date(date_to)
-            if parsed_d:
-                parsed_dt = timezone.make_aware(datetime.combine(parsed_d, time.max))
-        if parsed_dt:
-            qs = qs.filter(created_at__lte=parsed_dt)
+    # Prioritize server-side timezone-accurate preset (Asia/Dhaka)
+    if preset:
+        preset_clean = preset.strip().lower()
+        if preset_clean == "today":
+            start_dt = now_dhaka.replace(hour=0, minute=0, second=0, microsecond=0)
+            qs = qs.filter(created_at__gte=start_dt)
+        elif preset_clean == "yesterday":
+            yesterday_dhaka = now_dhaka - timedelta(days=1)
+            start_dt = yesterday_dhaka.replace(hour=0, minute=0, second=0, microsecond=0)
+            end_dt = yesterday_dhaka.replace(hour=23, minute=59, second=59, microsecond=999999)
+            qs = qs.filter(created_at__gte=start_dt, created_at__lte=end_dt)
+        elif preset_clean == "day_before_yesterday":
+            day_before = now_dhaka - timedelta(days=2)
+            start_dt = day_before.replace(hour=0, minute=0, second=0, microsecond=0)
+            end_dt = day_before.replace(hour=23, minute=59, second=59, microsecond=999999)
+            qs = qs.filter(created_at__gte=start_dt, created_at__lte=end_dt)
+        elif preset_clean == "7_days":
+            start_dt = now_dhaka - timedelta(days=7)
+            qs = qs.filter(created_at__gte=start_dt)
+        elif preset_clean == "1_month":
+            start_dt = now_dhaka - timedelta(days=30)
+            qs = qs.filter(created_at__gte=start_dt)
+    else:
+        # Fallback to date_from / date_to if custom range
+        if date_from:
+            parsed_dt = parse_datetime(date_from)
+            if not parsed_dt:
+                parsed_d = parse_date(date_from)
+                if parsed_d:
+                    parsed_dt = timezone.make_aware(datetime.combine(parsed_d, time.min), dhaka_tz)
+            if parsed_dt:
+                qs = qs.filter(created_at__gte=parsed_dt)
+                
+        if date_to:
+            parsed_dt = parse_datetime(date_to)
+            if not parsed_dt:
+                parsed_d = parse_date(date_to)
+                if parsed_d:
+                    parsed_dt = timezone.make_aware(datetime.combine(parsed_d, time.max), dhaka_tz)
+            if parsed_dt:
+                qs = qs.filter(created_at__lte=parsed_dt)
 
     total_orders = qs.count()
     total_amount = qs.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
