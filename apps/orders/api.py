@@ -951,17 +951,54 @@ def get_order_endpoint(request, order_id: int):
         
     return compile_order_response(order)
 
+def normalize_bangladesh_phone(raw_phone: Optional[str]) -> str:
+    """
+    Normalizes any Bangladeshi mobile number into an 11-digit string starting with 01.
+    Handles +88, 88, 0088 prefixes, spaces, hyphens, and inadvertent country code typos.
+    """
+    if not raw_phone:
+        return ""
+    digits = re.sub(r"\D", "", str(raw_phone))
+    if digits.startswith("8801") and len(digits) >= 13:
+        digits = digits[2:]
+    elif digits.startswith("008801") and len(digits) >= 15:
+        digits = digits[4:]
+    elif digits.startswith("88") and len(digits) >= 13:
+        digits = digits[2:]
+
+    # Locate '01' followed by 9 digits matching valid operator prefixes 013-019
+    idx = digits.find("01")
+    if idx != -1 and len(digits) - idx >= 11:
+        candidate = digits[idx:idx + 11]
+        if re.match(r"^01[3-9]\d{8}$", candidate):
+            return candidate
+
+    if digits.startswith("01") and len(digits) == 11 and re.match(r"^01[3-9]\d{8}$", digits):
+        return digits
+
+    return digits
+
 def resolve_or_create_customer(user, data: OrderCreateInputSchema, user_id_override: Optional[int] = None):
     from django.apps import apps
     import uuid
     CustomerProfile = apps.get_model('crm', 'CustomerProfile')
     
-    final_phone = data.shipping_phone or data.customer_phone
+    raw_target_phone = data.shipping_phone or data.customer_phone
     if user and hasattr(user, 'crm_profile') and user.crm_profile.phone and not user.crm_profile.phone.startswith('email_'):
-        final_phone = final_phone or user.crm_profile.phone
+        raw_target_phone = raw_target_phone or user.crm_profile.phone
         
+    final_phone = normalize_bangladesh_phone(raw_target_phone)
     if not final_phone and not user_id_override:
         raise ValidationError("A valid phone number is mandatory to place an order.")
+
+    # Strict Bangladeshi Mobile format validation for consumer checkouts
+    if not user_id_override:
+        if not re.match(r"^01[3-9]\d{8}$", final_phone):
+            raise ValidationError("Please provide a valid 11-digit Bangladeshi mobile number starting with 01 (e.g. 017XXXXXXXX).")
+
+    # Keep both fields synchronized with normalized 11-digit phone
+    data.customer_phone = final_phone
+    data.shipping_phone = final_phone
 
     u_id = user_id_override or (user.id if user else None)
     resolved_user = user
