@@ -18,7 +18,19 @@ export const RolesPage: React.FC = () => {
   const { data: canDelete } = useCan({ resource: "core", action: "delete" });
 
   // [TEMPORARY DISCONNECT] "music" temporarily removed from active UI list while module is disconnected
-  const modules = ["core", "catalog", "orders", "crm", "finance", "marketing", "media", "tasks", "report"];
+  const MODULE_DEFINITIONS = [
+    { key: "report", label: "Sales Reports", description: "Executive sales KPIs, revenue analytics, and performance reports" },
+    { key: "orders", label: "Orders & Queues", description: "Orders queue, abandoned checkouts recovery, printing & fulfillment queues" },
+    { key: "crm", label: "CRM Profiles", description: "Customer relationship directory, call logs, and customer profiles" },
+    { key: "catalog", label: "Catalog Manager", description: "Products, categories, variants, inventory, and printing files" },
+    { key: "marketing", label: "Marketing & Discounts", description: "Discount coupons, Meta ads optimization engine, AI marketing agent & rules" },
+    { key: "tasks", label: "Task Management", description: "Team task boards, internal staff to-dos, and assignment queues" },
+    { key: "finance", label: "Financial Ledger", description: "Double-entry bookkeeping, revenue/expense accounts, and cash flow" },
+    { key: "media", label: "Media Library", description: "Central R2 asset manager, image CDN uploads, and product galleries" },
+    { key: "core", label: "System & Settings", description: "General settings, staff accounts, roles & permissions, zones, and integrations" },
+  ];
+
+  const modules = MODULE_DEFINITIONS.map(m => m.key);
 
   const fetchRoles = async () => {
     setLoading(true);
@@ -126,28 +138,37 @@ export const RolesPage: React.FC = () => {
           
           <Title level={5}>Permissions Matrix</Title>
           <Table 
-            dataSource={modules.map(m => ({ module: m }))}
-            rowKey="module"
+            dataSource={MODULE_DEFINITIONS}
+            rowKey="key"
             pagination={false}
             columns={[
-              { title: "Module", dataIndex: "module", render: text => <strong style={{ textTransform: 'capitalize' }}>{text}</strong> },
-              { title: "View", key: "view", render: (_, r) => (
-                <Form.Item name={["permissions", r.module, "view"]} valuePropName="checked" noStyle>
+              {
+                title: "Module",
+                dataIndex: "label",
+                render: (_, r) => (
+                  <div>
+                    <strong style={{ fontSize: 13, color: "var(--text-main)" }}>{r.label}</strong>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{r.description}</div>
+                  </div>
+                )
+              },
+              { title: "View", key: "view", width: 70, align: "center", render: (_, r) => (
+                <Form.Item name={["permissions", r.key, "view"]} valuePropName="checked" noStyle>
                   <Checkbox />
                 </Form.Item>
               )},
-              { title: "Create", key: "create", render: (_, r) => (
-                <Form.Item name={["permissions", r.module, "create"]} valuePropName="checked" noStyle>
+              { title: "Create", key: "create", width: 70, align: "center", render: (_, r) => (
+                <Form.Item name={["permissions", r.key, "create"]} valuePropName="checked" noStyle>
                   <Checkbox />
                 </Form.Item>
               )},
-              { title: "Edit", key: "edit", render: (_, r) => (
-                <Form.Item name={["permissions", r.module, "edit"]} valuePropName="checked" noStyle>
+              { title: "Edit", key: "edit", width: 70, align: "center", render: (_, r) => (
+                <Form.Item name={["permissions", r.key, "edit"]} valuePropName="checked" noStyle>
                   <Checkbox />
                 </Form.Item>
               )},
-              { title: "Delete", key: "delete", render: (_, r) => (
-                <Form.Item name={["permissions", r.module, "delete"]} valuePropName="checked" noStyle>
+              { title: "Delete", key: "delete", width: 70, align: "center", render: (_, r) => (
+                <Form.Item name={["permissions", r.key, "delete"]} valuePropName="checked" noStyle>
                   <Checkbox />
                 </Form.Item>
               )}
