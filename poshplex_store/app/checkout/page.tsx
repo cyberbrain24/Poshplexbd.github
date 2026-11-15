@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Lock, ArrowRight, CheckCircle2, ChevronDown, Search } from "lucide-react";
+import { Lock, ArrowRight, CheckCircle2, ChevronDown, Search, AlertCircle } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { fetchWithAuth } from "../utils/fetchWithAuth";
 import { useCart } from "../../context/CartContext";
@@ -131,6 +131,29 @@ function SearchableSelect({
   );
 }
 // ------------------------------------------
+export function normalizeBDPhone(rawPhone: string | undefined | null): string {
+  if (!rawPhone) return "";
+  let digits = rawPhone.replace(/\D/g, "");
+  if (digits.startsWith("8801") && digits.length >= 13) digits = digits.slice(2);
+  else if (digits.startsWith("008801") && digits.length >= 15) digits = digits.slice(4);
+  else if (digits.startsWith("88") && digits.length >= 13) digits = digits.slice(2);
+
+  const idx = digits.indexOf("01");
+  if (idx !== -1 && digits.length - idx >= 11) {
+    const candidate = digits.slice(idx, idx + 11);
+    if (/^01[3-9]\d{8}$/.test(candidate)) return candidate;
+  }
+
+  if (digits.startsWith("01") && digits.length === 11 && /^01[3-9]\d{8}$/.test(digits)) {
+    return digits;
+  }
+  return digits;
+}
+
+export function isValidBDPhone(rawPhone: string | undefined | null): boolean {
+  const normalized = normalizeBDPhone(rawPhone);
+  return /^01[3-9]\d{8}$/.test(normalized);
+}
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -173,6 +196,7 @@ export default function CheckoutPage() {
     gender: "",
     dob: ""
   });
+  const [phoneTouched, setPhoneTouched] = useState(false);
 
   // Mid-funnel CAPI Re-Enrichment for InitiateCheckout:
   // When visitors enter contact info (phone, email, name, location), fire an updated CAPI payload
@@ -456,27 +480,59 @@ export default function CheckoutPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    const updated = { ...formData, [name]: value };
+    let newValue = value;
+    if (name === "phone") {
+      // Auto-extract and normalize 11-digit BD number if user typed/pasted country code
+      const normalizedCandidate = normalizeBDPhone(value);
+      if (normalizedCandidate.length === 11 && /^01[3-9]\d{8}$/.test(normalizedCandidate)) {
+        newValue = normalizedCandidate;
+      }
+    }
+    const updated = { ...formData, [name]: newValue };
     setFormData(updated);
-    if (["phone", "email", "name"].includes(name) && value.trim().length >= 3) {
+    if (["phone", "email", "name"].includes(name) && newValue.trim().length >= 3) {
       if (name === "name") {
-        const { fn, ln } = fpixel.splitFullName(value);
+        const { fn, ln } = fpixel.splitFullName(newValue);
         fpixel.saveUserData({ fn, ln });
       } else if (name === "phone") {
-        fpixel.saveUserData({ ph: value });
+        const phNormalized = normalizeBDPhone(newValue);
+        fpixel.saveUserData({ ph: phNormalized });
       } else if (name === "email") {
-        fpixel.saveUserData({ em: value });
+        fpixel.saveUserData({ em: newValue });
       }
       reEnrichInitiateCheckout(updated);
     }
   };
 
+  const handlePhoneBlur = () => {
+    setPhoneTouched(true);
+    const cleaned = normalizeBDPhone(formData.phone);
+    if (cleaned && cleaned !== formData.phone) {
+      const updated = { ...formData, phone: cleaned };
+      setFormData(updated);
+      reEnrichInitiateCheckout(updated);
+    } else {
+      reEnrichInitiateCheckout(formData);
+    }
+  };
+
+  const isPhoneValid = isValidBDPhone(formData.phone);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setPhoneTouched(true);
+
     if (cart.length === 0) {
       setError("Your cart is empty.");
       return;
     }
+
+    const finalPhone = normalizeBDPhone(formData.phone);
+    if (!isValidBDPhone(finalPhone)) {
+      setError("Please provide a valid 11-digit Bangladeshi mobile number starting with 01 (e.g., 017XXXXXXXX).");
+      return;
+    }
+
     if (!formData.district || !formData.thana) {
       setError("Please select both a District and Area (Thana).");
       return;
@@ -488,10 +544,10 @@ export default function CheckoutPage() {
     try {
       const payload = {
         customer_name: formData.name,
-        customer_phone: formData.phone,
+        customer_phone: finalPhone,
         customer_email: formData.email,
         shipping_name: formData.name,
-        shipping_phone: formData.phone,
+        shipping_phone: finalPhone,
         shipping_address: formData.address,
         shipping_district: formData.district,
         shipping_thana: formData.thana,
@@ -688,8 +744,39 @@ export default function CheckoutPage() {
                     <input required type="text" name="name" value={formData.name} onChange={handleChange} onBlur={() => reEnrichInitiateCheckout(formData)} style={inputStyle} placeholder="John Doe" />
                   </div>
                   <div>
-                    <label style={labelStyle}>Phone Number *</label>
-                    <input required type="tel" name="phone" value={formData.phone} onChange={handleChange} onBlur={() => reEnrichInitiateCheckout(formData)} style={inputStyle} placeholder="017XXXXXXXX" />
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <label style={{ ...labelStyle, marginBottom: 0 }}>Phone Number *</label>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: isPhoneValid ? "#10b981" : (phoneTouched ? "#ef4444" : "var(--text-muted)") }}>
+                        {isPhoneValid ? "✓ Valid 11-digit BD number" : "11 digits starting with 01"}
+                      </span>
+                    </div>
+                    <div style={{ position: "relative" }}>
+                      <input 
+                        required 
+                        type="tel" 
+                        name="phone" 
+                        value={formData.phone} 
+                        onChange={handleChange} 
+                        onBlur={handlePhoneBlur}
+                        style={{
+                          ...inputStyle,
+                          borderColor: isPhoneValid ? "#10b981" : (phoneTouched && formData.phone ? "#ef4444" : "var(--border-color, #ddd)"),
+                          backgroundColor: phoneTouched && formData.phone && !isPhoneValid ? "rgba(239, 68, 68, 0.04)" : "rgba(255,255,255,0.03)",
+                          paddingRight: 40
+                        }} 
+                        placeholder="01XXXXXXXXX" 
+                      />
+                      <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", display: "flex", alignItems: "center" }}>
+                        {isPhoneValid && <CheckCircle2 size={18} color="#10b981" />}
+                        {phoneTouched && formData.phone && !isPhoneValid && <AlertCircle size={18} color="#ef4444" />}
+                      </div>
+                    </div>
+                    {phoneTouched && formData.phone && !isPhoneValid && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 6, fontSize: 12, color: "#ef4444", fontWeight: 600 }}>
+                        <AlertCircle size={14} />
+                        <span>Invalid phone number. Must be 11 digits starting with 01 (e.g. 017XXXXXXXX).</span>
+                      </div>
+                    )}
                   </div>
                   <div style={{ gridColumn: "1 / -1" }}>
                     <label style={labelStyle}>Email Address (Optional — for order confirmation & tracking)</label>
