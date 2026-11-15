@@ -92,21 +92,24 @@ body {
 .posh-status-slider-container {
   width: 100%;
   margin-bottom: 14px;
-  overflow: hidden;
-  position: relative;
-}
-.posh-status-slider-track {
-  display: flex;
-  gap: 8px;
   overflow-x: auto;
   overflow-y: hidden;
-  white-space: nowrap;
-  padding: 4px 2px 8px 2px;
+  position: relative;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-x;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
   -ms-overflow-style: none;
+}
+.posh-status-slider-container::-webkit-scrollbar {
+  display: none;
+}
+.posh-status-slider-track {
+  display: inline-flex;
+  gap: 8px;
+  white-space: nowrap;
+  padding: 4px 4px 8px 4px;
+  min-width: max-content;
 }
 .posh-status-slider-track::-webkit-scrollbar {
   display: none;
@@ -146,8 +149,8 @@ body {
 /* Responsive Single-Column Breakpoint for Order Queue (up to 850px tablets & mobile) */
 @media (max-width: 850px) {
   .posh-orders-grid {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
+    display: flex !important;
+    flex-direction: column !important;
     gap: 12px !important;
     min-width: 0 !important;
     width: 100% !important;
@@ -261,11 +264,13 @@ body {
 
   /* Single-Column Grid for Order Queue on Mobile */
   .posh-orders-grid {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
+    display: flex !important;
+    flex-direction: column !important;
     gap: 12px !important;
     min-width: 0 !important;
     width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   /* Strict 2-Columns-Per-Row Box Grids on Mobile for Product Catalogs / Media */

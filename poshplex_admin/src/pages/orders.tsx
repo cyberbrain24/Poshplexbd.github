@@ -1034,8 +1034,28 @@ export const Orders: React.FC = () => {
         </div>
 
         {/* Horizontal Sliding Status Tabs Bar (Smooth sliding left-to-right on mobile touch) */}
-        <div className="posh-status-slider-container">
-          <div className="posh-status-slider-track">
+        <div 
+          className="posh-status-slider-container"
+          style={{
+            width: "100%",
+            overflowX: "auto",
+            overflowY: "hidden",
+            WebkitOverflowScrolling: "touch",
+            touchAction: "pan-x",
+            scrollbarWidth: "none",
+            marginBottom: 14
+          }}
+        >
+          <div 
+            className="posh-status-slider-track"
+            style={{
+              display: "inline-flex",
+              gap: 8,
+              whiteSpace: "nowrap",
+              minWidth: "max-content",
+              padding: "4px 2px 8px 2px"
+            }}
+          >
             {[
               { label: "All", key: "all", countKey: "all", color: "#52c41a" },
               { label: "Placed", key: "placed", countKey: "placed", color: "gold" },
