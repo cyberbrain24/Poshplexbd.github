@@ -224,7 +224,8 @@ function LoginContent() {
           </button>
         </form>
         
-        <SocialLogin />
+        {/* [TEMPORARY DISCONNECT] Social login (Google / Facebook) temporarily disabled */}
+        {/* <SocialLogin /> */}
         </div>
 
         <div style={{ marginTop: 16, textAlign: "center", borderTop: "1px solid var(--border-glass)", paddingTop: 16 }}>

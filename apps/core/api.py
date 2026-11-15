@@ -270,7 +270,8 @@ class SocialLoginSchema(Schema):
 
 @router.post("/social-login", response=TokenResponseSchema)
 def social_login(request, data: SocialLoginSchema, response: HttpResponse):
-    """Authenticate or register via Google/Facebook OAuth token."""
+    """[TEMPORARILY DISCONNECTED] Authenticate or register via Google/Facebook OAuth token."""
+    raise HttpError(403, "Social login (Google / Facebook) is currently disabled.")
     from apps.core.models import Setting
     from apps.crm.models import CustomerProfile
     import requests
