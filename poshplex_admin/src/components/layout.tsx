@@ -5,7 +5,8 @@ import {
   TeamOutlined, ApiOutlined, FolderOpenOutlined, LogoutOutlined, UserOutlined,
   CarOutlined, GiftOutlined, SoundOutlined, SettingOutlined, PrinterOutlined,
   EllipsisOutlined, PictureOutlined, DesktopOutlined, CheckSquareOutlined, GlobalOutlined, BarChartOutlined,
-  RocketOutlined, ThunderboltOutlined, RobotOutlined, EyeOutlined, SkinOutlined
+  RocketOutlined, ThunderboltOutlined, RobotOutlined, EyeOutlined, SkinOutlined,
+  PhoneOutlined
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useLogout, useGetIdentity } from "@refinedev/core";
