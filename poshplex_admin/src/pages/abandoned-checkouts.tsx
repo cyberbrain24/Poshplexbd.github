@@ -6,7 +6,7 @@ import {
 import {
   PhoneOutlined, WhatsAppOutlined, ShoppingCartOutlined, SyncOutlined,
   CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutlined, SearchOutlined,
-  UserOutlined, DollarOutlined, ArrowUpOutlined, RocketOutlined
+  UserOutlined, DollarOutlined, ArrowUpOutlined, RocketOutlined, EditOutlined
 } from "@ant-design/icons";
 import axios from "axios";
 
@@ -61,6 +61,12 @@ export const AbandonedCheckoutsPage: React.FC = () => {
   const [noteForm] = Form.useForm();
   const [savingNote, setSavingNote] = useState(false);
 
+  // Edit Customer Details Modal
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<AbandonedItem | null>(null);
+  const [editForm] = Form.useForm();
+  const [savingEdit, setSavingEdit] = useState(false);
+
   const fetchAbandonedCheckouts = async () => {
     setLoading(true);
     try {
@@ -107,6 +113,40 @@ export const AbandonedCheckoutsPage: React.FC = () => {
       call_notes: record.call_notes,
     });
     setIsNoteModalOpen(true);
+  };
+
+  const openEditModal = (record: AbandonedItem) => {
+    setEditingRecord(record);
+    editForm.setFieldsValue({
+      customer_name: record.customer_name || "",
+      phone: record.phone || "",
+      customer_email: record.customer_email || "",
+      shipping_district: record.shipping_district || "",
+      shipping_thana: record.shipping_thana || "",
+      shipping_address: record.shipping_address || "",
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingRecord) return;
+    try {
+      const values = await editForm.validateFields();
+      setSavingEdit(true);
+      const token = localStorage.getItem("poshplex_access_token");
+      await axios.patch(
+        `${API_BASE}/orders/abandoned/${editingRecord.id}/details`,
+        values,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      message.success("Customer details updated successfully");
+      setIsEditModalOpen(false);
+      fetchAbandonedCheckouts();
+    } catch (err: any) {
+      message.error(err?.response?.data?.message || err?.response?.data?.detail || "Failed to update details");
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   const handleSaveNote = async () => {
@@ -187,10 +227,20 @@ export const AbandonedCheckoutsPage: React.FC = () => {
       title: "Customer & Contact",
       key: "customer",
       render: (_: any, record: AbandonedItem) => (
-        <Space orientation="vertical" size={2}>
-          <Text strong style={{ fontSize: 13, color: "var(--text-main)" }}>
-            {record.customer_name || "Guest Customer"}
-          </Text>
+        <Space direction="vertical" size={2} style={{ maxWidth: 220 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+            <Text strong style={{ fontSize: 13, color: "var(--text-main)" }}>
+              {record.customer_name || "Guest Customer"}
+            </Text>
+            <Tooltip title="Edit Customer Details">
+              <Button
+                size="small"
+                type="text"
+                icon={<EditOutlined style={{ color: "#a855f7" }} />}
+                onClick={() => openEditModal(record)}
+              />
+            </Tooltip>
+          </div>
           <Space size={6} wrap>
             <Text style={{ fontFamily: "monospace", color: "#10b981", fontWeight: 600 }}>
               {record.phone}
@@ -202,10 +252,15 @@ export const AbandonedCheckoutsPage: React.FC = () => {
               <Button size="small" type="text" icon={<WhatsAppOutlined style={{ color: "#22c55e", fontSize: 16 }} />} />
             </a>
           </Space>
-          {record.shipping_district && (
-            <Text type="secondary" style={{ fontSize: 11 }}>
-              📍 {record.shipping_district} {record.shipping_thana ? `• ${record.shipping_thana}` : ""}
-            </Text>
+          {(record.shipping_district || record.shipping_address) && (
+            <div style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.35, marginTop: 2 }}>
+              {record.shipping_address && (
+                <div style={{ color: "#cbd5e1" }}>🏠 {record.shipping_address}</div>
+              )}
+              {record.shipping_district && (
+                <div style={{ color: "#94a3b8" }}>📍 {record.shipping_district}{record.shipping_thana ? ` • ${record.shipping_thana}` : ""}</div>
+              )}
+            </div>
           )}
         </Space>
       ),
@@ -478,6 +533,60 @@ export const AbandonedCheckoutsPage: React.FC = () => {
               rows={4}
               placeholder="e.g. Customer requested call at 8 PM, or hesitant about delivery charge outside Dhaka..."
             />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Edit Customer Details Modal */}
+      <Modal
+        title={`Edit Customer Details (${editingRecord?.customer_name || editingRecord?.phone})`}
+        open={isEditModalOpen}
+        onCancel={() => setIsEditModalOpen(false)}
+        onOk={handleSaveEdit}
+        confirmLoading={savingEdit}
+        okText="Save Details"
+      >
+        <Form form={editForm} layout="vertical">
+          <Form.Item name="customer_name" label="Full Name">
+            <Input placeholder="e.g. Rahman Ahmed" />
+          </Form.Item>
+          <Form.Item
+            name="phone"
+            label="Phone Number"
+            rules={[
+              { required: true, message: "Phone number is required" },
+              {
+                validator: (_, value) => {
+                  if (!value) return Promise.resolve();
+                  const digits = value.replace(/\D/g, "");
+                  const clean = digits.startsWith("88") ? digits.slice(2) : digits;
+                  if (clean.startsWith("01") && clean.length === 11) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error("Enter a valid 11-digit BD number (01...)"));
+                }
+              }
+            ]}
+          >
+            <Input placeholder="01XXXXXXXXX" />
+          </Form.Item>
+          <Form.Item name="customer_email" label="Email Address">
+            <Input type="email" placeholder="customer@example.com (optional)" />
+          </Form.Item>
+          <Row gutter={12}>
+            <Col span={12}>
+              <Form.Item name="shipping_district" label="District">
+                <Input placeholder="e.g. Dhaka" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="shipping_thana" label="Thana / Police Station">
+                <Input placeholder="e.g. Mirpur" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Form.Item name="shipping_address" label="Street / House / Delivery Address">
+            <Input.TextArea rows={3} placeholder="House 12, Road 4, Sector 7..." />
           </Form.Item>
         </Form>
       </Modal>

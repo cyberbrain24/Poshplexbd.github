@@ -2011,6 +2011,14 @@ class AbandonedCheckoutCaptureInput(Schema):
     cart_items: List[AbandonedCheckoutItemSchema]
     cart_total: Decimal
 
+class AbandonedCheckoutUpdateDetailsInput(Schema):
+    customer_name: Optional[str] = None
+    phone: Optional[str] = None
+    customer_email: Optional[str] = None
+    shipping_district: Optional[str] = None
+    shipping_thana: Optional[str] = None
+    shipping_address: Optional[str] = None
+
 class AbandonedCheckoutUpdateStatusInput(Schema):
     status: str
     call_notes: Optional[str] = ""
@@ -2239,6 +2247,39 @@ def update_abandoned_status(request, abandoned_id: int, data: AbandonedCheckoutU
     record.save()
     return compile_abandoned_response(record)
 
+@router.patch("/abandoned/{int:abandoned_id}/details", response=AbandonedCheckoutResponseSchema, auth=BearerAuth())
+def update_abandoned_details(request, abandoned_id: int, data: AbandonedCheckoutUpdateDetailsInput):
+    """
+    Edit customer contact and address details on an abandoned drop record.
+    """
+    enforce_permission(request, "orders", "edit_orders")
+    record = get_object_or_404(AbandonedCheckout, id=abandoned_id)
+
+    if data.customer_name is not None:
+        record.customer_name = data.customer_name.strip()
+    if data.phone is not None:
+        raw = data.phone.strip()
+        digits = re.sub(r'\D', '', raw)
+        if digits.startswith("8801") and len(digits) == 13:
+            record.phone = digits[2:]
+        elif digits.startswith("008801") and len(digits) == 15:
+            record.phone = digits[4:]
+        elif digits.startswith("1") and len(digits) == 10:
+            record.phone = "0" + digits
+        else:
+            record.phone = digits or raw
+    if data.customer_email is not None:
+        record.customer_email = data.customer_email.strip()
+    if data.shipping_district is not None:
+        record.shipping_district = data.shipping_district.strip()
+    if data.shipping_thana is not None:
+        record.shipping_thana = data.shipping_thana.strip()
+    if data.shipping_address is not None:
+        record.shipping_address = data.shipping_address.strip()
+
+    record.save()
+    return compile_abandoned_response(record)
+
 @router.post("/abandoned/{int:abandoned_id}/convert-to-order", response=OrderResponseSchema, auth=BearerAuth())
 def convert_abandoned_to_order(request, abandoned_id: int):
     """
@@ -2290,7 +2331,7 @@ def convert_abandoned_to_order(request, abandoned_id: int):
             discount_amount=Decimal('0.00'),
             shipping_cost=shipping_cost,
             customer_notes="Converted from Abandoned Checkout by Tele-sales",
-            internal_notes=f"Converted by {request.auth.username if request.auth else 'admin'}. Notes: {record.call_notes}"
+            internal_notes="[Abandoned Drop Recovered] " + (f"Notes: {record.call_notes}" if record.call_notes else "")
         )
 
         record.status = "converted"

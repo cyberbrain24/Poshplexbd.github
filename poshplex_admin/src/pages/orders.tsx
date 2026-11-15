@@ -847,6 +847,11 @@ export const Orders: React.FC = () => {
               ⚡ URGENT
             </Tag>
           )}
+          {rec.internal_notes && rec.internal_notes.includes("[Abandoned Drop Recovered]") && (
+            <Tag color="orange" style={{ fontSize: 10, fontWeight: 700, padding: "0 4px", lineHeight: "16px", borderRadius: 3 }}>
+              🛒 ABANDONED DROP
+            </Tag>
+          )}
         </Space>
       )
     },
@@ -1188,7 +1193,11 @@ export const Orders: React.FC = () => {
                     <div className="posh-order-card-tags" style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
                       {getStatusTag(order.status)}
                       {getPaymentStatusTag(order.payment_status)}
-                      <Tag color="default">Web Order</Tag>
+                      {order.internal_notes && order.internal_notes.includes("[Abandoned Drop Recovered]") ? (
+                        <Tag color="orange" style={{ fontWeight: 700 }}>🛒 Abandoned Drop</Tag>
+                      ) : (
+                        <Tag color="default">Web Order</Tag>
+                      )}
                     </div>
                   </div>
                 </div>
