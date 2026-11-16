@@ -294,6 +294,14 @@ def sync_steadfast_status(order_id: int) -> str:
 
                 if old_status != order.status:
                     OrderStatusHistory.objects.create(order=order, status=order.status, notes=f"Courier status updated to '{status}'. Internal status mapped to '{order.status}'.")
+                    try:
+                        from apps.marketing.services.attribution_engine import update_order_touchpoints_on_status_change
+                        from apps.marketing.tasks import send_meta_capi_lifecycle_event_task
+                        update_order_touchpoints_on_status_change(order.id, order.status)
+                        if order.status in ['delivered', 'completed']:
+                            send_meta_capi_lifecycle_event_task.delay(order.id, "OrderDelivered")
+                    except Exception:
+                        pass
 
                 order.courier_status = status
                 order.save()

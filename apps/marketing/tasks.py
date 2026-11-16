@@ -250,4 +250,115 @@ def run_meta_agent_cycle():
     return result
 
 
+# ============================================================================
+# CUSTOMER DATA & ATTRIBUTION PLATFORM ASYNC TASKS
+# ============================================================================
+
+@shared_task(name='apps.marketing.tasks.process_tracking_event')
+def process_tracking_event(event_data, ip_address=None, user_agent=None):
+    """
+    Asynchronous intake for first-party tracking events.
+    Enforces validation schema, tracks visitor session, links customer identity,
+    and appends to RawTrackingEvent.
+    """
+    from apps.marketing.services.attribution_engine import record_tracking_event
+    try:
+        raw_event = record_tracking_event(event_data, ip_address=ip_address, user_agent=user_agent)
+        return {"status": "ok", "event_id": raw_event.event_id, "schema_status": raw_event.status}
+    except Exception as e:
+        logger.error(f"Error processing tracking event: {e}", exc_info=True)
+        return {"status": "error", "error": str(e)}
+
+
+@shared_task(name='apps.marketing.tasks.process_tracking_events_batch')
+def process_tracking_events_batch(events_list):
+    """
+    Processes a batch of up to 100 queued events from Redis to reduce DB roundtrips.
+    """
+    from apps.marketing.services.attribution_engine import record_tracking_event
+    processed_count = 0
+    errors = 0
+    for evt in events_list:
+        try:
+            record_tracking_event(evt.get("data", {}), ip_address=evt.get("ip"), user_agent=evt.get("ua"))
+            processed_count += 1
+        except Exception:
+            errors += 1
+    logger.info(f"process_tracking_events_batch finished: {processed_count} processed, {errors} errors.")
+    return {"processed": processed_count, "errors": errors}
+
+
+@shared_task(name='apps.marketing.tasks.rebuild_daily_ad_summaries_task')
+def rebuild_daily_ad_summaries_task(target_date_str=None):
+    """
+    Runs nightly via Celery Beat (e.g. at 23:45 Asia/Dhaka) or on-demand.
+    Rebuilds DailyAdPerformanceSummary records with accurate delivery outcomes and net profit.
+    """
+    from apps.marketing.services.attribution_engine import rebuild_daily_ad_performance_summary
+    if target_date_str:
+        target_date = datetime.datetime.strptime(target_date_str, "%Y-%m-%d").date()
+    else:
+        target_date = timezone.now().date()
+    
+    count = rebuild_daily_ad_performance_summary(target_date=target_date)
+    return {"date": str(target_date), "summaries_rebuilt": count}
+
+
+@shared_task(name='apps.marketing.tasks.send_meta_capi_lifecycle_event_task')
+def send_meta_capi_lifecycle_event_task(order_id: int, event_type: str):
+    """
+    Dispatches Meta Conversions API lifecycle events (e.g. OrderConfirmed, OrderDelivered).
+    Fetches customer identifiers, order value, and Pixel credentials.
+    """
+    from apps.orders.models import Order
+    from apps.marketing.models import MetaAdAccount, VisitorSession, OrderAttributionTouchpoint
+    from apps.marketing.services.meta_client import send_capi_lifecycle_event
+    from apps.core.models import SystemSetting
+
+    order = Order.objects.filter(id=order_id).first()
+    if not order:
+        return {"status": "error", "message": f"Order #{order_id} not found"}
+
+    # Get active Pixel ID and Access Token
+    pixel_id = ""
+    access_token = ""
+
+    # Check SystemSetting
+    pixel_setting = SystemSetting.objects.filter(key="tracking_pixels").first()
+    if pixel_setting and isinstance(pixel_setting.value, dict):
+        pixel_id = pixel_setting.value.get("fb_pixel") or ""
+
+    # Check MetaAdAccount for token
+    account = MetaAdAccount.objects.filter(is_active=True).first()
+    if account:
+        access_token = account.get_access_token()
+        if not pixel_id:
+            pixel_id = account.meta_account_id.replace("act_", "")
+
+    if not pixel_id or not access_token:
+        logger.info(f"Skipping CAPI dispatch for Order #{order_id}: credentials not fully configured.")
+        return {"status": "skipped", "reason": "no_credentials"}
+
+    # Fetch fbc / fbp from session touchpoints
+    fbc = None
+    fbp = None
+    tp = OrderAttributionTouchpoint.objects.filter(order_id=order_id).select_related('session').first()
+    if tp and tp.session:
+        fbc = tp.session.fbc or None
+        fbp = tp.session.fbp or None
+
+    return send_capi_lifecycle_event(
+        pixel_id=pixel_id,
+        access_token=access_token,
+        event_name=event_type,
+        order_id=order.id,
+        order_value=order.total_amount,
+        phone=order.shipping_phone,
+        email=getattr(order.user, 'email', None) if order.user else None,
+        fbc=fbc,
+        fbp=fbp
+    )
+
+
+
 

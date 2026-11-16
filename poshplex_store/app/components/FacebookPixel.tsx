@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import Script from "next/script";
 import * as fpixel from "../../lib/fpixel";
+import { trackEvent as trackFirstPartyEvent } from "../utils/tracker";
 
 interface Props {
   fbPixelId: string;
@@ -26,6 +27,11 @@ const FacebookPixel: React.FC<Props> = ({ fbPixelId }) => {
 
     // This fires on every route change, including the initial load
     fpixel.trackEvent("PageView", {}, fbc ? { fbc } : {});
+    
+    // First-party Customer Data Platform page_view
+    try {
+      trackFirstPartyEvent("page_view");
+    } catch {}
   }, [pathname, searchParams]);
 
   if (!fbPixelId) return null;

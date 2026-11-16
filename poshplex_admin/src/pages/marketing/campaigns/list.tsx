@@ -6,7 +6,8 @@ import {
 import {
   PlusOutlined, SearchOutlined, PlayCircleOutlined, PauseCircleOutlined,
   CloudUploadOutlined, RiseOutlined, EyeOutlined, ReloadOutlined, StopOutlined,
-  InfoCircleOutlined
+  InfoCircleOutlined, SafetyCertificateOutlined, CheckCircleOutlined, WarningOutlined,
+  ThunderboltOutlined, AimOutlined
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -25,6 +26,62 @@ export const CampaignList: React.FC = () => {
   const [syncing, setSyncing] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+
+  // Customer Data & Attribution Platform State
+  const [attributionModel, setAttributionModel] = useState<string>("last_paid");
+  const [attributionMap, setAttributionMap] = useState<Record<number, any>>({});
+  const [attributionOverview, setAttributionOverview] = useState<any>(null);
+  const [reconciliation, setReconciliation] = useState<any>(null);
+  const [rebuilding, setRebuilding] = useState<boolean>(false);
+
+  const fetchAttributionSummary = async (modelToFetch = attributionModel) => {
+    try {
+      const token = localStorage.getItem("poshplex_access_token");
+      const headers = { Authorization: `Bearer ${token}` };
+      const res = await axios.get(`${API_BASE}/attribution/summary/`, {
+        headers,
+        params: { model: modelToFetch }
+      });
+      if (res.data) {
+        setAttributionOverview(res.data.overview || null);
+        const map: Record<number, any> = {};
+        (res.data.campaigns || []).forEach((c: any) => {
+          map[c.id] = c;
+        });
+        setAttributionMap(map);
+      }
+    } catch (err) {
+      console.error("Failed to load attribution summary", err);
+    }
+  };
+
+  const fetchReconciliation = async () => {
+    try {
+      const token = localStorage.getItem("poshplex_access_token");
+      const headers = { Authorization: `Bearer ${token}` };
+      const res = await axios.get(`${API_BASE}/attribution/reconciliation/`, { headers });
+      setReconciliation(res.data || null);
+    } catch (err) {
+      console.error("Failed to load reconciliation", err);
+    }
+  };
+
+  const handleRebuildSummaries = async () => {
+    setRebuilding(true);
+    message.loading({ content: "Rebuilding attribution metrics & net profit...", key: "rebuildAttr" });
+    try {
+      const token = localStorage.getItem("poshplex_access_token");
+      const headers = { Authorization: `Bearer ${token}` };
+      await axios.post(`${API_BASE}/attribution/rebuild/`, {}, { headers });
+      message.success({ content: "Attribution daily rollups refreshed successfully!", key: "rebuildAttr" });
+      await fetchAttributionSummary();
+      await fetchReconciliation();
+    } catch (err: any) {
+      message.error({ content: err?.response?.data?.message || "Failed to rebuild summaries (Super Admin required).", key: "rebuildAttr" });
+    } finally {
+      setRebuilding(false);
+    }
+  };
 
   const fetchAdAccounts = async () => {
     try {
@@ -93,11 +150,13 @@ export const CampaignList: React.FC = () => {
 
   useEffect(() => {
     fetchAdAccounts();
+    fetchReconciliation();
   }, []);
 
   useEffect(() => {
     fetchCampaigns();
-  }, [statusFilter, selectedAccountId]);
+    fetchAttributionSummary(attributionModel);
+  }, [statusFilter, selectedAccountId, attributionModel]);
 
   const handleDeploy = async (id: number) => {
     message.loading({ content: "Deploying campaign to Meta Marketing API...", key: "deploy" });
@@ -371,6 +430,83 @@ export const CampaignList: React.FC = () => {
           </Text>
         );
       },
+    },
+
+    // 6a. Delivered Rate (Attribution Engine)
+    {
+      title: (
+        <Tooltip title="Courier confirmed delivered orders and fulfillment success percentage under the selected attribution model">
+          <span>Delivered Rate <InfoCircleOutlined style={{ fontSize: 9, color: "#64748b" }} /></span>
+        </Tooltip>
+      ),
+      key: "delivered_rate",
+      align: "right",
+      width: 125,
+      render: (_: any, record: any) => {
+        const attr = attributionMap[record.id];
+        const deliv = attr ? attr.delivered_orders : 0;
+        const rate = attr ? attr.delivery_success_rate : 0;
+        const rateColor = rate >= 80 ? "#10b981" : rate >= 60 ? "#f59e0b" : rate > 0 ? "#ef4444" : "#64748b";
+        return (
+          <div style={{ textAlign: "right" }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#f8fafc" }}>{deliv}</span>
+            {deliv > 0 ? (
+              <Tag style={{ marginLeft: 5, fontSize: 9.5, padding: "0 4px", border: "none", backgroundColor: `${rateColor}22`, color: rateColor }}>
+                {rate}%
+              </Tag>
+            ) : <span style={{ fontSize: 10, color: "#64748b", marginLeft: 4 }}>—</span>}
+          </div>
+        );
+      }
+    },
+
+    // 6b. True Net Ad Profit (Delivered Rev - COGS - Delivery Cost - Return Loss - Spend)
+    {
+      title: (
+        <Tooltip title="True Net Ad Profit = Delivered Revenue - Product COGS - Courier Delivery Cost - Return Courier Loss - Meta Ad Spend (BDT)">
+          <span>Net Ad Profit <InfoCircleOutlined style={{ fontSize: 9, color: "#64748b" }} /></span>
+        </Tooltip>
+      ),
+      key: "net_ad_profit",
+      align: "right",
+      width: 135,
+      render: (_: any, record: any) => {
+        const attr = attributionMap[record.id];
+        const net = attr ? Number(attr.net_ad_profit || 0) : 0;
+        const isPositive = net > 0;
+        const isNegative = net < 0;
+        return (
+          <span style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: isPositive ? "#34d399" : isNegative ? "#f87171" : "#64748b"
+          }}>
+            {net !== 0 ? `৳${net.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
+          </span>
+        );
+      }
+    },
+
+    // 6c. Delivered ROAS
+    {
+      title: (
+        <Tooltip title="Real ROAS = Delivered Order Revenue / Meta Ad Spend (BDT)">
+          <span>Delivered ROAS <InfoCircleOutlined style={{ fontSize: 9, color: "#64748b" }} /></span>
+        </Tooltip>
+      ),
+      key: "roas_delivered",
+      align: "right",
+      width: 110,
+      render: (_: any, record: any) => {
+        const attr = attributionMap[record.id];
+        const roas = attr ? Number(attr.roas || 0) : 0;
+        const roasColor = roas >= 3.0 ? "#34d399" : roas >= 1.8 ? "#38bdf8" : roas > 0 ? "#f87171" : "#64748b";
+        return (
+          <span style={{ fontSize: 11, fontWeight: 700, color: roasColor }}>
+            {roas > 0 ? `${roas.toFixed(2)}x` : "—"}
+          </span>
+        );
+      }
     },
 
     // 7. Impression
@@ -714,14 +850,56 @@ export const CampaignList: React.FC = () => {
       `}</style>
 
       {/* Header bar */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
         <div>
-          <Title level={4} style={{ margin: 0, color: "#ffffff", fontWeight: 700 }}>Meta Campaigns Analytics</Title>
+          <Title level={4} style={{ margin: 0, color: "#ffffff", fontWeight: 700 }}>Meta Campaigns & Attribution Platform</Title>
           <Text style={{ color: "#94a3b8", fontSize: 11.5 }}>
-            Real-time campaign performance tracking and analytics across connected Meta Ad Accounts
+            Customer journey attribution, delivery outcomes & true contribution profit (M1–M22)
           </Text>
         </div>
-        <Space size={8}>
+        <Space size={8} wrap>
+          {/* Attribution Model Switcher */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, backgroundColor: "#1c1c28", padding: "2px 8px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.12)" }}>
+            <AimOutlined style={{ color: "#a78bfa", fontSize: 12 }} />
+            <Text style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>Model:</Text>
+            <Select
+              size="small"
+              bordered={false}
+              value={attributionModel}
+              onChange={(val) => setAttributionModel(val)}
+              style={{ width: 175, fontSize: 11.5 }}
+              options={[
+                { label: "🎯 Last Paid Touch", value: "last_paid" },
+                { label: "🚀 First Touch", value: "first_touch" },
+                { label: "⚖️ Linear Split", value: "linear" },
+                { label: "💎 Position (40/40/20)", value: "position_based" }
+              ]}
+            />
+          </div>
+
+          {/* Reconciliation Audit Badge */}
+          {reconciliation && (
+            <Tooltip title={`Storefront Orders: ${reconciliation.storefront?.orders_count || 0} | Tracked Touchpoints: ${reconciliation.attribution_tracked?.orders_count || 0} | Raw Intake: ${reconciliation.raw_events?.total_intake || 0}`}>
+              <Tag
+                icon={reconciliation.status === "HEALTHY" ? <CheckCircleOutlined /> : <WarningOutlined />}
+                color={reconciliation.status === "HEALTHY" ? "success" : "warning"}
+                style={{ fontSize: 11, padding: "2px 8px", borderRadius: 4, cursor: "pointer", margin: 0 }}
+              >
+                3-Way Audit: {reconciliation.variance_percentage}% var ({reconciliation.status})
+              </Tag>
+            </Tooltip>
+          )}
+
+          <Button
+            size="small"
+            icon={<ThunderboltOutlined style={{ fontSize: 11 }} />}
+            loading={rebuilding}
+            onClick={handleRebuildSummaries}
+            style={{ fontSize: 11, backgroundColor: "#181824", borderColor: "rgba(255,255,255,0.12)", color: "#cbd5e1" }}
+          >
+            Rebuild Profit
+          </Button>
+
           <Button
             type="primary"
             size="small"
@@ -765,25 +943,43 @@ export const CampaignList: React.FC = () => {
             <div style={{ fontSize: 15, fontWeight: 700, color: "#f8fafc" }}>{summary.count}</div>
           </Col>
           <Col xs={12} sm={8} md={4}>
-            <div style={{ fontSize: 10, color: "#94a3b8", textTransform: "uppercase", fontWeight: 600 }}>Total Spent</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "#f87171" }}>${summary.spend.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            <div style={{ fontSize: 10, color: "#94a3b8", textTransform: "uppercase", fontWeight: 600 }}>Total Spent (Ad Spend)</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "#f87171" }}>
+              ${summary.spend.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <span style={{ fontSize: 10.5, color: "#94a3b8", fontWeight: 400, marginLeft: 4 }}>
+                (৳{(summary.spend * 122).toLocaleString(undefined, { maximumFractionDigits: 0 })})
+              </span>
+            </div>
           </Col>
           <Col xs={12} sm={8} md={4}>
-            <div style={{ fontSize: 10, color: "#94a3b8", textTransform: "uppercase", fontWeight: 600 }}>Total Results</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "#34d399" }}>{summary.results.toLocaleString()}</div>
+            <div style={{ fontSize: 10, color: "#94a3b8", textTransform: "uppercase", fontWeight: 600 }}>Delivered Orders</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "#34d399" }}>
+              {attributionOverview?.total_delivered_orders !== undefined ? attributionOverview.total_delivered_orders : summary.results}
+              <Tag style={{ marginLeft: 6, fontSize: 10, padding: "0 4px", border: "none", backgroundColor: "rgba(16, 185, 129, 0.15)", color: "#10b981" }}>
+                {attributionOverview?.delivery_success_rate !== undefined ? `${attributionOverview.delivery_success_rate}% success` : "Meta tracked"}
+              </Tag>
+            </div>
           </Col>
           <Col xs={12} sm={8} md={4}>
-            <div style={{ fontSize: 10, color: "#94a3b8", textTransform: "uppercase", fontWeight: 600 }}>Impressions</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "#38bdf8" }}>{summary.impressions.toLocaleString()}</div>
+            <div style={{ fontSize: 10, color: "#94a3b8", textTransform: "uppercase", fontWeight: 600 }}>Delivered Revenue</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "#38bdf8" }}>
+              ৳{(attributionOverview?.total_delivered_revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
           </Col>
           <Col xs={12} sm={8} md={4}>
-            <div style={{ fontSize: 10, color: "#94a3b8", textTransform: "uppercase", fontWeight: 600 }}>Total Clicks</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "#e2e8f0" }}>{summary.clicks.toLocaleString()}</div>
+            <div style={{ fontSize: 10, color: "#94a3b8", textTransform: "uppercase", fontWeight: 600 }}>True Net Ad Profit</div>
+            <div style={{
+              fontSize: 15,
+              fontWeight: 700,
+              color: (attributionOverview?.total_net_ad_profit || 0) >= 0 ? "#10b981" : "#f87171"
+            }}>
+              ৳{(attributionOverview?.total_net_ad_profit || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
           </Col>
           <Col xs={12} sm={8} md={4}>
-            <div style={{ fontSize: 10, color: "#94a3b8", textTransform: "uppercase", fontWeight: 600 }}>Avg CTR / CPC</div>
+            <div style={{ fontSize: 10, color: "#94a3b8", textTransform: "uppercase", fontWeight: 600 }}>Delivered ROAS</div>
             <div style={{ fontSize: 15, fontWeight: 700, color: "#a78bfa" }}>
-              {summary.ctr.toFixed(2)}% · ${summary.cpc.toFixed(2)}
+              {attributionOverview?.roas_delivered ? `${attributionOverview.roas_delivered}x` : `${summary.ctr.toFixed(2)}% CTR`}
             </div>
           </Col>
         </Row>

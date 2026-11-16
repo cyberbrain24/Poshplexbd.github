@@ -12,7 +12,7 @@ from apps.finance.api import router as finance_router
 from apps.catalog.api import router as catalog_router
 from apps.integration.api import router as integration_router
 from apps.orders.api import router as orders_router
-from apps.marketing.api import router as marketing_router
+from apps.marketing.api import router as marketing_router, tracker_router
 from apps.crm.api import router as crm_router
 from apps.music.api import router as music_router
 from apps.printing.api import router as printing_router
@@ -29,6 +29,7 @@ api.add_router("/catalog", catalog_router)
 api.add_router("/integration", integration_router)
 api.add_router("/orders", orders_router)
 api.add_router("/marketing", marketing_router)
+api.add_router("/track", tracker_router)
 api.add_router("/crm", crm_router)
 api.add_router("/music", music_router)
 api.add_router("/printing", printing_router)

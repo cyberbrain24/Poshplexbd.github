@@ -1,4 +1,4 @@
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Dict
 from decimal import Decimal
 import datetime
 import logging
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 from ninja import Router, Schema
 from ninja.errors import HttpError
 from apps.marketing.models import PromoCode, PromoUsageHistory, ComboOffer
-from apps.core.api import BearerAuth, enforce_permission
+from apps.core.api import BearerAuth, enforce_permission, enforce_superuser
 
 router = Router()
 
@@ -1374,6 +1374,368 @@ router.add_router("/competitor", competitor_router)
 
 from apps.marketing.api_integration import router as ai_integration_router
 router.add_router("/ai-integration", ai_integration_router)
+
+
+# ============================================================================
+# CUSTOMER DATA & ATTRIBUTION PLATFORM ENDPOINTS (M1 - M22)
+# ============================================================================
+import uuid
+from django.core.cache import cache
+from apps.marketing.models import (
+    VisitorSession,
+    RawTrackingEvent,
+    OrderAttributionTouchpoint,
+    DailyAdPerformanceSummary
+)
+from apps.marketing.tasks import process_tracking_event, rebuild_daily_ad_summaries_task
+from apps.orders.models import Order
+
+class TrackingEventInputSchema(Schema):
+    event_id: Optional[str] = None
+    event_name: str
+    visitor_id: Optional[str] = None
+    session_id: Optional[str] = None
+    client_timestamp: Optional[str] = None
+    payload: Optional[Dict[str, Any]] = None
+    utm_source: Optional[str] = None
+    utm_medium: Optional[str] = None
+    utm_campaign: Optional[str] = None
+    utm_content: Optional[str] = None
+    utm_term: Optional[str] = None
+    fbc: Optional[str] = None
+    fbp: Optional[str] = None
+    landing_page: Optional[str] = None
+    referrer: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    user_id: Optional[int] = None
+
+class TrackingEventResponseSchema(Schema):
+    status: str
+    event_id: str
+
+
+def _handle_tracking_event_ingest(request, payload: TrackingEventInputSchema) -> dict:
+    """Internal helper to ingest tracking events with IP rate limiting and non-blocking queueing."""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0].strip()
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    ua = request.META.get('HTTP_USER_AGENT', '')
+
+    event_id = payload.event_id or str(uuid.uuid4())
+    payload_dict = payload.dict()
+    payload_dict["event_id"] = event_id
+
+    # Token bucket rate-limiter: max 120 tracking events/min per IP
+    if ip:
+        cache_key = f"ratelimit:track:{ip}"
+        try:
+            cnt = cache.get(cache_key, 0)
+            if cnt >= 120:
+                return {"status": "rate_limited", "event_id": event_id}
+            if cnt == 0:
+                cache.set(cache_key, 1, timeout=60)
+            else:
+                try:
+                    cache.incr(cache_key)
+                except Exception:
+                    cache.set(cache_key, cnt + 1, timeout=60)
+        except Exception:
+            pass
+
+    try:
+        # Dispatch to async Celery worker (or synchronous if eager)
+        process_tracking_event.delay(payload_dict, ip_address=ip, user_agent=ua)
+    except Exception as e:
+        # Fallback to direct synchronous execution if Celery broker unreachable
+        from apps.marketing.services.attribution_engine import record_tracking_event
+        try:
+            record_tracking_event(payload_dict, ip_address=ip, user_agent=ua)
+        except Exception as inner_e:
+            logger.warning(f"Could not record tracking event: {inner_e}")
+
+    return {"status": "queued", "event_id": event_id}
+
+
+@router.post("/track/event/", response=TrackingEventResponseSchema, auth=None)
+def post_tracking_event_marketing(request, payload: TrackingEventInputSchema):
+    """
+    Fast, non-blocking first-party ingestion endpoint under /api/v1/marketing/track/event/.
+    Accepts client events, enriches server timestamps, and buffers into Redis/Celery queue.
+    """
+    return _handle_tracking_event_ingest(request, payload)
+
+
+tracker_router = Router()
+
+@tracker_router.post("/event/", response=TrackingEventResponseSchema, auth=None)
+def post_tracking_event_root(request, payload: TrackingEventInputSchema):
+    """Direct alias under /api/v1/track/event/ for lightweight client SDKs."""
+    return _handle_tracking_event_ingest(request, payload)
+
+
+@router.get("/attribution/summary/", auth=BearerAuth())
+def get_attribution_summary(
+    request,
+    model: str = "last_paid",
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    campaign_id: Optional[int] = None
+):
+    """
+    Multi-touch attribution summary matrix.
+    Supports switching between:
+      - 'last_paid' (Last Paid Touch, default)
+      - 'first_touch' (First Touch)
+      - 'linear' (Linear Equal Split)
+      - 'position_based' (Position-Based 40/40/20)
+    Computes Net Ad Profit (Delivered Revenue - COGS - Delivery Cost - Return Courier Loss - Ad Spend).
+    """
+    enforce_permission(request, "marketing", "view")
+
+    valid_models = ['last_paid', 'first_touch', 'linear', 'position_based']
+    if model not in valid_models:
+        model = 'last_paid'
+
+    now = timezone.now()
+    if date_from:
+        try:
+            start_dt = timezone.make_aware(datetime.datetime.strptime(date_from, "%Y-%m-%d"))
+        except Exception:
+            start_dt = now - datetime.timedelta(days=30)
+    else:
+        start_dt = now - datetime.timedelta(days=30)
+
+    if date_to:
+        try:
+            end_dt = timezone.make_aware(datetime.datetime.strptime(date_to, "%Y-%m-%d") + datetime.timedelta(days=1, microseconds=-1))
+        except Exception:
+            end_dt = now
+    else:
+        end_dt = now
+
+    # Map model to credit field
+    credit_field_map = {
+        'last_paid': 'last_paid_credit',
+        'first_touch': 'first_touch_credit',
+        'linear': 'linear_credit',
+        'position_based': 'position_based_credit',
+    }
+    credit_field = credit_field_map[model]
+
+    # Filter campaigns
+    camp_qs = Campaign.objects.exclude(status='ARCHIVED')
+    if campaign_id:
+        camp_qs = camp_qs.filter(id=campaign_id)
+
+    campaigns_data = []
+
+    # Totals across all campaigns
+    tot_spend_usd = Decimal('0.00')
+    tot_spend_bdt = Decimal('0.00')
+    tot_placed_orders = Decimal('0.00')
+    tot_delivered_orders = Decimal('0.00')
+    tot_returned_orders = Decimal('0.00')
+    tot_placed_revenue = Decimal('0.00')
+    tot_delivered_revenue = Decimal('0.00')
+    tot_gross_margin = Decimal('0.00')
+    tot_return_loss = Decimal('0.00')
+    tot_net_ad_profit = Decimal('0.00')
+    tot_impressions = 0
+    tot_link_clicks = 0
+
+    for camp in camp_qs:
+        # Snapshots spend in date range
+        snaps = camp.snapshots.filter(snapshot_time__gte=start_dt, snapshot_time__lte=end_dt)
+        spend_usd = snaps.aggregate(s=Sum('spend'))['s'] or Decimal('0.00')
+        spend_bdt = (spend_usd * Decimal('122.00')).quantize(Decimal('0.01'))
+        impressions = snaps.aggregate(i=Sum('impressions'))['i'] or 0
+        link_clicks = snaps.aggregate(c=Sum('link_clicks'))['c'] or 0
+
+        # Touchpoints for this campaign
+        touchpoints = OrderAttributionTouchpoint.objects.filter(
+            campaign=camp,
+            created_at__gte=start_dt,
+            created_at__lte=end_dt
+        ).select_related('session')
+
+        # Model-weighted counts and values
+        placed_orders = Decimal('0.00')
+        delivered_orders = Decimal('0.00')
+        returned_orders = Decimal('0.00')
+        placed_rev = Decimal('0.00')
+        deliv_rev = Decimal('0.00')
+        gross_margin = Decimal('0.00')
+        return_loss = Decimal('0.00')
+
+        # Cache order status lookups
+        order_ids = list(touchpoints.values_list('order_id', flat=True).distinct())
+        orders_dict = {o.id: o for o in Order.objects.filter(id__in=order_ids)}
+
+        for tp in touchpoints:
+            credit = getattr(tp, credit_field, Decimal('0.0000'))
+            if credit <= 0:
+                continue
+
+            order = orders_dict.get(tp.order_id)
+            if not order:
+                continue
+
+            order_total = Decimal(str(order.total_amount))
+            placed_orders += credit
+            placed_rev += (order_total * credit)
+
+            status_clean = order.status.lower().strip()
+            if status_clean in ['delivered', 'completed']:
+                delivered_orders += credit
+                deliv_rev += (order_total * credit)
+                # Gross margin = delivered revenue - COGS - delivery cost
+                gross_margin += (tp.attributed_gross_margin * (credit / (tp.last_paid_credit or Decimal('1.0000')))) if tp.last_paid_credit > 0 else (order_total * Decimal('0.40') * credit)
+            elif status_clean in ['returned', 'cancelled']:
+                returned_orders += credit
+                return_loss += (tp.attributed_return_loss * (credit / (tp.last_paid_credit or Decimal('1.0000')))) if tp.last_paid_credit > 0 else (Decimal('100.00') * credit)
+
+        finished_orders = delivered_orders + returned_orders
+        delivery_rate = round(float(delivered_orders / finished_orders * 100), 1) if finished_orders > 0 else 0.0
+
+        net_profit = (gross_margin - spend_bdt - return_loss).quantize(Decimal('0.01'))
+        roas = round(float(deliv_rev) / float(spend_bdt), 2) if spend_bdt > 0 else 0.0
+
+        tot_spend_usd += spend_usd
+        tot_spend_bdt += spend_bdt
+        tot_placed_orders += placed_orders
+        tot_delivered_orders += delivered_orders
+        tot_returned_orders += returned_orders
+        tot_placed_revenue += placed_rev
+        tot_delivered_revenue += deliv_rev
+        tot_gross_margin += gross_margin
+        tot_return_loss += return_loss
+        tot_net_ad_profit += net_profit
+        tot_impressions += impressions
+        tot_link_clicks += link_clicks
+
+        campaigns_data.append({
+            "id": camp.id,
+            "name": camp.name,
+            "meta_campaign_id": camp.meta_campaign_id or "",
+            "status": camp.status,
+            "spend_usd": float(spend_usd),
+            "spend_bdt": float(spend_bdt),
+            "impressions": impressions,
+            "link_clicks": link_clicks,
+            "placed_orders": round(float(placed_orders), 2),
+            "delivered_orders": round(float(delivered_orders), 2),
+            "returned_orders": round(float(returned_orders), 2),
+            "delivery_success_rate": delivery_rate,
+            "placed_revenue": float(placed_rev),
+            "delivered_revenue": float(deliv_rev),
+            "gross_margin": float(gross_margin),
+            "return_loss": float(return_loss),
+            "net_ad_profit": float(net_profit),
+            "roas": roas,
+        })
+
+    tot_finished = tot_delivered_orders + tot_returned_orders
+    tot_delivery_rate = round(float(tot_delivered_orders / tot_finished * 100), 1) if tot_finished > 0 else 0.0
+    tot_roas = round(float(tot_delivered_revenue) / float(tot_spend_bdt), 2) if tot_spend_bdt > 0 else 0.0
+
+    return {
+        "model": model,
+        "date_from": start_dt.strftime("%Y-%m-%d"),
+        "date_to": end_dt.strftime("%Y-%m-%d"),
+        "overview": {
+            "total_spend_usd": float(tot_spend_usd),
+            "total_spend_bdt": float(tot_spend_bdt),
+            "total_impressions": tot_impressions,
+            "total_link_clicks": tot_link_clicks,
+            "total_placed_orders": round(float(tot_placed_orders), 2),
+            "total_delivered_orders": round(float(tot_delivered_orders), 2),
+            "total_returned_orders": round(float(tot_returned_orders), 2),
+            "delivery_success_rate": tot_delivery_rate,
+            "total_placed_revenue": float(tot_placed_revenue),
+            "total_delivered_revenue": float(tot_delivered_revenue),
+            "total_gross_margin": float(tot_gross_margin),
+            "total_return_loss": float(tot_return_loss),
+            "total_net_ad_profit": float(tot_net_ad_profit),
+            "roas_delivered": tot_roas,
+        },
+        "campaigns": campaigns_data
+    }
+
+
+@router.get("/attribution/reconciliation/", auth=BearerAuth())
+def get_attribution_reconciliation(request, date: Optional[str] = None):
+    """
+    3-Way Daily Reconciliation Audit:
+    Verifies Storefront Orders vs Tracked Attribution Touchpoints vs Meta CAPI Records.
+    Computes discrepancy variance with 2% tolerance threshold.
+    """
+    enforce_permission(request, "marketing", "view")
+
+    now = timezone.now()
+    if date:
+        try:
+            target_date = datetime.datetime.strptime(date, "%Y-%m-%d").date()
+        except Exception:
+            target_date = now.date()
+    else:
+        target_date = now.date()
+
+    # 1. Storefront Orders placed on target_date
+    storefront_orders = Order.objects.filter(created_at__date=target_date)
+    storefront_count = storefront_orders.count()
+    storefront_rev = storefront_orders.aggregate(s=Sum('total_amount'))['s'] or Decimal('0.00')
+
+    # 2. Tracked Attribution Touchpoints
+    tracked_orders = OrderAttributionTouchpoint.objects.filter(created_at__date=target_date)
+    tracked_count = tracked_orders.values('order_id').distinct().count()
+    tracked_rev = tracked_orders.aggregate(s=Sum('attributed_order_value'))['s'] or Decimal('0.00')
+
+    # 3. Raw Events Intake
+    raw_events_count = RawTrackingEvent.objects.filter(server_timestamp__date=target_date).count()
+    quarantined_count = RawTrackingEvent.objects.filter(server_timestamp__date=target_date, status='QUARANTINED').count()
+
+    # Calculate discrepancy
+    diff = abs(storefront_count - tracked_count)
+    variance_pct = round((diff / storefront_count * 100), 2) if storefront_count > 0 else 0.0
+
+    status = "HEALTHY"
+    if variance_pct > 5.0:
+        status = "DISCREPANCY"
+    elif variance_pct > 2.0:
+        status = "ATTENTION"
+
+    return {
+        "date": str(target_date),
+        "status": status,
+        "variance_percentage": variance_pct,
+        "storefront": {
+            "orders_count": storefront_count,
+            "revenue": float(storefront_rev)
+        },
+        "attribution_tracked": {
+            "orders_count": tracked_count,
+            "revenue": float(tracked_rev)
+        },
+        "raw_events": {
+            "total_intake": raw_events_count,
+            "quarantined": quarantined_count
+        }
+    }
+
+
+@router.post("/attribution/rebuild/", auth=BearerAuth())
+def trigger_attribution_rebuild(request, date: Optional[str] = None):
+    """
+    Super Admin endpoint to trigger on-demand rebuild of daily ad performance summaries.
+    Enforces Super Admin privilege.
+    """
+    enforce_superuser(request)
+    res = rebuild_daily_ad_summaries_task(target_date_str=date)
+    return {"success": True, "result": res}
+
 
 
 

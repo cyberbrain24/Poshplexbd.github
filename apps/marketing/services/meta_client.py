@@ -1,6 +1,7 @@
 import time
 import logging
 import requests
+from decimal import Decimal
 from typing import Dict, Any, Optional, List
 from django.conf import settings
 from django.core.cache import cache
@@ -201,3 +202,76 @@ class MetaAPIClient:
             }
 
         return {"id": f"mock_{now_ts}", "success": True}
+
+
+def send_capi_lifecycle_event(
+    pixel_id: str,
+    access_token: str,
+    event_name: str,
+    order_id: int,
+    order_value: Decimal = Decimal('0.00'),
+    phone: Optional[str] = None,
+    email: Optional[str] = None,
+    fbc: Optional[str] = None,
+    fbp: Optional[str] = None,
+    event_source_url: str = "https://poshplexbd.com"
+) -> Dict[str, Any]:
+    """
+    Dispatches server-side lifecycle events (e.g. OrderConfirmed, OrderDelivered)
+    to Meta Conversions API (CAPI) with SHA-256 hashed user data.
+    """
+    import hashlib
+
+    if not pixel_id or not access_token:
+        logger.info(f"Skipping CAPI lifecycle event {event_name} for #{order_id}: missing pixel_id or access_token.")
+        return {"status": "skipped", "reason": "missing_credentials"}
+
+    user_data: Dict[str, Any] = {}
+    if phone:
+        # Standardize Bangladeshi phone number (e.g. 88017...)
+        digits = ''.join(filter(str.isdigit, str(phone)))
+        if digits.startswith("0"):
+            digits = "88" + digits
+        elif not digits.startswith("88") and len(digits) == 10:
+            digits = "880" + digits
+        user_data["ph"] = [hashlib.sha256(digits.encode('utf-8')).hexdigest()]
+
+    if email:
+        clean_email = email.strip().lower()
+        user_data["em"] = [hashlib.sha256(clean_email.encode('utf-8')).hexdigest()]
+
+    if fbc:
+        user_data["fbc"] = fbc.strip()
+    if fbp:
+        user_data["fbp"] = fbp.strip()
+
+    event_payload = {
+        "event_name": event_name,
+        "event_time": int(time.time()),
+        "event_id": f"posh_order_{order_id}_{event_name.lower()}",
+        "event_source_url": event_source_url,
+        "action_source": "website",
+        "user_data": user_data,
+        "custom_data": {
+            "currency": "BDT",
+            "value": float(order_value),
+            "order_id": str(order_id)
+        }
+    }
+
+    url = f"https://graph.facebook.com/v21.0/{pixel_id}/events"
+    try:
+        resp = requests.post(
+            url,
+            params={"access_token": access_token},
+            json={"data": [event_payload]},
+            headers={"Content-Type": "application/json"},
+            timeout=15
+        )
+        data = resp.json()
+        logger.info(f"Meta CAPI {event_name} dispatched for Order #{order_id}: {data}")
+        return data
+    except Exception as e:
+        logger.warning(f"Failed to dispatch Meta CAPI {event_name} for Order #{order_id}: {e}")
+        return {"status": "error", "error": str(e)}
+

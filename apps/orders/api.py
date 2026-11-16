@@ -66,6 +66,16 @@ class OrderCreateInputSchema(Schema):
     payment_sender: Optional[str] = ""
     payment_amount: Optional[Decimal] = None
     checkout_session_token: Optional[str] = None
+    
+    # Customer Data & Attribution Platform parameters
+    visitor_id: Optional[str] = None
+    session_id: Optional[str] = None
+    utm_source: Optional[str] = None
+    utm_medium: Optional[str] = None
+    utm_campaign: Optional[str] = None
+    utm_content: Optional[str] = None
+    fbc: Optional[str] = None
+    fbp: Optional[str] = None
 
 class OrderItemSchema(Schema):
     id: int
@@ -1314,6 +1324,20 @@ def customer_checkout_endpoint(request, data: OrderCreateInputSchema):
                     ).delete()
                 except Exception:
                     pass
+
+            # Record Customer Data & Multi-Touch Attribution Touchpoints
+            try:
+                from apps.marketing.services.attribution_engine import record_order_attribution_touchpoints
+                record_order_attribution_touchpoints(
+                    order_id=order.id,
+                    visitor_id=getattr(data, 'visitor_id', None),
+                    session_id=getattr(data, 'session_id', None),
+                    utm_campaign=getattr(data, 'utm_campaign', None),
+                    fbc=getattr(data, 'fbc', None),
+                    customer_phone=final_phone or order.shipping_phone
+                )
+            except Exception as attr_err:
+                logger.warning(f"Attribution tracking note for Order #{order.id}: {attr_err}")
                 
             return compile_order_response(order)
             
@@ -1562,6 +1586,20 @@ def update_order_status(request, order_id: int, data: OrderStatusUpdateSchema):
             admin_username=request.auth.username,
             notes=data.notes or f"Status changed manually from {old_status} to {data.status}."
         )
+
+        # Update attribution financials & trigger Meta CAPI lifecycle events
+        try:
+            from apps.marketing.services.attribution_engine import update_order_touchpoints_on_status_change
+            from apps.marketing.tasks import send_meta_capi_lifecycle_event_task
+            update_order_touchpoints_on_status_change(order.id, data.status)
+            status_clean = (data.status or "").lower().strip()
+            if status_clean in ['confirmed', 'processing']:
+                send_meta_capi_lifecycle_event_task.delay(order.id, "OrderConfirmed")
+            elif status_clean in ['delivered', 'completed']:
+                send_meta_capi_lifecycle_event_task.delay(order.id, "OrderDelivered")
+        except Exception as lifecycle_err:
+            logger.warning(f"Lifecycle event update note for Order #{order.id}: {lifecycle_err}")
+
         return compile_order_response(order)
     except Exception as e:
         raise HttpError(400, str(e))

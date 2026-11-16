@@ -10,6 +10,7 @@ import { fetchWithAuth } from "../utils/fetchWithAuth";
 import { useCart } from "../../context/CartContext";
 import GraffitiBackground from "../components/GraffitiBackground";
 import * as fpixel from "../../lib/fpixel";
+import { getAttributionContext, trackEvent as trackAttributionEvent } from "../utils/tracker";
 
 // --- CUSTOM SEARCHABLE SELECT COMPONENT ---
 function SearchableSelect({ 
@@ -621,6 +622,7 @@ export default function CheckoutPage() {
     setError("");
     
     try {
+      const attrCtx = getAttributionContext();
       const payload = {
         customer_name: formData.name,
         customer_phone: finalPhone,
@@ -636,6 +638,15 @@ export default function CheckoutPage() {
         customer_notes: formData.notes,
         payment_method: "Cash on Delivery",
         checkout_session_token: checkoutSessionToken.current || undefined,
+        // Attribution & Customer Data Platform context
+        visitor_id: attrCtx.visitor_id,
+        session_id: attrCtx.session_id,
+        utm_source: attrCtx.utm_source,
+        utm_medium: attrCtx.utm_medium,
+        utm_campaign: attrCtx.utm_campaign,
+        utm_content: attrCtx.utm_content,
+        fbc: attrCtx.fbc,
+        fbp: attrCtx.fbp,
         items: cart.map(item => ({
           sku: item.sku,
           quantity: item.quantity,
@@ -728,6 +739,17 @@ export default function CheckoutPage() {
            ge: finalGender,
            db: finalDob
         });
+
+        // First-party Customer Data Platform purchase event
+        try {
+          trackAttributionEvent("purchase", {
+            order_id: txId,
+            value: purchaseValue,
+            phone: finalPhone,
+            email: formData.email,
+            num_items: cart.length
+          });
+        } catch {}
 
         clearCart();
         if (typeof window !== "undefined") {
