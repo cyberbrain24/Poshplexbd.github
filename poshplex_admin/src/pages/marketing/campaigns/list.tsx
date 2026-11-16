@@ -19,9 +19,24 @@ const API_BASE = `${SERVER_BASE}/api/v1/marketing`;
 export const CampaignList: React.FC = () => {
   const navigate = useNavigate();
   const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [adAccounts, setAdAccounts] = useState<any[]>([]);
+  const [selectedAccountId, setSelectedAccountId] = useState<number | undefined>(undefined);
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+
+  const fetchAdAccounts = async () => {
+    try {
+      const token = localStorage.getItem("poshplex_access_token");
+      const res = await axios.get(`${API_BASE}/ad-accounts/`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setAdAccounts(res.data || []);
+    } catch (err) {
+      console.error("Failed to load Meta ad accounts", err);
+    }
+  };
 
   const fetchCampaigns = async () => {
     setLoading(true);
@@ -31,9 +46,10 @@ export const CampaignList: React.FC = () => {
       const params: any = {};
       if (search) params.search = search;
       if (statusFilter) params.status = statusFilter;
+      if (selectedAccountId) params.ad_account_id = selectedAccountId;
 
       const res = await axios.get(`${API_BASE}/campaigns/`, { headers, params });
-      setCampaigns(res.data);
+      setCampaigns(res.data || []);
     } catch (err: any) {
       message.error("Failed to load campaigns.");
     } finally {
@@ -41,9 +57,47 @@ export const CampaignList: React.FC = () => {
     }
   };
 
+  const handleSyncFromMeta = async () => {
+    if (adAccounts.length === 0) {
+      message.warning("No connected Meta Ad Accounts found. Connect an ad account in Settings.");
+      return;
+    }
+    setSyncing(true);
+    message.loading({ content: "Syncing campaigns & analytics from Meta Ads Manager...", key: "syncMeta" });
+    try {
+      const token = localStorage.getItem("poshplex_access_token");
+      const headers = { Authorization: `Bearer ${token}` };
+      
+      const accountsToSync = selectedAccountId 
+        ? adAccounts.filter(a => a.id === selectedAccountId)
+        : adAccounts.filter(a => a.is_active);
+
+      let totalSynced = 0;
+      for (const acc of accountsToSync) {
+        try {
+          const res = await axios.post(`${API_BASE}/ad-accounts/${acc.id}/sync/`, {}, { headers });
+          totalSynced += res.data?.insights_synced || 0;
+        } catch (accErr) {
+          console.error(`Error syncing account ${acc.name}`, accErr);
+        }
+      }
+
+      message.success({ content: `Successfully synced performance from Meta Marketing API!`, key: "syncMeta" });
+      await fetchCampaigns();
+    } catch (err: any) {
+      message.error({ content: "Failed to complete Meta sync.", key: "syncMeta" });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAdAccounts();
+  }, []);
+
   useEffect(() => {
     fetchCampaigns();
-  }, [statusFilter]);
+  }, [statusFilter, selectedAccountId]);
 
   const handleDeploy = async (id: number) => {
     message.loading({ content: "Deploying campaign to Meta Marketing API...", key: "deploy" });
@@ -662,12 +716,22 @@ export const CampaignList: React.FC = () => {
       {/* Header bar */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
         <div>
-          <Title level={4} style={{ margin: 0, color: "#ffffff", fontWeight: 700 }}>Meta Campaigns</Title>
+          <Title level={4} style={{ margin: 0, color: "#ffffff", fontWeight: 700 }}>Meta Campaigns Analytics</Title>
           <Text style={{ color: "#94a3b8", fontSize: 11.5 }}>
-            Automated media buyer management & real-time Ads Manager performance tracking
+            Real-time campaign performance tracking and analytics across connected Meta Ad Accounts
           </Text>
         </div>
         <Space size={8}>
+          <Button
+            type="primary"
+            size="small"
+            icon={<ReloadOutlined style={{ fontSize: 11 }} />}
+            loading={syncing}
+            onClick={handleSyncFromMeta}
+            style={{ backgroundColor: "#8b5cf6", borderColor: "#8b5cf6", fontSize: 11 }}
+          >
+            Sync from Meta
+          </Button>
           <Button size="small" icon={<ReloadOutlined style={{ fontSize: 11 }} />} onClick={fetchCampaigns}>
             Refresh
           </Button>
@@ -680,15 +744,6 @@ export const CampaignList: React.FC = () => {
             style={{ backgroundColor: "#dc2626", borderColor: "#dc2626", fontSize: 11 }}
           >
             STOP ALL ADS
-          </Button>
-          <Button
-            type="primary"
-            size="small"
-            icon={<PlusOutlined style={{ fontSize: 11 }} />}
-            onClick={() => navigate("/marketing/campaigns/create")}
-            style={{ backgroundColor: "#8b5cf6", borderColor: "#8b5cf6", fontSize: 11 }}
-          >
-            Create Campaign
           </Button>
         </Space>
       </div>
@@ -746,6 +801,18 @@ export const CampaignList: React.FC = () => {
       >
         {/* Filters bar */}
         <div style={{ display: "flex", gap: 10, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <Select
+            size="small"
+            placeholder="All Meta Ad Accounts"
+            allowClear
+            value={selectedAccountId}
+            onChange={(v) => setSelectedAccountId(v)}
+            style={{ minWidth: 200, fontSize: 11.5 }}
+            options={adAccounts.map(acc => ({
+              label: `${acc.name} (${acc.currency || 'USD'})`,
+              value: acc.id
+            }))}
+          />
           <Input
             size="small"
             placeholder="Search campaigns by name..."
@@ -764,10 +831,8 @@ export const CampaignList: React.FC = () => {
             style={{ minWidth: 130, flex: "1 1 130px", fontSize: 11.5 }}
             options={[
               { label: "Active", value: "ACTIVE" },
-              { label: "Draft", value: "DRAFT" },
               { label: "Paused", value: "PAUSED" },
-              { label: "Deploying", value: "DEPLOYING" },
-              { label: "Error", value: "ERROR" },
+              { label: "Archived", value: "ARCHIVED" },
             ]}
           />
           <Button size="small" onClick={fetchCampaigns} style={{ fontSize: 11.5 }}>

@@ -1,8 +1,12 @@
 from typing import List, Optional, Any
 from decimal import Decimal
+import datetime
+import logging
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+
+logger = logging.getLogger(__name__)
 
 from ninja import Router, Schema
 from ninja.errors import HttpError
@@ -567,7 +571,7 @@ def connect_ad_account(request, payload: MetaAdAccountConnectSchema):
 
 @router.post("/ad-accounts/{account_id}/sync/", auth=BearerAuth())
 def sync_ad_account(request, account_id: int):
-    """Trigger immediate metric sync for an ad account."""
+    """Trigger immediate metric and campaign sync for an ad account from Meta."""
     enforce_permission(request, "marketing", "edit")
     account = get_object_or_404(MetaAdAccount, id=account_id)
     now = timezone.now()
@@ -575,33 +579,89 @@ def sync_ad_account(request, account_id: int):
     until_date = now.strftime('%Y-%m-%d')
 
     try:
+        # 1. First sync existing native campaigns from Meta Ad Account
+        token = account.get_access_token()
+        client = MetaAPIClient(token, account_id=account.meta_account_id)
+        account_prefix = account.meta_account_id
+        if not account_prefix.startswith("act_"):
+            account_prefix = f"act_{account_prefix}"
+
+        try:
+            camp_res = client.get(
+                f"{account_prefix}/campaigns",
+                params={"fields": "id,name,objective,status,effective_status,daily_budget,lifetime_budget", "limit": 100}
+            )
+            meta_campaigns = camp_res.get("data", [])
+            for mc in meta_campaigns:
+                meta_cid = mc.get("id")
+                if not meta_cid:
+                    continue
+                camp_name = mc.get("name") or f"Meta Campaign {meta_cid}"
+                camp_status = (mc.get("effective_status") or mc.get("status") or "ACTIVE").upper()
+                if camp_status not in dict(Campaign.STATUS_CHOICES):
+                    camp_status = "ACTIVE"
+
+                daily_b = mc.get("daily_budget")
+                lifetime_b = mc.get("lifetime_budget")
+                budget_type = "LIFETIME" if lifetime_b else "DAILY"
+                raw_b = lifetime_b or daily_b or 0
+                try:
+                    # Meta returns budget in currency cents (e.g. 1000 for $10.00)
+                    budget_amt = Decimal(str(raw_b)) / Decimal('100.00') if Decimal(str(raw_b)) > Decimal('100.00') else Decimal(str(raw_b))
+                except Exception:
+                    budget_amt = Decimal('20.00')
+
+                Campaign.objects.update_or_create(
+                    meta_campaign_id=meta_cid,
+                    defaults={
+                        "ad_account": account,
+                        "name": camp_name,
+                        "status": camp_status,
+                        "budget_type": budget_type,
+                        "budget_amount": budget_amt if budget_amt > 0 else Decimal('20.00'),
+                    }
+                )
+        except Exception as camp_err:
+            logger.warning(f"Could not fetch campaign list from Meta API for {account_prefix}: {camp_err}")
+
+        # 2. Fetch insights performance snapshots
         insights = fetch_insights(account, since=since_date, until=until_date)
         for item in insights:
             meta_cid = item.get("meta_campaign_id")
             if not meta_cid:
                 continue
             campaign = Campaign.objects.filter(meta_campaign_id=meta_cid).first()
-            if campaign:
-                spend = item.get("spend", Decimal('0.00'))
-                rev = calculate_campaign_attributed_revenue(campaign)
-                PerformanceSnapshot.objects.create(
-                    campaign=campaign,
-                    snapshot_time=now,
-                    spend=spend,
-                    impressions=item.get("impressions", 0),
-                    reach=item.get("reach", 0),
-                    frequency=item.get("frequency", 1.0),
-                    cpm=item.get("cpm", Decimal('0.00')),
-                    clicks=item.get("clicks", 0),
-                    link_clicks=item.get("link_clicks", 0),
-                    cost_per_link_click=item.get("cost_per_link_click", Decimal('0.00')),
-                    conversions=item.get("conversions", 0),
-                    cost_per_result=item.get("cost_per_result", Decimal('0.00')),
-                    shop_clicks=item.get("shop_clicks", 0),
-                    landing_page_views=item.get("landing_page_views", 0),
-                    cost_per_landing_page=item.get("cost_per_landing_page", Decimal('0.00')),
-                    revenue_attributed=rev,
+            if not campaign:
+                # If campaign wasn't listed or already existed, create it from insights
+                c_name = item.get("campaign_name") or f"Meta Campaign {meta_cid}"
+                campaign = Campaign.objects.create(
+                    ad_account=account,
+                    name=c_name,
+                    meta_campaign_id=meta_cid,
+                    status="ACTIVE",
+                    budget_amount=Decimal('20.00'),
                 )
+
+            spend = item.get("spend", Decimal('0.00'))
+            rev = calculate_campaign_attributed_revenue(campaign)
+            PerformanceSnapshot.objects.create(
+                campaign=campaign,
+                snapshot_time=now,
+                spend=spend,
+                impressions=item.get("impressions", 0),
+                reach=item.get("reach", 0),
+                frequency=item.get("frequency", 1.0),
+                cpm=item.get("cpm", Decimal('0.00')),
+                clicks=item.get("clicks", 0),
+                link_clicks=item.get("link_clicks", 0),
+                cost_per_link_click=item.get("cost_per_link_click", Decimal('0.00')),
+                conversions=item.get("conversions", 0),
+                cost_per_result=item.get("cost_per_result", Decimal('0.00')),
+                shop_clicks=item.get("shop_clicks", 0),
+                landing_page_views=item.get("landing_page_views", 0),
+                cost_per_landing_page=item.get("cost_per_landing_page", Decimal('0.00')),
+                revenue_attributed=rev,
+            )
         account.last_synced_at = now
         account.save(update_fields=['last_synced_at'])
         return {"success": True, "insights_synced": len(insights)}
@@ -656,10 +716,12 @@ def receive_meta_webhook(request):
 # --- Campaigns CRUD ---
 
 @router.get("/campaigns/", response=List[CampaignResponseSchema], auth=BearerAuth())
-def list_campaigns(request, status: Optional[str] = None, search: Optional[str] = None):
+def list_campaigns(request, status: Optional[str] = None, search: Optional[str] = None, ad_account_id: Optional[int] = None):
     """List marketing campaigns with attached targeting, creative, and performance aggregates."""
     enforce_permission(request, "marketing", "view")
     qs = Campaign.objects.select_related('ad_account', 'linked_product').prefetch_related('adsets__creatives', 'snapshots').all()
+    if ad_account_id:
+        qs = qs.filter(ad_account_id=ad_account_id)
     if status:
         qs = qs.filter(status=status.upper())
     if search:

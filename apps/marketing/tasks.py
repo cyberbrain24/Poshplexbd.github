@@ -26,6 +26,50 @@ def poll_performance_metrics():
     accounts = MetaAdAccount.objects.filter(is_active=True)
     for account in accounts:
         try:
+            # 1. Sync remote campaigns for this account if any newly created natively on Meta
+            token = account.get_access_token()
+            client = MetaAPIClient(token, account_id=account.meta_account_id)
+            account_prefix = account.meta_account_id
+            if not account_prefix.startswith("act_"):
+                account_prefix = f"act_{account_prefix}"
+
+            try:
+                camp_res = client.get(
+                    f"{account_prefix}/campaigns",
+                    params={"fields": "id,name,objective,status,effective_status,daily_budget,lifetime_budget", "limit": 100}
+                )
+                for mc in camp_res.get("data", []):
+                    meta_cid = mc.get("id")
+                    if not meta_cid:
+                        continue
+                    camp_name = mc.get("name") or f"Meta Campaign {meta_cid}"
+                    camp_status = (mc.get("effective_status") or mc.get("status") or "ACTIVE").upper()
+                    if camp_status not in dict(Campaign.STATUS_CHOICES):
+                        camp_status = "ACTIVE"
+
+                    daily_b = mc.get("daily_budget")
+                    lifetime_b = mc.get("lifetime_budget")
+                    budget_type = "LIFETIME" if lifetime_b else "DAILY"
+                    raw_b = lifetime_b or daily_b or 0
+                    try:
+                        budget_amt = Decimal(str(raw_b)) / Decimal('100.00') if Decimal(str(raw_b)) > Decimal('100.00') else Decimal(str(raw_b))
+                    except Exception:
+                        budget_amt = Decimal('20.00')
+
+                    Campaign.objects.update_or_create(
+                        meta_campaign_id=meta_cid,
+                        defaults={
+                            "ad_account": account,
+                            "name": camp_name,
+                            "status": camp_status,
+                            "budget_type": budget_type,
+                            "budget_amount": budget_amt if budget_amt > 0 else Decimal('20.00'),
+                        }
+                    )
+            except Exception as camp_err:
+                logger.warning(f"Could not poll campaign list from Meta for {account_prefix}: {camp_err}")
+
+            # 2. Fetch insights performance snapshots
             insights = fetch_insights(account, since=since_date, until=until_date)
             for item in insights:
                 meta_cid = item.get("meta_campaign_id")
@@ -34,7 +78,14 @@ def poll_performance_metrics():
 
                 campaign = Campaign.objects.filter(meta_campaign_id=meta_cid).first()
                 if not campaign:
-                    continue
+                    c_name = item.get("campaign_name") or f"Meta Campaign {meta_cid}"
+                    campaign = Campaign.objects.create(
+                        ad_account=account,
+                        name=c_name,
+                        meta_campaign_id=meta_cid,
+                        status="ACTIVE",
+                        budget_amount=Decimal('20.00'),
+                    )
 
                 spend = item.get("spend", Decimal('0.00'))
                 impressions = item.get("impressions", 0)

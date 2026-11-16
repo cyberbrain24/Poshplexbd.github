@@ -220,8 +220,8 @@ export const MarketingDashboard: React.FC = () => {
           >
             STOP ALL ADS
           </Button>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate("/marketing/campaigns/create")} style={{ backgroundColor: "#8b5cf6" }}>
-            New Campaign
+          <Button type="primary" icon={<EyeOutlined />} onClick={() => navigate("/marketing/campaigns")} style={{ backgroundColor: "#8b5cf6" }}>
+            View Meta Campaigns
           </Button>
         </Space>
       </div>
