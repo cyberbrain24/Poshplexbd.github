@@ -428,6 +428,12 @@ class VisitorSession(models.Model):
     utm_content = models.CharField(max_length=150, blank=True, default='')
     utm_term = models.CharField(max_length=150, blank=True, default='')
     
+    # Granular Meta Ads Identifiers (Captured at landing, survives renames)
+    meta_campaign_id = models.CharField(max_length=100, blank=True, default='', db_index=True, help_text="Meta campaign ID (survives renames)")
+    meta_adset_id = models.CharField(max_length=100, blank=True, default='', db_index=True, help_text="Meta adset ID")
+    meta_ad_id = models.CharField(max_length=100, blank=True, default='', db_index=True, help_text="Meta ad ID (joins spend at ad level)")
+    ad_name = models.CharField(max_length=255, blank=True, default='', help_text="Ad name from utm_content or ad.name")
+    
     fbc = models.CharField(max_length=255, blank=True, default='', help_text="Meta Click ID Cookie")
     fbp = models.CharField(max_length=255, blank=True, default='', help_text="Meta Browser ID Cookie")
     
@@ -438,6 +444,7 @@ class VisitorSession(models.Model):
     
     is_engaged = models.BooleanField(default=False, help_text="Engaged visit: >=10s, 2+ pages or key action")
     is_internal = models.BooleanField(default=False, help_text="Staff or internal test visit")
+    is_bot = models.BooleanField(default=False, help_text="Bot or crawler traffic flag")
     quality_score = models.IntegerField(default=100, help_text="0-100 fraud/bot score")
     
     started_at = models.DateTimeField(auto_now_add=True, db_index=True)
@@ -478,6 +485,9 @@ class RawTrackingEvent(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PROCESSED', db_index=True)
     quarantine_reason = models.TextField(blank=True, default='')
     
+    is_internal = models.BooleanField(default=False, help_text="Staff or internal test event")
+    is_bot = models.BooleanField(default=False, help_text="Bot or crawler event")
+    
     client_timestamp = models.DateTimeField(null=True, blank=True)
     server_timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
 
@@ -488,10 +498,73 @@ class RawTrackingEvent(models.Model):
             models.Index(fields=['event_name', 'server_timestamp']),
             models.Index(fields=['visitor_id', 'server_timestamp']),
             models.Index(fields=['status']),
+            models.Index(fields=['is_bot', 'server_timestamp']),
         ]
 
     def __str__(self):
         return f"{self.event_name} [{self.status}] @ {self.server_timestamp}"
+
+
+class IdentityLink(models.Model):
+    """
+    M6: Maps anonymous visitor UUIDs to CRM CustomerProfile and User.
+    Stitched when phone number, email, or authenticated session is detected.
+    Attribution joins on this table to trace multi-session / cross-device journeys.
+    """
+    visitor_id = models.CharField(max_length=100, db_index=True, help_text="First-party visitor UUID")
+    customer = models.ForeignKey('crm.CustomerProfile', on_delete=models.CASCADE, related_name='identity_links')
+    phone = models.CharField(max_length=50, blank=True, default='', db_index=True)
+    email = models.EmailField(blank=True, default='')
+    source = models.CharField(max_length=50, default='checkout', help_text="Source: checkout, login, phone_entry, messenger")
+    confidence_score = models.IntegerField(default=100)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        db_table = 'marketing_identity_link'
+        unique_together = ('visitor_id', 'customer')
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['visitor_id', 'created_at']),
+            models.Index(fields=['phone']),
+        ]
+
+    def __str__(self):
+        return f"IdentityLink: {self.visitor_id[:8]} -> {self.customer.phone}"
+
+
+class MetaCapiLog(models.Model):
+    """
+    Audit log of all outgoing Meta Conversions API events.
+    Enforces the 7-day age limit, logs payload, HTTP status, and Meta responses.
+    """
+    STATUS_CHOICES = (
+        ('SENT', 'Sent to Meta CAPI'),
+        ('SUCCESS', 'Delivered & Accepted by Meta'),
+        ('SKIPPED_AGE', 'Skipped: Event older than 7 days'),
+        ('FAILED', 'Error / Rejected by Meta'),
+    )
+
+    order_id = models.PositiveIntegerField(db_index=True)
+    event_name = models.CharField(max_length=100, db_index=True)
+    event_id = models.CharField(max_length=150, db_index=True)
+    event_time = models.DateTimeField(help_text="Real event occurrence timestamp")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='SENT', db_index=True)
+    http_status = models.IntegerField(null=True, blank=True)
+    payload = models.JSONField(default=dict)
+    response = models.JSONField(default=dict)
+    error_message = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        db_table = 'marketing_meta_capi_log'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['order_id', 'event_name']),
+            models.Index(fields=['status', 'created_at']),
+        ]
+
+    def __str__(self):
+        return f"CAPI {self.event_name} for Order #{self.order_id} [{self.status}]"
 
 
 class OrderAttributionTouchpoint(models.Model):

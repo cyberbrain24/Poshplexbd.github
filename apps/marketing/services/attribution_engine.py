@@ -17,15 +17,43 @@ from apps.marketing.models import (
     PerformanceSnapshot,
 )
 from apps.orders.models import Order, OrderItem
+from apps.marketing.models import (
+    Campaign,
+    MetaAdAccount,
+    VisitorSession,
+    RawTrackingEvent,
+    OrderAttributionTouchpoint,
+    DailyAdPerformanceSummary,
+    PerformanceSnapshot,
+    IdentityLink,
+    MetaCapiLog,
+)
+from apps.orders.models import Order, OrderItem
 from apps.crm.models import CustomerProfile
 
 logger = logging.getLogger(__name__)
+
+
+def detect_bot_or_crawler(user_agent: str) -> bool:
+    """Detects automated web crawlers, bots, or headless test clients."""
+    if not user_agent:
+        return False
+    ua = user_agent.lower()
+    bot_signatures = [
+        'bot', 'crawl', 'spider', 'slurp', 'facebookexternalhit',
+        'meta-externalagent', 'headless', 'python-requests',
+        'curl', 'wget', 'lighthouse', 'bytespider', 'semrush'
+    ]
+    return any(sig in ua for sig in bot_signatures)
 
 
 def classify_channel(
     utm_source: str = "",
     utm_medium: str = "",
     utm_campaign: str = "",
+    campaign_id: str = "",
+    adset_id: str = "",
+    ad_id: str = "",
     fbc: str = "",
     fbclid: str = "",
     referrer: str = ""
@@ -33,30 +61,42 @@ def classify_channel(
     """
     Classifies a visitor session into one of 7 standardized channels:
     PAID_META, OTHER_PAID, MESSAGING, ORGANIC_SOCIAL, ORGANIC_SEARCH, REFERRAL, DIRECT.
+
+    STRICT SOURCE SEPARATION RULES:
+    1. Paid Meta requires explicit ad_id / campaign_id OR utm_medium in ['paid', 'cpc', 'cpm', 'paidsocial', 'ads', 'ppc'].
+    2. fbc / fbclid alone WITHOUT paid parameters is classified as ORGANIC_SOCIAL, because
+       ordinary Facebook organic posts and shares append fbclid via link shims.
+    3. Direct navigations never overwrite an existing known paid or organic touchpoint
+       inside the attribution window (Last Non-Direct attribution principle).
     """
     src = (utm_source or "").lower().strip()
     med = (utm_medium or "").lower().strip()
     ref = (referrer or "").lower().strip()
     fbc_clean = (fbc or "").strip()
     fbclid_clean = (fbclid or "").strip()
+    cid = (campaign_id or "").strip()
+    aid = (ad_id or "").strip()
 
-    # 1. Paid Meta Ads
-    if fbc_clean or fbclid_clean or "fbclid" in ref:
+    is_paid_medium = med in ['paid', 'cpc', 'cpm', 'paidsocial', 'ads', 'ppc']
+    has_meta_ad_ids = bool(cid or aid)
+
+    # 1. Paid Meta Ads: Requires ad_id/campaign_id OR (Meta source + paid medium)
+    if has_meta_ad_ids:
         return 'PAID_META'
-    if src in ['facebook', 'fb', 'instagram', 'ig', 'meta', 'an'] and (med in ['cpc', 'cpm', 'paid', 'paidsocial', 'ads'] or utm_campaign):
+    if src in ['facebook', 'fb', 'instagram', 'ig', 'meta', 'an'] and is_paid_medium:
         return 'PAID_META'
 
     # 2. Other Paid Ads (Google, TikTok, etc.)
-    if med in ['cpc', 'cpm', 'ppc', 'paid', 'paidsocial', 'display'] or src in ['google_ads', 'tiktok_ads']:
+    if is_paid_medium or src in ['google_ads', 'tiktok_ads']:
         return 'OTHER_PAID'
 
     # 3. Direct Messaging Channels (WhatsApp, Messenger, Telegram)
     if src in ['whatsapp', 'messenger', 'telegram', 'viber', 'direct_chat'] or med in ['chat', 'messaging']:
         return 'MESSAGING'
 
-    # 4. Organic Social
+    # 4. Organic Social (Note: fbclid/fbc alone falls here!)
     social_domains = ['facebook.com', 'instagram.com', 'tiktok.com', 'pinterest.com', 'linkedin.com', 'youtube.com']
-    if any(domain in ref for domain in social_domains) or src in ['facebook', 'instagram', 'tiktok', 'social']:
+    if any(domain in ref for domain in social_domains) or src in ['facebook', 'instagram', 'tiktok', 'social'] or fbc_clean or fbclid_clean or "fbclid" in ref:
         return 'ORGANIC_SOCIAL'
 
     # 5. Organic Search
@@ -72,17 +112,17 @@ def classify_channel(
     return 'DIRECT'
 
 
-def link_session_to_customer(session: VisitorSession, phone: str = "", email: str = "", user_id: Optional[int] = None) -> Optional[CustomerProfile]:
+def link_session_to_customer(session: VisitorSession, phone: str = "", email: str = "", user_id: Optional[int] = None, source: str = "checkout") -> Optional[CustomerProfile]:
     """
-    Resolves customer identity from phone/email/user and links to the VisitorSession.
+    M6: Resolves customer identity from phone/email/user, links to VisitorSession,
+    and records an IdentityLink mapping visitor_id <-> CustomerProfile.
+    Attribution joins on this table to trace cross-device and multi-session customer journeys.
     """
-    if session.customer:
-        return session.customer
-
     profile = None
     if user_id:
         profile = CustomerProfile.objects.filter(user_id=user_id).first()
 
+    clean_phone = ""
     if not profile and phone:
         # Match by last 10 digits to normalize Bangladeshi prefixes (e.g. 017... or +88017...)
         clean_phone = ''.join(filter(str.isdigit, str(phone)))
@@ -95,6 +135,18 @@ def link_session_to_customer(session: VisitorSession, phone: str = "", email: st
     if profile:
         session.customer = profile
         session.save(update_fields=['customer'])
+
+        # Record IdentityLink table (M6 in Phase 1)
+        IdentityLink.objects.get_or_create(
+            visitor_id=session.visitor_id,
+            customer=profile,
+            defaults={
+                "phone": clean_phone or getattr(profile, 'phone', ''),
+                "email": email or getattr(profile, 'email', ''),
+                "source": source,
+                "confidence_score": 100
+            }
+        )
         # Also retroactively link previous sessions from this visitor
         VisitorSession.objects.filter(visitor_id=session.visitor_id, customer__isnull=True).update(customer=profile)
 
@@ -104,7 +156,7 @@ def link_session_to_customer(session: VisitorSession, phone: str = "", email: st
 def record_tracking_event(event_data: Dict[str, Any], ip_address: Optional[str] = None, user_agent: Optional[str] = None) -> RawTrackingEvent:
     """
     Core intake processor: Validates schema, registers/updates VisitorSession,
-    links customer identity, and writes append-only RawTrackingEvent.
+    records IdentityLink, flags bots/staff, and writes append-only RawTrackingEvent.
     """
     event_id = event_data.get("event_id") or str(uuid.uuid4())
     event_name = (event_data.get("event_name") or "page_view").strip()
@@ -122,10 +174,21 @@ def record_tracking_event(event_data: Dict[str, Any], ip_address: Optional[str] 
     utm_campaign = str(event_data.get("utm_campaign") or "").strip()
     utm_content = str(event_data.get("utm_content") or "").strip()
     utm_term = str(event_data.get("utm_term") or "").strip()
+
+    # Granular Ad IDs captured at landing
+    meta_campaign_id = str(event_data.get("campaign_id") or event_data.get("meta_campaign_id") or "").strip()
+    meta_adset_id = str(event_data.get("adset_id") or event_data.get("meta_adset_id") or "").strip()
+    meta_ad_id = str(event_data.get("ad_id") or event_data.get("meta_ad_id") or "").strip()
+    ad_name = str(event_data.get("ad_name") or utm_content or "").strip()
+
     fbc = str(event_data.get("fbc") or "").strip()
     fbp = str(event_data.get("fbp") or "").strip()
     landing_page = str(event_data.get("landing_page") or "")[:500]
     referrer = str(event_data.get("referrer") or "")[:500]
+
+    ua_str = user_agent or ""
+    is_bot = detect_bot_or_crawler(ua_str)
+    is_internal = bool(event_data.get("is_internal") or "internal_test" in landing_page or (ip_address and ip_address.startswith("10.")))
 
     # Validate Schema
     quarantine_reason = ""
@@ -134,24 +197,45 @@ def record_tracking_event(event_data: Dict[str, Any], ip_address: Optional[str] 
         status = "QUARANTINED"
         quarantine_reason = "Missing or excessively long event_name"
 
-    # Resolve Campaign FK if utm_campaign is provided
+    # Resolve Campaign FK if utm_campaign or meta_campaign_id is provided
     campaign = None
-    if utm_campaign:
-        if utm_campaign.isdigit():
-            campaign = Campaign.objects.filter(id=int(utm_campaign)).first()
+    target_camp_id = meta_campaign_id or utm_campaign
+    if target_camp_id:
+        if target_camp_id.isdigit():
+            campaign = Campaign.objects.filter(id=int(target_camp_id)).first()
         if not campaign:
-            campaign = Campaign.objects.filter(meta_campaign_id=utm_campaign).first()
-        if not campaign:
+            campaign = Campaign.objects.filter(meta_campaign_id=target_camp_id).first()
+        if not campaign and utm_campaign:
             campaign = Campaign.objects.filter(name__iexact=utm_campaign).first()
 
     channel = classify_channel(
         utm_source=utm_source,
         utm_medium=utm_medium,
         utm_campaign=utm_campaign,
+        campaign_id=meta_campaign_id,
+        adset_id=meta_adset_id,
+        ad_id=meta_ad_id,
         fbc=fbc,
         fbclid=event_data.get("fbclid", ""),
         referrer=referrer
     )
+
+    # Last Non-Direct Rule: A direct visit NEVER replaces a known paid or organic source inside the 30-day window
+    if channel == 'DIRECT':
+        prior_session = VisitorSession.objects.filter(
+            visitor_id=visitor_id,
+            started_at__gte=timezone.now() - datetime.timedelta(days=30)
+        ).exclude(channel_source='DIRECT').order_by('-started_at').first()
+
+        if prior_session:
+            channel = prior_session.channel_source
+            campaign = prior_session.campaign
+            if not meta_campaign_id: meta_campaign_id = prior_session.meta_campaign_id
+            if not meta_adset_id: meta_adset_id = prior_session.meta_adset_id
+            if not meta_ad_id: meta_ad_id = prior_session.meta_ad_id
+            if not ad_name: ad_name = prior_session.ad_name
+            if not utm_campaign: utm_campaign = prior_session.utm_campaign
+            if not utm_source: utm_source = prior_session.utm_source
 
     # Find or create VisitorSession
     session = VisitorSession.objects.filter(session_id=session_id).first()
@@ -166,19 +250,32 @@ def record_tracking_event(event_data: Dict[str, Any], ip_address: Optional[str] 
             utm_campaign=utm_campaign[:150],
             utm_content=utm_content[:150],
             utm_term=utm_term[:150],
+            meta_campaign_id=meta_campaign_id[:100],
+            meta_adset_id=meta_adset_id[:100],
+            meta_ad_id=meta_ad_id[:100],
+            ad_name=ad_name[:255],
             fbc=fbc[:255],
             fbp=fbp[:255],
             landing_page=landing_page,
             referrer=referrer,
             ip_address=ip_address,
-            user_agent=user_agent or "",
-            is_engaged=event_name in ['add_to_cart', 'initiate_checkout', 'purchase']
+            user_agent=ua_str,
+            is_engaged=event_name in ['add_to_cart', 'initiate_checkout', 'purchase'],
+            is_internal=is_internal,
+            is_bot=is_bot,
+            quality_score=0 if is_bot else (90 if is_internal else 100)
         )
     else:
         # Update session touchpoint details if newly acquired tags exist
         updated = False
         if not session.campaign and campaign:
             session.campaign = campaign
+            updated = True
+        if not session.meta_campaign_id and meta_campaign_id:
+            session.meta_campaign_id = meta_campaign_id[:100]
+            updated = True
+        if not session.meta_ad_id and meta_ad_id:
+            session.meta_ad_id = meta_ad_id[:100]
             updated = True
         if not session.fbc and fbc:
             session.fbc = fbc[:255]
@@ -198,7 +295,7 @@ def record_tracking_event(event_data: Dict[str, Any], ip_address: Optional[str] 
     email_candidate = payload.get("email") or event_data.get("email")
     user_id_candidate = payload.get("user_id") or event_data.get("user_id")
     if phone_candidate or email_candidate or user_id_candidate:
-        link_session_to_customer(session, phone=phone_candidate, email=email_candidate, user_id=user_id_candidate)
+        link_session_to_customer(session, phone=phone_candidate, email=email_candidate, user_id=user_id_candidate, source=event_name)
 
     # Save append-only raw tracking event
     client_ts = None
@@ -217,6 +314,8 @@ def record_tracking_event(event_data: Dict[str, Any], ip_address: Optional[str] 
             "payload": payload,
             "status": status,
             "quarantine_reason": quarantine_reason,
+            "is_internal": is_internal,
+            "is_bot": is_bot,
             "client_timestamp": client_ts
         }
     )
