@@ -14,7 +14,7 @@ import { useMusic } from "../../context/MusicContext";
 export default function BottomNav() {
   const pathname = usePathname();
   const { cartCount, openCart, closeCart, isCartOpen } = useCart();
-  const { isPlaying, play, pause, toggleMinimize, isMusicActive } = useMusic();
+  const { isPlaying, play, pause, isMinimized, toggleMinimize, isMusicActive } = useMusic();
   // [TEMPORARY DISCONNECT] AI Fit Check disabled temporarily
   const isFitCheckActive = false;
   // const [isGlobalFitModalOpen, setIsGlobalFitModalOpen] = useState(false);
@@ -81,19 +81,18 @@ export default function BottomNav() {
             <div style={{ flex: 1, display: "flex", justifyContent: "center", position: "relative", height: "100%" }}>
               <button 
                 id="mobile-music-btn"
-                className="music-nav-btn"
-                aria-label={isPlaying ? "Pause Ambient Music" : "Play Ambient Music"}
+                className="music-nav-btn music-toggle-btn"
+                aria-label={isPlaying ? "Music Playing - Open Controls" : "Play Music & Open Controls"}
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (isPlaying) {
-                    pause();
-                  } else {
+                  if (!isPlaying) {
                     play();
                   }
-                }}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  toggleMinimize();
+                  if (isMinimized) {
+                    toggleMinimize();
+                  } else if (isPlaying) {
+                    toggleMinimize();
+                  }
                 }}
                 style={{ 
                   position: "absolute",
@@ -124,7 +123,11 @@ export default function BottomNav() {
                 />
               </button>
               <span 
-                onClick={toggleMinimize}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!isPlaying) play();
+                  toggleMinimize();
+                }}
                 style={{ 
                   position: "absolute",
                   bottom: 2,

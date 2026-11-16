@@ -88,6 +88,7 @@ export const FloatingPlayer: React.FC = () => {
   if (!isMusicActive || !isReady || !isVisible || !currentTrack) return null;
 
   if (isMinimized) {
+    if (isMobile) return null; // Completely hide minimized floating circle badge on mobile viewports
     return (
       <div 
         onClick={toggleMinimize}
@@ -405,24 +406,27 @@ export const FloatingPlayer: React.FC = () => {
         }
         @media (max-width: 768px) {
           .floating-audio-player.minimized {
-            display: flex !important;
-            top: 50% !important;
-            transform: translateY(-50%) !important;
-            left: 12px !important;
-            bottom: auto !important;
-            right: auto !important;
-            width: 46px !important;
-            height: 46px !important;
-            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4) !important;
+            display: none !important;
           }
           .floating-audio-player.maximized {
             top: auto !important;
-            left: 12px !important;
-            right: 12px !important;
+            left: 0 !important;
+            right: 0 !important;
             margin: 0 auto !important;
-            bottom: 74px !important;
+            bottom: 70px !important;
             width: calc(100% - 24px) !important;
             max-width: 320px !important;
+            animation: slideUpFade 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+          }
+        }
+        @keyframes slideUpFade {
+          from {
+            opacity: 0;
+            transform: translateY(16px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
           }
         }
         @keyframes spin {
