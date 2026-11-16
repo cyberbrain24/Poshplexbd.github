@@ -311,6 +311,7 @@ export default function Header({
         )}
         
         {/* Center: Desktop Navigation Menu */}
+        {!(pathname === "/checkout" || pathname?.startsWith("/checkout")) && (
         <nav className="desktop-nav">
           {categories.map((cat: any) => {
             const isActive = isCategoryActive(cat);
@@ -434,8 +435,10 @@ export default function Header({
             }
           })}
         </nav>
+        )}
         
         {/* Right Utility Actions */}
+        {!(pathname === "/checkout" || pathname?.startsWith("/checkout")) && (
         <div className="header-right-utils" style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
             {isSearchOpen && (
@@ -556,6 +559,7 @@ export default function Header({
             <HeaderCartCounter />
           </div>
         </div>
+        )}
       </div>
 
       {/* Mobile/Tablet Dropdown Drawer Overlay */}
