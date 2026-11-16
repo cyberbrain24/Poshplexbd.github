@@ -432,9 +432,47 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({
           <span style={{ fontSize: 13, fontWeight: 800, color: "#10b981" }}>
             ৳{Math.round(minPrice)}
           </span>
-          {prices.length > 1 && (
-            <span style={{ fontSize: 9, color: "var(--text-muted)" }}>{prices.length} sizes</span>
-          )}
+          {(() => {
+            const isSimple = product.product_type === "simple";
+            const variants = product.variants || [];
+            let isMissingCost = false;
+            let costDisplay = "";
+
+            if (isSimple) {
+              const cost = product.purchase_price ?? variants[0]?.purchase_price;
+              if (cost === undefined || cost === null || Number(cost) <= 0) {
+                isMissingCost = true;
+              } else {
+                costDisplay = `Cost: ৳${Math.round(Number(cost))}`;
+              }
+            } else {
+              const missingVariants = variants.filter((v: any) => v.is_active && (v.purchase_price === undefined || v.purchase_price === null || Number(v.purchase_price) <= 0));
+              if (missingVariants.length > 0 || variants.length === 0) {
+                isMissingCost = true;
+                costDisplay = `${missingVariants.length} var missing cost`;
+              } else {
+                const costs = variants.map((v: any) => Number(v.purchase_price)).filter((n: number) => n > 0);
+                const minCost = Math.min(...costs);
+                const maxCost = Math.max(...costs);
+                costDisplay = minCost === maxCost ? `Cost: ৳${Math.round(minCost)}` : `Cost: ৳${Math.round(minCost)}-${Math.round(maxCost)}`;
+              }
+            }
+
+            if (isMissingCost) {
+              return (
+                <Tooltip title={isSimple ? "Simple product missing costing / purchase price" : "One or more active variants are missing costing price"}>
+                  <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 4px", borderRadius: 3, background: "rgba(239, 68, 68, 0.15)", color: "#ef4444", border: "1px solid rgba(239, 68, 68, 0.3)" }}>
+                    NO COST
+                  </span>
+                </Tooltip>
+              );
+            }
+            return (
+              <span style={{ fontSize: 9, color: "rgba(255,255,255,0.45)" }}>
+                {costDisplay}
+              </span>
+            );
+          })()}
         </div>
       </div>
 
@@ -554,6 +592,7 @@ export const Catalog: React.FC = () => {
   const [filterCategory, setFilterCategory] = useState<number | undefined>(undefined);
   const [filterBrand, setFilterBrand] = useState<number | undefined>(undefined);
   const [filterStatus, setFilterStatus] = useState<boolean | undefined>(undefined);
+  const [filterCosting, setFilterCosting] = useState<boolean | undefined>(undefined);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(24);
   const [totalProducts, setTotalProducts] = useState(0);
@@ -662,6 +701,7 @@ export const Catalog: React.FC = () => {
       if (filterCategory) params.category_id = filterCategory;
       if (filterBrand) params.brand_id = filterBrand;
       if (filterStatus !== undefined) params.is_active = filterStatus;
+      if (filterCosting !== undefined) params.has_costing = filterCosting;
 
       const res = await axios.get(`${API_URL}/products`, { params });
       setProducts(res.data.results);
@@ -691,12 +731,12 @@ export const Catalog: React.FC = () => {
   // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchText, filterCategory, filterBrand, filterStatus]);
+  }, [searchText, filterCategory, filterBrand, filterStatus, filterCosting]);
 
   // Fetch products when page, page size, or filters change
   useEffect(() => {
     fetchProducts();
-  }, [searchText, filterCategory, filterBrand, filterStatus, currentPage, pageSize]);
+  }, [searchText, filterCategory, filterBrand, filterStatus, filterCosting, currentPage, pageSize]);
 
   useEffect(() => {
     loadMetadata();
@@ -2036,28 +2076,58 @@ export const Catalog: React.FC = () => {
       )
     },
     {
-      title: "Pricing",
+      title: "Pricing & Costing",
       key: "pricing",
-      width: 130,
+      width: 160,
       render: (record: any) => {
-        if (record.product_type === "simple") {
+        const isSimple = record.product_type === "simple";
+        const variants = record.variants || [];
+
+        if (isSimple) {
           const cost = record.purchase_price !== undefined && record.purchase_price !== null
             ? record.purchase_price
             : record.variants?.[0]?.purchase_price;
+          const hasCost = cost !== null && cost !== undefined && Number(cost) > 0;
           return (
             <div>
               <div style={{ fontWeight: 600 }}>৳{Math.round(record.base_price || 0)}</div>
-              {cost !== null && cost !== undefined && Number(cost) > 0 ? (
-                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)" }}>
-                  Cost: ৳{Math.round(cost)}
+              {hasCost ? (
+                <div style={{ fontSize: 11, color: "#10b981" }}>
+                  Cost: ৳{Math.round(Number(cost))}
                 </div>
-              ) : null}
+              ) : (
+                <Tag color="error" style={{ fontSize: 10, padding: "0 4px", lineHeight: "16px" }}>
+                  NO COST
+                </Tag>
+              )}
             </div>
           );
         } else {
-          const prices = record.variants?.map((v: any) => v.selling_price) || [];
+          const prices = variants.map((v: any) => v.selling_price) || [];
           const min = prices.length ? Math.min(...prices) : 0;
-          return <span>Min: ৳{Math.round(min)}</span>;
+          const missingVariants = variants.filter((v: any) => v.is_active && (v.purchase_price === undefined || v.purchase_price === null || Number(v.purchase_price) <= 0));
+          const allMissing = missingVariants.length === variants.length || variants.length === 0;
+
+          return (
+            <div>
+              <div style={{ fontWeight: 600 }}>Min: ৳{Math.round(min)}</div>
+              {missingVariants.length === 0 && variants.length > 0 ? (
+                <div style={{ fontSize: 11, color: "#10b981" }}>
+                  ✓ All {variants.length} Var Costed
+                </div>
+              ) : allMissing ? (
+                <Tag color="error" style={{ fontSize: 10, padding: "0 4px", lineHeight: "16px" }}>
+                  NO COST
+                </Tag>
+              ) : (
+                <Tooltip title={`${missingVariants.length} of ${variants.length} variants are missing costing price`}>
+                  <Tag color="warning" style={{ fontSize: 10, padding: "0 4px", lineHeight: "16px" }}>
+                    {missingVariants.length} Var Missing Cost
+                  </Tag>
+                </Tooltip>
+              )}
+            </div>
+          );
         }
       }
     },
@@ -2146,6 +2216,19 @@ export const Catalog: React.FC = () => {
                 >
                   <Select.Option value={true}>Active</Select.Option>
                   <Select.Option value={false}>Inactive</Select.Option>
+                </Select>
+                <Select
+                  placeholder="Costing Price"
+                  allowClear
+                  onChange={setFilterCosting}
+                  style={{ minWidth: 160, flex: "1 1 160px" }}
+                >
+                  <Select.Option value={true}>
+                    <span style={{ color: "#10b981", fontWeight: 600 }}>✓ Costing Added</span>
+                  </Select.Option>
+                  <Select.Option value={false}>
+                    <span style={{ color: "#ef4444", fontWeight: 600 }}>⚠️ Costing Missing / Not Added</span>
+                  </Select.Option>
                 </Select>
               </Space>
             }

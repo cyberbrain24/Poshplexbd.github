@@ -180,10 +180,11 @@ def list_products(
     brand_id: Optional[int] = None, 
     is_active: Optional[bool] = None,
     is_featured: Optional[bool] = None,
+    has_costing: Optional[bool] = None,
     page: int = 1,
     limit: int = 10
 ):
-    """List products with advanced filtering, debounced search, and pagination."""
+    """List products with advanced filtering, debounced search, costing price status, and pagination."""
     
     # If is_active is not specified, default it to True for public storefront requests.
     # Admin requests (which provide a Bearer token) will bypass this and see all products.
@@ -206,7 +207,7 @@ def list_products(
     # Generate cache key based on query parameters
     from django.core.cache import cache
     
-    cache_key = f"products_list_{search}_{category_id}_{category_slug}_{brand_id}_{is_active}_{is_featured}_{page}_{limit}"
+    cache_key = f"products_list_{search}_{category_id}_{category_slug}_{brand_id}_{is_active}_{is_featured}_{has_costing}_{page}_{limit}"
     cached_data = cache.get(cache_key)
     
     if cached_data:
@@ -272,6 +273,30 @@ def list_products(
         qs = qs.filter(is_active=is_active)
     if is_featured is not None:
         qs = qs.filter(is_featured=is_featured)
+
+    # Costing price filter:
+    # has_costing == True: All variants (or simple product) have purchase_price > 0
+    # has_costing == False: Simple product has no purchase_price OR any variant has no purchase_price
+    if has_costing is not None:
+        from django.db.models import Exists, OuterRef
+        from apps.catalog.models import ProductVariant
+        
+        # Condition where product is missing costing price:
+        simple_missing = Q(product_type='simple') & (Q(purchase_price__isnull=True) | Q(purchase_price__lte=0))
+        var_has_unpriced = Exists(
+            ProductVariant.objects.filter(product=OuterRef('pk'), is_active=True).filter(
+                Q(purchase_price__isnull=True) | Q(purchase_price__lte=0)
+            )
+        )
+        var_missing = Q(product_type='variable') & (var_has_unpriced | ~Exists(ProductVariant.objects.filter(product=OuterRef('pk'))))
+        missing_costing_q = simple_missing | var_missing
+
+        if has_costing is True:
+            # Products with complete costing added
+            qs = qs.exclude(missing_costing_q)
+        else:
+            # Products missing costing price (either main product or any active variant)
+            qs = qs.filter(missing_costing_q)
         
     # Hide products that belong to inactive categories
     qs = qs.exclude(categories__is_active=False).distinct()
