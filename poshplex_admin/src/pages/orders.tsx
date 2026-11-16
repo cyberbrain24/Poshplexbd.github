@@ -153,20 +153,43 @@ export const Orders: React.FC = () => {
 
   // Load configuration metadata
   const loadMetadata = async () => {
+    const token = localStorage.getItem("poshplex_access_token");
+    const authHeaders = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+
+    // 1. Always load shipping locations & rates (Essential for creating/editing order addresses)
     try {
-      const token = localStorage.getItem("poshplex_access_token");
-      const [locRes, prodRes, pmRes, bankRes] = await Promise.all([
-        axios.get(`${API_URL}/shipping-locations/rates`),
-        axios.get(`${CATALOG_API_URL}/products`, { params: { limit: 100 } }),
-        axios.get(`${API_URL}/payments/methods`),
-        axios.get(`${(import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000'))}/api/v1/finance/bank-accounts`, { headers: { Authorization: `Bearer ${token}` } })
-      ]);
-      setLocationRates(locRes.data.districts);
-      setProductsList(prodRes.data.results || []);
-      setPaymentMethods(pmRes.data);
-      setBankAccounts(bankRes.data);
+      const locRes = await axios.get(`${API_URL}/shipping-locations/rates`);
+      if (locRes.data?.districts) {
+        setLocationRates(locRes.data.districts);
+      }
     } catch (err) {
-      console.error("Failed loading metadata", err);
+      console.error("Failed loading shipping location rates", err);
+    }
+
+    // 2. Load catalog products
+    try {
+      const prodRes = await axios.get(`${CATALOG_API_URL}/products`, { params: { limit: 100 } });
+      setProductsList(prodRes.data?.results || []);
+    } catch (err) {
+      console.error("Failed loading products for order drawer", err);
+    }
+
+    // 3. Load payment methods
+    try {
+      const pmRes = await axios.get(`${API_URL}/payments/methods`);
+      setPaymentMethods(pmRes.data || []);
+    } catch (err) {
+      console.error("Failed loading payment methods", err);
+    }
+
+    // 4. Load bank accounts (Graceful fallback if staff role does not have finance permission)
+    try {
+      const serverUrl = import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000');
+      const bankRes = await axios.get(`${serverUrl}/api/v1/finance/bank-accounts`, authHeaders);
+      setBankAccounts(bankRes.data || []);
+    } catch (err) {
+      // Non-fatal if staff profile lacks finance access
+      setBankAccounts([]);
     }
   };
 

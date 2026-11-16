@@ -51,19 +51,46 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
     if (!identity) return false;
     if (identity.permissions?.superuser) return true;
     if (!identity.permissions && identity.role === 'admin') return true;
-    return !!identity.permissions?.[module]?.view;
+
+    const perms = identity.permissions || {};
+    // Check specific module permission first
+    if (perms[module]?.view !== undefined) {
+      return !!perms[module].view;
+    }
+
+    // Fallback aliases for parent-level grouping
+    const moduleGroupFallbacks: Record<string, string> = {
+      abandoned_checkouts: "orders",
+      printing: "orders",
+      fulfillment: "orders",
+      order_analytics: "orders",
+      promo_codes: "marketing",
+      settings: "core",
+      locations: "orders",
+      staff: "core",
+      roles: "core",
+      integrations: "core",
+      system_monitor: "core",
+    };
+
+    const parentModule = moduleGroupFallbacks[module];
+    if (parentModule && perms[parentModule]?.view !== undefined) {
+      return !!perms[parentModule].view;
+    }
+
+    return false;
   };
 
   const rawMenuItems = [
     { key: "/reports", icon: <BarChartOutlined />, label: "Sales Reports", module: "report" },
-    { key: "/abandoned-checkouts", icon: <PhoneOutlined style={{ color: "#f59e0b" }} />, label: "Abandoned Queue", module: "orders" },
+    { key: "/abandoned-checkouts", icon: <PhoneOutlined style={{ color: "#f59e0b" }} />, label: "Abandoned Queue", module: "abandoned_checkouts" },
     { key: "/orders", icon: <ShoppingCartOutlined />, label: "Orders Queue", module: "orders" },
-    { key: "/printing", icon: <PrinterOutlined />, label: "Printing Queue", module: "orders" },
-    { key: "/fulfillment", icon: <CarOutlined />, label: "Fulfillment Queue", module: "orders" },
-    { key: "/order-analytics", icon: <ThunderboltOutlined style={{ color: "#a855f7" }} />, label: "Order Analytics", module: "orders" },
+    { key: "/printing", icon: <PrinterOutlined />, label: "Printing Queue", module: "printing" },
+    { key: "/fulfillment", icon: <CarOutlined />, label: "Fulfillment Queue", module: "fulfillment" },
+    { key: "/order-analytics", icon: <ThunderboltOutlined style={{ color: "#a855f7" }} />, label: "Order Analytics", module: "order_analytics" },
     { key: "/crm", icon: <TeamOutlined />, label: "CRM Profiles", module: "crm" },
     { key: "/catalog", icon: <AppstoreOutlined />, label: "Catalog Manager", module: "catalog" },
-    { key: "/promo-codes", icon: <GiftOutlined />, label: "Discount Engine", module: "marketing" },
+    { key: "/promo-codes", icon: <GiftOutlined />, label: "Discount Engine", module: "promo_codes" },
     { key: "/tasks", icon: <CheckSquareOutlined />, label: "Task Management", module: "tasks" },
     { key: "/finance", icon: <AuditOutlined />, label: "Financial Ledger", module: "finance" },
     {
@@ -87,15 +114,15 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
       label: "Settings",
       module: null,
       children: [
-        { key: "/settings", icon: <SettingOutlined />, label: "Site Settings", module: "core" },
-        { key: "/locations", icon: <GlobalOutlined />, label: "Locations & Zones", module: "orders" },
-        { key: "/staff", icon: <UserOutlined />, label: "Staff Profiles", module: "core" },
-        { key: "/roles", icon: <TeamOutlined />, label: "Roles & Permissions", module: "core" },
-        { key: "/integrations", icon: <ApiOutlined />, label: "Integration Setup", module: "core" },
+        { key: "/settings", icon: <SettingOutlined />, label: "Site Settings", module: "settings" },
+        { key: "/locations", icon: <GlobalOutlined />, label: "Locations & Zones", module: "locations" },
+        { key: "/staff", icon: <UserOutlined />, label: "Staff Profiles", module: "staff" },
+        { key: "/roles", icon: <TeamOutlined />, label: "Roles & Permissions", module: "roles" },
+        { key: "/integrations", icon: <ApiOutlined />, label: "Integration Setup", module: "integrations" },
         { key: "/media", icon: <FolderOpenOutlined />, label: "Media Library", module: "media" },
         // [TEMPORARY DISCONNECT] Music Library module temporarily disconnected
         // { key: "/music", icon: <SoundOutlined />, label: "Music Library", module: "music" },
-        { key: "/system-monitor", icon: <DesktopOutlined />, label: "System Monitor", module: "core" },
+        { key: "/system-monitor", icon: <DesktopOutlined />, label: "System Monitor", module: "system_monitor" },
       ],
     },
   ];

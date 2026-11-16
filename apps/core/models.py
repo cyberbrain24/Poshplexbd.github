@@ -25,9 +25,22 @@ class User(AbstractUser):
         if self.is_superuser:
             return True
             
-        # Standardize modules (UI sometimes uses core instead of admin)
+        # Standardize modules (UI module aliases mapped to backend app names)
         module_mapping = {
-            "admin": "core"
+            "admin": "core",
+            "printing": "catalog",
+            "monitor": "core",
+            "system-monitor": "core",
+            "system_monitor": "core",
+            "locations": "orders",
+            "abandoned_checkouts": "orders",
+            "fulfillment": "orders",
+            "order_analytics": "orders",
+            "promo_codes": "marketing",
+            "settings": "core",
+            "staff": "core",
+            "roles": "core",
+            "integrations": "core",
         }
         std_module = module_mapping.get(module_name, module_name)
         
@@ -47,7 +60,9 @@ class User(AbstractUser):
             "edit_settings": "edit",
             "is_admin": "edit",
             "view": "view",
-            "edit": "edit"
+            "create": "create",
+            "edit": "edit",
+            "delete": "delete",
         }
         std_action = action_mapping.get(action, action)
             
@@ -59,7 +74,16 @@ class User(AbstractUser):
                     perms = json.loads(perms)
                 except Exception:
                     perms = {}
+
+            # 1. Check direct granular module permission first (e.g. perms['locations']['create'])
+            if module_name in perms:
+                mod_perms = perms.get(module_name, {})
+                if std_action in mod_perms:
+                    return bool(mod_perms.get(std_action, False))
+                if action in mod_perms:
+                    return bool(mod_perms.get(action, False))
                     
+            # 2. Check parent/mapped module permission (e.g. perms['orders']['edit'])
             module_perms = perms.get(std_module, {})
             # Check the standardized action first
             if std_action in module_perms:

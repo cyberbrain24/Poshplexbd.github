@@ -17,17 +17,39 @@ export const RolesPage: React.FC = () => {
   const { data: canCreate } = useCan({ resource: "core", action: "create" });
   const { data: canDelete } = useCan({ resource: "core", action: "delete" });
 
-  // [TEMPORARY DISCONNECT] "music" temporarily removed from active UI list while module is disconnected
+  // Full list of granular admin panel modules & features available for role assignment
   const MODULE_DEFINITIONS = [
-    { key: "report", label: "Sales Reports", description: "Executive sales KPIs, revenue analytics, and performance reports" },
-    { key: "orders", label: "Orders & Queues", description: "Orders queue, abandoned checkouts recovery, printing & fulfillment queues" },
-    { key: "crm", label: "CRM Profiles", description: "Customer relationship directory, call logs, and customer profiles" },
-    { key: "catalog", label: "Catalog Manager", description: "Products, categories, variants, inventory, and printing files" },
-    { key: "marketing", label: "Marketing & Discounts", description: "Discount coupons, Meta ads optimization engine, AI marketing agent & rules" },
-    { key: "tasks", label: "Task Management", description: "Team task boards, internal staff to-dos, and assignment queues" },
-    { key: "finance", label: "Financial Ledger", description: "Double-entry bookkeeping, revenue/expense accounts, and cash flow" },
-    { key: "media", label: "Media Library", description: "Central R2 asset manager, image CDN uploads, and product galleries" },
-    { key: "core", label: "System & Settings", description: "General settings, staff accounts, roles & permissions, zones, and integrations" },
+    // 1. Executive Analytics
+    { key: "report", category: "Analytics & Executive", label: "Sales Reports", description: "Executive revenue metrics, sales charts, and performance reports" },
+    { key: "order_analytics", category: "Analytics & Executive", label: "Order Analytics", description: "Hourly traffic breakdown, repeat-customer insights, and geo-density" },
+
+    // 2. Orders & Operations
+    { key: "orders", category: "Operations & Queues", label: "Orders Queue", description: "Order listing, order creation, order detail drawer, and status transitions" },
+    { key: "abandoned_checkouts", category: "Operations & Queues", label: "Abandoned Queue", description: "Abandoned cart checkout recovery, customer tele-sales calling logs" },
+    { key: "printing", category: "Operations & Queues", label: "Printing Queue", description: "Production print batches, print sheet PDFs, and garment design artwork files" },
+    { key: "fulfillment", category: "Operations & Queues", label: "Fulfillment Queue", description: "Dispatch manifests, Steadfast API parcel booking, and courier tracking" },
+
+    // 3. Customers & Catalog
+    { key: "crm", category: "Customer & Catalog", label: "CRM Profiles", description: "Customer relationship directory, order histories, call logs, and blacklist control" },
+    { key: "catalog", category: "Customer & Catalog", label: "Catalog Manager", description: "Products, categories, color/size variants, pricing, and stock management" },
+    { key: "media", category: "Customer & Catalog", label: "Media Library", description: "Central R2 asset manager, image CDN uploads, and product galleries" },
+
+    // 4. Marketing & Growth
+    { key: "promo_codes", category: "Marketing & Growth", label: "Discount Engine", description: "Coupon codes, percentage/fixed discounts, and usage limits" },
+    { key: "marketing", category: "Marketing & Growth", label: "Meta Engine", description: "Meta ads optimization, AI marketing agent, competitor spy, and ad automations" },
+
+    // 5. Finance & Workflow
+    { key: "finance", category: "Finance & Collaboration", label: "Financial Ledger", description: "Double-entry accounting, bank reconciliation, expense and revenue accounts" },
+    { key: "tasks", category: "Finance & Collaboration", label: "Task Management", description: "Internal staff to-do cards, team assignments, and task priorities" },
+
+    // 6. Settings & Administration
+    { key: "settings", category: "System Administration", label: "Site Settings", description: "Storefront banners, contact details, announcement bars, and general config" },
+    { key: "locations", category: "System Administration", label: "Locations & Zones", description: "Districts, thanas, shipping delivery fees, and inside/outside Dhaka zones" },
+    { key: "staff", category: "System Administration", label: "Staff Profiles", description: "Internal staff user accounts, team member logins, and profile credentials" },
+    { key: "roles", category: "System Administration", label: "Roles & Permissions", description: "Role matrix definitions, staff privilege assignment, and access control" },
+    { key: "integrations", category: "System Administration", label: "Integration Setup", description: "Courier APIs (Steadfast, Pathao), SMS gateways, payment gateways, and webhooks" },
+    { key: "system_monitor", category: "System Administration", label: "System Monitor", description: "Server CPU/RAM/Disk stats, container statuses, and unified error logs" },
+    { key: "core", category: "System Administration", label: "Core System Admin", description: "Superuser fallback and fundamental administrative privileges" },
   ];
 
   const modules = MODULE_DEFINITIONS.map(m => m.key);
@@ -52,7 +74,24 @@ export const RolesPage: React.FC = () => {
   const handleOpen = (record?: any) => {
     if (record) {
       setEditingId(record.id);
-      form.setFieldsValue(record);
+      // Ensure all granular module keys are initialized in form values
+      const initialPerms = { ...record.permissions };
+      MODULE_DEFINITIONS.forEach(m => {
+        if (!initialPerms[m.key]) {
+          // If parent module permission exists, inherit it for the granular feature
+          const parentKey = 
+            ["abandoned_checkouts", "printing", "fulfillment", "order_analytics", "locations"].includes(m.key) ? "orders" :
+            ["promo_codes"].includes(m.key) ? "marketing" :
+            ["settings", "staff", "roles", "integrations", "system_monitor"].includes(m.key) ? "core" : null;
+          
+          if (parentKey && initialPerms[parentKey]) {
+            initialPerms[m.key] = { ...initialPerms[parentKey] };
+          } else {
+            initialPerms[m.key] = { view: false, create: false, edit: false, delete: false };
+          }
+        }
+      });
+      form.setFieldsValue({ ...record, permissions: initialPerms });
     } else {
       setEditingId(null);
       form.resetFields();
@@ -136,18 +175,54 @@ export const RolesPage: React.FC = () => {
             <Input.TextArea />
           </Form.Item>
           
-          <Title level={5}>Permissions Matrix</Title>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <Title level={5} style={{ margin: 0 }}>Permissions Matrix</Title>
+            <Space>
+              <Button
+                size="small"
+                onClick={() => {
+                  const currentVals = form.getFieldsValue();
+                  const perms = { ...currentVals.permissions };
+                  MODULE_DEFINITIONS.forEach(m => {
+                    perms[m.key] = { view: true, create: true, edit: true, delete: true };
+                  });
+                  form.setFieldsValue({ permissions: perms });
+                }}
+              >
+                Select All
+              </Button>
+              <Button
+                size="small"
+                onClick={() => {
+                  const currentVals = form.getFieldsValue();
+                  const perms = { ...currentVals.permissions };
+                  MODULE_DEFINITIONS.forEach(m => {
+                    perms[m.key] = { view: false, create: false, edit: false, delete: false };
+                  });
+                  form.setFieldsValue({ permissions: perms });
+                }}
+              >
+                Clear All
+              </Button>
+            </Space>
+          </div>
           <Table 
             dataSource={MODULE_DEFINITIONS}
             rowKey="key"
             pagination={false}
+            scroll={{ y: 440 }}
             columns={[
               {
-                title: "Module",
+                title: "Module / Feature",
                 dataIndex: "label",
                 render: (_, r) => (
                   <div>
-                    <strong style={{ fontSize: 13, color: "var(--text-main)" }}>{r.label}</strong>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <strong style={{ fontSize: 13, color: "var(--text-main)" }}>{r.label}</strong>
+                      <span style={{ fontSize: 10, color: "var(--accent-purple)", backgroundColor: "rgba(139, 92, 246, 0.1)", padding: "1px 6px", borderRadius: 4 }}>
+                        {r.category}
+                      </span>
+                    </div>
                     <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{r.description}</div>
                   </div>
                 )

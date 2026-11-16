@@ -169,8 +169,38 @@ export const accessControlProvider = {
         return { can: true };
     }
     
-    // Check JSON matrix
-    const hasAccess = user?.permissions?.[resource]?.[action];
+    // Check JSON matrix directly
+    const perms = user?.permissions || {};
+    if (perms[resource] && perms[resource][action] !== undefined) {
+      return { can: !!perms[resource][action] };
+    }
+
+    // Check with parent module fallback if granular resource not present
+    const resourceGroupFallbacks: Record<string, string> = {
+      abandoned_checkouts: "orders",
+      printing: "orders",
+      fulfillment: "orders",
+      order_analytics: "orders",
+      promo_codes: "marketing",
+      settings: "core",
+      locations: "orders",
+      staff: "core",
+      roles: "core",
+      integrations: "core",
+      system_monitor: "core",
+    };
+
+    const parentModule = resourceGroupFallbacks[resource];
+    if (parentModule && perms[parentModule]) {
+      // Map action verbs if needed
+      const act = (action === "edit_orders" || action === "edit_catalog" || action === "edit_settings") ? "edit" : action;
+      if (perms[parentModule][act] !== undefined) {
+        return { can: !!perms[parentModule][act] };
+      }
+      if (perms[parentModule]["edit"] !== undefined && (action === "edit" || action.startsWith("edit_") || action === "create")) {
+        return { can: !!perms[parentModule]["edit"] };
+      }
+    }
     
     // Default to true for backward compatibility if permissions matrix is completely missing (e.g. old admin login)
     if (!user.permissions && user.role === 'admin') {
@@ -178,7 +208,7 @@ export const accessControlProvider = {
     }
     
     return {
-        can: !!hasAccess,
+        can: false,
     };
   },
 };
