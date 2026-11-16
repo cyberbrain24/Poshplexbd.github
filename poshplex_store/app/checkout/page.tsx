@@ -736,8 +736,7 @@ export default function CheckoutPage() {
           ge: finalGender,
           db: finalDob,
           fbc: fbc || undefined
-        });
-      }, purchaseEventId);
+        }, purchaseEventId);
 
       fpixel.saveUserData({
         em: formData.email,
