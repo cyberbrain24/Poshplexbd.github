@@ -13,6 +13,9 @@ import { useMusic } from "../../context/MusicContext";
 
 export default function BottomNav() {
   const pathname = usePathname();
+  if (pathname === "/checkout" || pathname?.startsWith("/checkout")) {
+    return null;
+  }
   const { cartCount, openCart, closeCart, isCartOpen } = useCart();
   const { isPlaying, play, pause, isMinimized, toggleMinimize, isMusicActive } = useMusic();
   // [TEMPORARY DISCONNECT] AI Fit Check disabled temporarily

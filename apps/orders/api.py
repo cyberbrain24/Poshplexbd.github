@@ -43,7 +43,7 @@ class OrderCreateInputSchema(Schema):
     items: List[OrderItemInputSchema]
     shipping_name: Optional[str] = ""
     shipping_phone: Optional[str] = ""
-    shipping_address: str
+    shipping_address: Optional[str] = ""
     shipping_district: str
     shipping_thana: str
     shipping_postal_code: Optional[str] = ""

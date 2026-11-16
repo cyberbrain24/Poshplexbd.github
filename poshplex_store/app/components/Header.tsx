@@ -254,43 +254,61 @@ export default function Header({
           )}
         </div>
       </div>
-      <div className="header-main-nav-container">
+      <div className="header-main-nav-container" style={pathname === "/checkout" || pathname?.startsWith("/checkout") ? { justifyContent: "center" } : undefined}>
         
         {/* Left: Mobile Hamburger / Desktop hidden */}
-        <div className="mobile-menu-btn" style={{ display: "none" }}>
-          <button 
-            suppressHydrationWarning
-            onClick={toggleMenu}
-            aria-label="Toggle mobile menu"
-            style={{ 
-              background: "transparent", 
-              border: "none", 
-              color: "var(--text-main)", 
-              cursor: "pointer", 
-              display: "flex", 
-              alignItems: "center",
-              padding: 0
-            }}
-          >
-            {isOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-        </div>
+        {!(pathname === "/checkout" || pathname?.startsWith("/checkout")) && (
+          <div className="mobile-menu-btn" style={{ display: "none" }}>
+            <button 
+              suppressHydrationWarning
+              onClick={toggleMenu}
+              aria-label="Toggle mobile menu"
+              style={{ 
+                background: "transparent", 
+                border: "none", 
+                color: "var(--text-main)", 
+                cursor: "pointer", 
+                display: "flex", 
+                alignItems: "center",
+                padding: 0
+              }}
+            >
+              {isOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
+        )}
 
         {/* Center-Left Logo */}
-        <Link 
-          href="/" 
-          onClick={closeMenu}
-          className="header-logo-link"
-          style={{ 
-            fontSize: 24, 
-            fontWeight: 900, 
-            color: "var(--text-main)", 
-            textDecoration: "none", 
-            letterSpacing: "-1.5px" 
-          }}
-        >
-          POSHPLEX
-        </Link>
+        {pathname === "/checkout" || pathname?.startsWith("/checkout") ? (
+          <span 
+            className="header-logo-link"
+            style={{ 
+              fontSize: 24, 
+              fontWeight: 900, 
+              color: "var(--text-main)", 
+              letterSpacing: "-1.5px",
+              cursor: "default",
+              userSelect: "none"
+            }}
+          >
+            POSHPLEX
+          </span>
+        ) : (
+          <Link 
+            href="/" 
+            onClick={closeMenu}
+            className="header-logo-link"
+            style={{ 
+              fontSize: 24, 
+              fontWeight: 900, 
+              color: "var(--text-main)", 
+              textDecoration: "none", 
+              letterSpacing: "-1.5px" 
+            }}
+          >
+            POSHPLEX
+          </Link>
+        )}
         
         {/* Center: Desktop Navigation Menu */}
         <nav className="desktop-nav">

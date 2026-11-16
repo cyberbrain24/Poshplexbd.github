@@ -2,11 +2,16 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
 type AccordionSection = "shop" | "about" | "legal";
 
 export default function Footer() {
+  const pathname = usePathname();
+  if (pathname === "/checkout" || pathname?.startsWith("/checkout")) {
+    return null;
+  }
   const [openSection, setOpenSection] = useState<AccordionSection | null>(null);
 
   const toggleSection = (section: AccordionSection) => {
