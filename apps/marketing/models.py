@@ -400,6 +400,181 @@ class OrderAttribution(models.Model):
         return f"Attribution Order #{self.order_id} -> Campaign: {self.campaign_id or self.utm_campaign} (BDT {self.order_total})"
 
 
+class VisitorSession(models.Model):
+    """
+    Tracks browser visitor sessions and maps them to anonymous identifiers
+    and resolved customer profiles.
+    """
+    CHANNEL_CHOICES = (
+        ('PAID_META', 'Paid Meta Ads'),
+        ('OTHER_PAID', 'Other Paid Ads'),
+        ('MESSAGING', 'Messaging / Direct Chat'),
+        ('ORGANIC_SOCIAL', 'Organic Social'),
+        ('ORGANIC_SEARCH', 'Organic Search'),
+        ('REFERRAL', 'Referral'),
+        ('DIRECT', 'Direct / None'),
+    )
+
+    visitor_id = models.CharField(max_length=100, db_index=True, help_text="First-party UUID stored in browser cookie")
+    session_id = models.CharField(max_length=100, db_index=True, help_text="30-min rolling session UUID")
+    customer = models.ForeignKey('crm.CustomerProfile', on_delete=models.SET_NULL, null=True, blank=True, related_name='visitor_sessions')
+    
+    channel_source = models.CharField(max_length=30, choices=CHANNEL_CHOICES, default='DIRECT', db_index=True)
+    campaign = models.ForeignKey(Campaign, on_delete=models.SET_NULL, null=True, blank=True, related_name='visitor_sessions')
+    
+    utm_source = models.CharField(max_length=100, blank=True, default='')
+    utm_medium = models.CharField(max_length=100, blank=True, default='')
+    utm_campaign = models.CharField(max_length=150, blank=True, default='', db_index=True)
+    utm_content = models.CharField(max_length=150, blank=True, default='')
+    utm_term = models.CharField(max_length=150, blank=True, default='')
+    
+    fbc = models.CharField(max_length=255, blank=True, default='', help_text="Meta Click ID Cookie")
+    fbp = models.CharField(max_length=255, blank=True, default='', help_text="Meta Browser ID Cookie")
+    
+    landing_page = models.CharField(max_length=500, blank=True, default='')
+    referrer = models.CharField(max_length=500, blank=True, default='')
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True, default='')
+    
+    is_engaged = models.BooleanField(default=False, help_text="Engaged visit: >=10s, 2+ pages or key action")
+    is_internal = models.BooleanField(default=False, help_text="Staff or internal test visit")
+    quality_score = models.IntegerField(default=100, help_text="0-100 fraud/bot score")
+    
+    started_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    last_activity_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'marketing_visitor_session'
+        ordering = ['-started_at']
+        indexes = [
+            models.Index(fields=['visitor_id', 'started_at']),
+            models.Index(fields=['session_id']),
+            models.Index(fields=['channel_source', 'started_at']),
+        ]
+
+    def __str__(self):
+        return f"Session {self.session_id[:8]} ({self.channel_source}) - Visitor {self.visitor_id[:8]}"
+
+
+class RawTrackingEvent(models.Model):
+    """
+    Append-only raw store for all browser, server, and offline events.
+    Enforces data contract and zero-data-loss architecture.
+    """
+    STATUS_CHOICES = (
+        ('QUEUED', 'Queued in Redis'),
+        ('PROCESSED', 'Processed to Clean Store'),
+        ('QUARANTINED', 'Validation Failed / Quarantined'),
+        ('FAILED', 'Processing Failed'),
+    )
+
+    event_id = models.CharField(max_length=100, unique=True, db_index=True)
+    event_name = models.CharField(max_length=100, db_index=True)
+    session = models.ForeignKey(VisitorSession, on_delete=models.SET_NULL, null=True, blank=True, related_name='raw_events')
+    visitor_id = models.CharField(max_length=100, db_index=True, blank=True, default='')
+    
+    payload = models.JSONField(default=dict)
+    schema_version = models.CharField(max_length=20, default='1.0')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PROCESSED', db_index=True)
+    quarantine_reason = models.TextField(blank=True, default='')
+    
+    client_timestamp = models.DateTimeField(null=True, blank=True)
+    server_timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        db_table = 'marketing_raw_tracking_event'
+        ordering = ['-server_timestamp']
+        indexes = [
+            models.Index(fields=['event_name', 'server_timestamp']),
+            models.Index(fields=['visitor_id', 'server_timestamp']),
+            models.Index(fields=['status']),
+        ]
+
+    def __str__(self):
+        return f"{self.event_name} [{self.status}] @ {self.server_timestamp}"
+
+
+class OrderAttributionTouchpoint(models.Model):
+    """
+    Multi-touch attribution credit ledger per order.
+    Evaluates Last Paid Touch, First Touch, and Position-based (40/40/20) models.
+    """
+    order_id = models.PositiveIntegerField(db_index=True)
+    session = models.ForeignKey(VisitorSession, on_delete=models.SET_NULL, null=True, blank=True)
+    campaign = models.ForeignKey(Campaign, on_delete=models.SET_NULL, null=True, blank=True, related_name='attribution_touchpoints')
+    
+    # Model Credits (Sum = 1.00 per order)
+    last_paid_credit = models.DecimalField(max_digits=5, decimal_places=4, default=Decimal('0.0000'))
+    first_touch_credit = models.DecimalField(max_digits=5, decimal_places=4, default=Decimal('0.0000'))
+    linear_credit = models.DecimalField(max_digits=5, decimal_places=4, default=Decimal('0.0000'))
+    position_based_credit = models.DecimalField(max_digits=5, decimal_places=4, default=Decimal('0.0000'))
+    
+    # Financial Attribution
+    attributed_order_value = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    attributed_delivered_revenue = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    attributed_gross_margin = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    attributed_return_loss = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        db_table = 'marketing_order_attribution_touchpoint'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['order_id']),
+            models.Index(fields=['campaign', 'created_at']),
+        ]
+
+    def __str__(self):
+        return f"Touchpoint Order #{self.order_id} -> Camp {self.campaign_id or 'None'} (LPT: {self.last_paid_credit})"
+
+
+class DailyAdPerformanceSummary(models.Model):
+    """
+    Pre-aggregated daily rollup joining Meta Marketing API daily spend with actual
+    delivered orders, courier contribution margins, and attribution models.
+    """
+    date = models.DateField(db_index=True)
+    campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE, related_name='daily_summaries')
+    ad_account = models.ForeignKey(MetaAdAccount, on_delete=models.CASCADE, related_name='daily_summaries')
+    
+    spend_bdt = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    spend_usd = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    impressions = models.IntegerField(default=0)
+    clicks = models.IntegerField(default=0)
+    link_clicks = models.IntegerField(default=0)
+    
+    orders_placed = models.IntegerField(default=0)
+    orders_confirmed = models.IntegerField(default=0)
+    orders_delivered = models.IntegerField(default=0)
+    orders_returned = models.IntegerField(default=0)
+    
+    delivery_success_rate = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('0.00'))
+    
+    # Financial Metrics
+    placed_revenue = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    delivered_revenue = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    product_cost = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    delivery_courier_cost = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    return_courier_loss = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    gross_margin = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    net_ad_profit = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'), help_text="Gross Margin - Ad Spend - Return Loss")
+    
+    roas_delivered = models.DecimalField(max_digits=7, decimal_places=2, default=Decimal('0.00'))
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'marketing_daily_ad_performance_summary'
+        unique_together = ('date', 'campaign')
+        ordering = ['-date']
+        indexes = [
+            models.Index(fields=['date', 'campaign']),
+        ]
+
+    def __str__(self):
+        return f"{self.date} | {self.campaign.name} | Net Profit: ৳{self.net_ad_profit}"
+
+
 class AIGenerationLog(models.Model):
     """
     Audit log and prompt caching store for LLM copy generations.
