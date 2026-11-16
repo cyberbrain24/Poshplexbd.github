@@ -15,7 +15,7 @@ from ninja.errors import HttpError
 from apps.catalog.models import Category, ProductAttribute, Product, ProductVariant, Brand, SizeGuideTemplate, CareInstructionsTemplate, ProductImage, Review
 from apps.catalog.services import get_cached_category_tree, duplicate_product, import_products_from_csv
 from apps.catalog.selectors import get_product_details
-from apps.core.api import BearerAuth, enforce_permission
+from apps.core.api import BearerAuth, enforce_permission, enforce_superuser
 
 router = Router()
 
@@ -587,8 +587,8 @@ def reorder_featured_products(request, data: ReorderFeaturedSchema):
 @router.post("/products/bulk-upload", auth=BearerAuth())
 @router.post("/products/bulk-upload/", auth=BearerAuth())
 def bulk_upload_endpoint(request, file: UploadedFile = File(...)):
-    """Import catalog catalog from CSV files with validation logs (Admin only)."""
-    enforce_permission(request, "catalog", "edit_catalog")
+    """Import catalog catalog from CSV files with validation logs (Super Admin only)."""
+    enforce_superuser(request)
     try:
         file_content = file.read().decode('utf-8')
         

@@ -165,8 +165,13 @@ export const accessControlProvider = {
     const user = JSON.parse(userStr);
     
     // Superadmin bypass
-    if (user.permissions && user.permissions.superuser) {
+    if (user.is_superuser || (user.permissions && user.permissions.superuser)) {
         return { can: true };
+    }
+    
+    // Explicit protection: Exporting reports/files or importing CSV/spreadsheets is strictly Super Admin only
+    if (action === "export" || action === "import" || action.includes("export") || action.includes("import")) {
+      return { can: false };
     }
     
     // Check JSON matrix directly

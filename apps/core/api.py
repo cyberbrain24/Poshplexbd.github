@@ -106,6 +106,18 @@ def enforce_permission(request, module_name: str, action: str):
     if not user.has_module_permission(module_name, action):
         raise HttpError(403, f"Forbidden: Insufficient privileges for action {module_name}.{action}")
 
+def enforce_superuser(request):
+    """
+    Strict security gate: Enforces that the request is made by a Super Admin.
+    Mandatory for all data export, bulk CSV import, financial statements import,
+    and confidential audit exports.
+    """
+    user = request.auth
+    if not user:
+        raise HttpError(401, "Unauthorized: User context required.")
+    if not (user.is_superuser or getattr(user, 'role', '') == 'superuser'):
+        raise HttpError(403, "Forbidden: Only Super Admin accounts can import or export files and reports.")
+
 # --- Schemas ---
 
 class LoginSchema(Schema):

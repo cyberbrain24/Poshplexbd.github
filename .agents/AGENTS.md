@@ -61,6 +61,11 @@ The Poshplex monolithic backend and admin panel are protected by a granular, mod
 - **Endpoint Protection:** Any new administrative API endpoints MUST be protected using the `enforce_permission(request, module_name, action)` utility function from `apps.core.api`.
 - **Frontend Refine UI:** Any new pages or modules added to the `poshplex_admin` React SPA MUST be registered with the `accessControlProvider` (using `useCan` or native Refine access control properties) to ensure the UI correctly hides/shows based on the user's role.
 - **Do not bypass this system:** When building new modules, ALWAYS integrate them into the RBAC JSON matrix rather than creating separate or hardcoded permission logic.
+
+## Super Admin-Only Rule for File & Report Imports / Exports
+**MANDATORY SECURITY PROTOCOL:** Any and all bulk import or export features (CSV files, Excel files, financial statements, sales reports, customer exports, orders export, catalog bulk import/export) MUST be strictly restricted to **Super Admin accounts only (`is_superuser=True` / `permissions.superuser=True`)**. Normal staff roles or accounts with standard view/edit permissions must NEVER have access to import or export files.
+- **Backend Enforcement:** Whenever implementing, exposing, or modifying any bulk import, CSV upload, or report/file export endpoint, ALWAYS wrap it with `enforce_superuser(request)` from `apps.core.api`. Do NOT use ordinary `enforce_permission(request, ..., "edit")`.
+- **Frontend Enforcement:** Whenever rendering file uploaders, export buttons, or bulk import tabs in `poshplex_admin`, ALWAYS gate them behind `isSuperUser` (`identity?.permissions?.superuser || identity?.is_superuser`), and ensure Refine's `accessControlProvider.can` denies `"export"` and `"import"` actions for non-superusers.
 ## Docker Compose Architecture (Local vs Prod)
 - **`docker-compose.yml`**: This file is **strictly for production**. It does NOT contain local volume mounts (`.:/app`) that override the built images. It is pushed to the VPS.
 - **`docker-compose.override.yml`**: This file is **strictly for local development** and is `.gitignore`d. It contains the volume mounts to enable hot-reloading. When running `docker compose up` locally, Docker merges both files automatically.

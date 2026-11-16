@@ -22,6 +22,7 @@ import {
   rectSortingStrategy
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useGetIdentity, useCan } from "@refinedev/core";
 
 const API_URL = (import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000')) + "/api/v1/catalog";
 
@@ -579,6 +580,9 @@ const ProductGridCard: React.FC<ProductGridCardProps> = ({
 };
 
 export const Catalog: React.FC = () => {
+  const { data: identity } = useGetIdentity<any>();
+  const isSuperUser = !!(identity?.permissions?.superuser || identity?.is_superuser);
+
   const [activeTab, setActiveTab] = useState("1");
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -2560,9 +2564,12 @@ export const Catalog: React.FC = () => {
           </Card>
         ) },
 
-        /* TAB 4: Spreadsheet CSV Import */
-        { label: <span><UploadOutlined /> Excel / CSV Bulk Import</span>, key: "4", children: (
-          <Card title="Spreadsheet Inventory Uploader">
+        /* TAB 4: Spreadsheet CSV Import (Super Admin Only) */
+        ...(isSuperUser ? [{
+          label: <span><UploadOutlined /> Excel / CSV Bulk Import</span>,
+          key: "4",
+          children: (
+            <Card title="Spreadsheet Inventory Uploader">
             {!parsedCsvData ? (
               <div>
                 <Alert
@@ -2927,7 +2934,8 @@ export const Catalog: React.FC = () => {
               </div>
             )}
           </Card>
-        ) },
+        )
+      }] : []),
 
         /* TAB 5: Brands */
         { label: <span><TagsOutlined /> Brands</span>, key: "5", children: (

@@ -15,7 +15,7 @@ from apps.finance.selectors import (
     get_balance_sheet, get_ar_aging, get_cash_flow_statement,
     get_ledger_summary, get_trial_balance, get_pl_statement
 )
-from apps.core.api import BearerAuth, enforce_permission
+from apps.core.api import BearerAuth, enforce_permission, enforce_superuser
 
 router = Router()
 
@@ -516,10 +516,10 @@ def list_bank_transactions(request, bank_account_id: int, statement_id: int, is_
 @router.post("/bank-accounts/{bank_account_id}/statements/{statement_id}/transactions/bulk", auth=BearerAuth())
 def bulk_import_transactions(request, bank_account_id: int, statement_id: int, data: BankTransactionBulkSchema):
     """
-    Bulk import transaction lines from a bank statement.
+    Bulk import transaction lines from a bank statement (Super Admin only).
     Pass a list of transactions with date, description, type, amount, and reference.
     """
-    enforce_permission(request, "finance", "record_transaction")
+    enforce_superuser(request)
     try:
         transactions_raw = [t.dict() for t in data.transactions]
         result = bulk_add_bank_transactions(
