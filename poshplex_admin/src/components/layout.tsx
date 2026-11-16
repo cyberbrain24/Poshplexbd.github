@@ -120,8 +120,7 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
         { key: "/roles", icon: <TeamOutlined />, label: "Roles & Permissions", module: "roles" },
         { key: "/integrations", icon: <ApiOutlined />, label: "Integration Setup", module: "integrations" },
         { key: "/media", icon: <FolderOpenOutlined />, label: "Media Library", module: "media" },
-        // [TEMPORARY DISCONNECT] Music Library module temporarily disconnected
-        // { key: "/music", icon: <SoundOutlined />, label: "Music Library", module: "music" },
+        { key: "/music", icon: <SoundOutlined />, label: "Music Library", module: "music" },
         { key: "/system-monitor", icon: <DesktopOutlined />, label: "System Monitor", module: "system_monitor" },
       ],
     },
@@ -161,7 +160,7 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isActive = (key: string) => location.pathname === key;
   const isMetaActive = location.pathname.startsWith("/marketing");
-  const isSettingsActive = ["/settings", "/locations", "/staff", "/roles", "/integrations", "/media", /* "/music", */ "/system-monitor"].includes(location.pathname);
+  const isSettingsActive = ["/settings", "/locations", "/staff", "/roles", "/integrations", "/media", "/music", "/system-monitor"].includes(location.pathname);
   const defaultOpenKeys = [
     ...(isMetaActive ? ["sub-meta-engine"] : []),
     ...(isSettingsActive ? ["sub-settings"] : []),

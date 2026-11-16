@@ -14,8 +14,7 @@ from apps.integration.api import router as integration_router
 from apps.orders.api import router as orders_router
 from apps.marketing.api import router as marketing_router
 from apps.crm.api import router as crm_router
-# [TEMPORARY DISCONNECT] Music player & AI Fit Check modules temporarily disconnected
-# from apps.music.api import router as music_router
+from apps.music.api import router as music_router
 from apps.printing.api import router as printing_router
 from apps.image_optimizer.api import router as image_optimizer_router
 from apps.monitor.api import router as monitor_router
@@ -31,8 +30,7 @@ api.add_router("/integration", integration_router)
 api.add_router("/orders", orders_router)
 api.add_router("/marketing", marketing_router)
 api.add_router("/crm", crm_router)
-# [TEMPORARY DISCONNECT] Disconnected until future reactivation
-# api.add_router("/music", music_router)
+api.add_router("/music", music_router)
 api.add_router("/printing", printing_router)
 api.add_router("/image-optimizer", image_optimizer_router)
 api.add_router("/monitor", monitor_router)

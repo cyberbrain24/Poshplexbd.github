@@ -17,8 +17,7 @@ const CRM = React.lazy(() => import("./pages/crm"));
 const Integrations = React.lazy(() => import("./pages/integrations"));
 const MediaLibrary = React.lazy(() => import("./pages/media"));
 const Login = React.lazy(() => import("./pages/login"));
-// [TEMPORARY DISCONNECT] Music & AI Fit Check modules temporarily disconnected
-// const MusicLibrary = React.lazy(() => import("./pages/music"));
+const MusicLibrary = React.lazy(() => import("./pages/music"));
 const SettingsPage = React.lazy(() => import("./pages/settings"));
 const PrintingQueue = React.lazy(() => import("./pages/printing"));
 const SystemMonitor = React.lazy(() => import("./pages/system-monitor"));
@@ -152,8 +151,7 @@ export const App: React.FC = () => {
                   <Route path="/crm" element={<CRM />} />
                   <Route path="/integrations" element={<Integrations />} />
                   <Route path="/media" element={<MediaLibrary />} />
-                  {/* [TEMPORARY DISCONNECT] Music Library temporarily disconnected */}
-                  {/* <Route path="/music" element={<MusicLibrary />} /> */}
+                  <Route path="/music" element={<MusicLibrary />} />
                   <Route path="/tasks" element={<TasksPage />} />
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route path="/printing" element={<PrintingQueue />} />

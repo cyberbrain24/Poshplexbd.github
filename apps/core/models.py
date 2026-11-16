@@ -41,6 +41,7 @@ class User(AbstractUser):
             "staff": "core",
             "roles": "core",
             "integrations": "core",
+            "music": "core",
         }
         std_module = module_mapping.get(module_name, module_name)
         

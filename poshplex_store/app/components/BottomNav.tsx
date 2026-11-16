@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Grid, ShoppingBag, User } from "lucide-react";
+import { Home, Grid, ShoppingBag, User, Music } from "lucide-react";
 import { useCart } from "../../context/CartContext";
+import { useMusic } from "../../context/MusicContext";
 // [TEMPORARY DISCONNECT] AI Fit Check module temporarily disconnected
 // import { Sparkles } from "lucide-react";
 // import { useFitCheckConfig } from "../hooks/useFitCheckConfig";
@@ -13,6 +14,7 @@ import { useCart } from "../../context/CartContext";
 export default function BottomNav() {
   const pathname = usePathname();
   const { cartCount, openCart, closeCart, isCartOpen } = useCart();
+  const { isPlaying, play, pause, toggleMinimize, isMusicActive } = useMusic();
   // [TEMPORARY DISCONNECT] AI Fit Check disabled temporarily
   const isFitCheckActive = false;
   // const [isGlobalFitModalOpen, setIsGlobalFitModalOpen] = useState(false);
@@ -74,57 +76,71 @@ export default function BottomNav() {
             <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Category</span>
           </Link>
 
-          {/* [TEMPORARY DISCONNECT] AI FIT CHECK Button temporarily disconnected */}
-          {/* {isFitCheckActive && (
+          {/* Music Play / Pause / Expand Controller */}
+          {isMusicActive && (
             <div style={{ flex: 1, display: "flex", justifyContent: "center", position: "relative", height: "100%" }}>
               <button 
-                id="mobile-ai-fit-check-btn"
-                className="ai-fit-check-nav-btn"
-                aria-label="AI Fit Check"
-                onClick={handleAiFitCheckClick}
+                id="mobile-music-btn"
+                className="music-nav-btn"
+                aria-label={isPlaying ? "Pause Ambient Music" : "Play Ambient Music"}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (isPlaying) {
+                    pause();
+                  } else {
+                    play();
+                  }
+                }}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  toggleMinimize();
+                }}
                 style={{ 
                   position: "absolute",
-                  bottom: 16,
-                  width: 48,
-                  height: 48,
+                  bottom: 14,
+                  width: 44,
+                  height: 44,
                   borderRadius: "50%",
-                  background: "linear-gradient(135deg, #7c3aed 0%, #ec4899 50%, #06b6d4 100%)",
+                  background: isPlaying ? "linear-gradient(135deg, #e11d48 0%, #f43f5e 100%)" : "linear-gradient(135deg, #18181b 0%, #27272a 100%)",
                   color: "#ffffff",
-                  border: "3px solid var(--bg-primary, #ffffff)",
+                  border: "2.5px solid var(--bg-primary, #ffffff)",
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
                   justifyContent: "center",
                   cursor: "pointer",
-                  boxShadow: "0 4px 16px rgba(124, 58, 237, 0.5), 0 0 12px rgba(236, 72, 153, 0.35)",
+                  boxShadow: isPlaying ? "0 4px 14px rgba(225, 29, 72, 0.45)" : "0 3px 10px rgba(0, 0, 0, 0.25)",
                   transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
                   padding: 0,
                   zIndex: 2
                 }}
               >
-                <Sparkles 
-                  size={21} 
+                <Music 
+                  size={19} 
                   color="#ffffff"
                   style={{
-                    filter: "drop-shadow(0 0 4px rgba(255, 255, 255, 0.9))",
-                    animation: "aiSparklePulse 2.5s ease-in-out infinite"
+                    animation: isPlaying ? "musicSpin 3s linear infinite" : "none"
                   }}
                 />
               </button>
-              <span style={{ 
-                position: "absolute",
-                bottom: 2,
-                fontSize: 8.5, 
-                fontWeight: 800, 
-                textTransform: "uppercase", 
-                letterSpacing: "0.3px",
-                color: "#7c3aed",
-                whiteSpace: "nowrap"
-              }}>
-                AI FIT CHECK
+              <span 
+                onClick={toggleMinimize}
+                style={{ 
+                  position: "absolute",
+                  bottom: 2,
+                  fontSize: 8.5, 
+                  fontWeight: 800, 
+                  textTransform: "uppercase", 
+                  letterSpacing: "0.4px",
+                  color: isPlaying ? "#e11d48" : "var(--text-muted)",
+                  whiteSpace: "nowrap",
+                  cursor: "pointer"
+                }}
+              >
+                {isPlaying ? "PLAYING" : "MUSIC"}
               </span>
             </div>
-          )} */}
+          )}
 
           {/* Cart */}
           <button 
@@ -173,6 +189,13 @@ export default function BottomNav() {
         </div>
 
         <style dangerouslySetInnerHTML={{__html: `
+          @keyframes musicSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          .music-nav-btn:active {
+            transform: scale(0.92);
+          }
           @keyframes aiSparklePulse {
             0%, 100% {
               transform: scale(1) rotate(0deg);

@@ -41,6 +41,7 @@ export const RolesPage: React.FC = () => {
     // 5. Finance & Workflow
     { key: "finance", category: "Finance & Collaboration", label: "Financial Ledger", description: "Double-entry accounting, bank reconciliation, expense and revenue accounts" },
     { key: "tasks", category: "Finance & Collaboration", label: "Task Management", description: "Internal staff to-do cards, team assignments, and task priorities" },
+    { key: "music", category: "Finance & Collaboration", label: "Music Library", description: "Storefront ambient music player tracklist, uploads, and master audio switch" },
 
     // 6. Settings & Administration
     { key: "settings", category: "System Administration", label: "Site Settings", description: "Storefront banners, contact details, announcement bars, and general config" },

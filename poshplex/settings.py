@@ -58,8 +58,7 @@ INSTALLED_APPS = [
     'apps.orders.apps.OrdersConfig',
     'apps.marketing.apps.MarketingConfig',
     'apps.integration.apps.IntegrationConfig',
-    # [TEMPORARY DISCONNECT] Music player & AI Fit Check modules temporarily disconnected
-    # 'apps.music.apps.MusicConfig',
+    'apps.music.apps.MusicConfig',
     'apps.printing.apps.PrintingConfig',
     'apps.image_optimizer.apps.ImageOptimizerConfig',
     'apps.monitor.apps.MonitorConfig',
