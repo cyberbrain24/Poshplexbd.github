@@ -189,6 +189,27 @@ export const AbandonedCheckoutsPage: React.FC = () => {
   };
 
   const handleConvertToOrder = async (record: AbandonedItem) => {
+    // Client-side quick check for missing mandatory checkout details
+    const missing: string[] = [];
+    if (!record.customer_name?.trim()) missing.push("Full Name");
+    if (!record.phone?.trim()) missing.push("Phone Number");
+    if (!record.shipping_district?.trim()) missing.push("District");
+    if (!record.shipping_thana?.trim()) missing.push("Area (Thana)");
+    if (!record.shipping_address?.trim()) missing.push("Delivery Address");
+
+    if (missing.length > 0) {
+      Modal.confirm({
+        title: "Customer Information Missing",
+        content: `Cannot place as COD yet because the following required customer details are missing: ${missing.join(", ")}. Would you like to edit and complete the customer details now?`,
+        okText: "Edit Details",
+        cancelText: "Close",
+        onOk: () => {
+          openEditModal(record);
+        }
+      });
+      return;
+    }
+
     try {
       const token = localStorage.getItem("poshplex_access_token");
       const res = await axios.post(
@@ -199,7 +220,8 @@ export const AbandonedCheckoutsPage: React.FC = () => {
       message.success(`Order created successfully: #${res.data.order_number || res.data.id}!`);
       fetchAbandonedCheckouts();
     } catch (err: any) {
-      message.error(err?.response?.data?.message || "Failed to convert abandoned checkout to order");
+      const errMsg = err?.response?.data?.message || err?.response?.data?.detail || "Failed to convert abandoned checkout to order";
+      message.error(errMsg);
     }
   };
 

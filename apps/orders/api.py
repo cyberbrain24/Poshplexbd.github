@@ -2295,6 +2295,28 @@ def convert_abandoned_to_order(request, abandoned_id: int):
     if not record.cart_items:
         raise HttpError(400, "Abandoned checkout has no cart items to order.")
 
+    # Validate customer mandatory fields required for checkout
+    missing_fields = []
+    if not (record.customer_name and record.customer_name.strip()):
+        missing_fields.append("Customer Full Name")
+    if not (record.phone and record.phone.strip()):
+        missing_fields.append("Phone Number")
+    if not (record.shipping_district and record.shipping_district.strip()):
+        missing_fields.append("District")
+    if not (record.shipping_thana and record.shipping_thana.strip()):
+        missing_fields.append("Area (Thana)")
+    if not (record.shipping_address and record.shipping_address.strip()):
+        missing_fields.append("Full Delivery Address")
+
+    if missing_fields:
+        missing_str = ", ".join(missing_fields)
+        raise HttpError(400, f"Customer information is missing: {missing_str}. Please click the edit icon to provide the required details before placing as COD.")
+
+    # Validate Bangladeshi mobile phone format
+    cleaned_ph = normalize_bangladesh_phone(record.phone)
+    if not re.match(r"^01[3-9]\d{8}$", cleaned_ph):
+        raise HttpError(400, f"Invalid phone number '{record.phone}'. Please provide a valid 11-digit Bangladeshi mobile number starting with 01 (e.g. 017XXXXXXXX).")
+
     items_list = []
     for itm in record.cart_items:
         items_list.append({
@@ -2303,16 +2325,51 @@ def convert_abandoned_to_order(request, abandoned_id: int):
             "price": Decimal(str(itm.get("price") or 0))
         })
 
-    # Resolve customer user
-    phone_clean = record.phone.replace("+88", "").strip()
-    u, _ = User.objects.get_or_create(
-        username=phone_clean,
-        defaults={
-            "phone": phone_clean,
-            "first_name": record.customer_name or "Guest",
-            "is_active": True
-        }
-    )
+    from apps.crm.models import CustomerProfile
+    import uuid
+
+    # Resolve customer user and CRM profile
+    phone_clean = cleaned_ph
+    resolved_user = None
+
+    # Try lookup via CustomerProfile
+    crm_prof = CustomerProfile.objects.filter(phone=phone_clean).select_related('user').first()
+    if crm_prof and crm_prof.user:
+        resolved_user = crm_prof.user
+    else:
+        # Try lookup by username
+        user_match = User.objects.filter(username=phone_clean).first()
+        if user_match:
+            resolved_user = user_match
+        else:
+            resolved_user = User.objects.create_user(
+                username=phone_clean,
+                email=record.customer_email or f"{phone_clean}@poshplexbd.com",
+                password=uuid.uuid4().hex,
+                first_name=record.customer_name or "Customer",
+                role='customer'
+            )
+        # Ensure CRM profile exists
+        crm_prof, _ = CustomerProfile.objects.get_or_create(
+            user=resolved_user,
+            defaults={"phone": phone_clean, "email": record.customer_email or ""}
+        )
+
+    # Sync CustomerProfile address details if missing
+    if crm_prof:
+        if not crm_prof.phone:
+            crm_prof.phone = phone_clean
+        if record.shipping_address and not crm_prof.address:
+            crm_prof.address = record.shipping_address
+        if record.shipping_district:
+            dist_obj = District.objects.filter(name__iexact=record.shipping_district).first()
+            if dist_obj:
+                crm_prof.district = dist_obj
+                if record.shipping_thana:
+                    thana_obj = Thana.objects.filter(district=dist_obj, name__iexact=record.shipping_thana).first()
+                    if thana_obj:
+                        crm_prof.thana = thana_obj
+        crm_prof.save()
 
     # Determine default shipping cost (inside Dhaka 70, outside 120)
     dist = (record.shipping_district or "").lower()
@@ -2320,13 +2377,13 @@ def convert_abandoned_to_order(request, abandoned_id: int):
 
     with transaction.atomic():
         order = create_order(
-            user_id=u.id,
+            user_id=resolved_user.id,
             items_data=items_list,
-            shipping_address=record.shipping_address or (record.shipping_district or "Customer Address"),
-            shipping_name=record.customer_name or f"Customer {phone_clean}",
-            shipping_phone=record.phone,
-            shipping_district=record.shipping_district or "Dhaka",
-            shipping_thana=record.shipping_thana or "Dhaka",
+            shipping_address=record.shipping_address.strip(),
+            shipping_name=record.customer_name.strip(),
+            shipping_phone=phone_clean,
+            shipping_district=record.shipping_district.strip(),
+            shipping_thana=record.shipping_thana.strip(),
             shipping_postal_code="",
             discount_amount=Decimal('0.00'),
             shipping_cost=shipping_cost,
