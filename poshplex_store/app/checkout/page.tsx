@@ -985,6 +985,7 @@ if (success) {
                     </div>
                   </div>
                 </div>
+              </div>
             </div>
 
             {/* Right Column: Order Summary */}
