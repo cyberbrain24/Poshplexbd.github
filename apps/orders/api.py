@@ -1159,6 +1159,54 @@ def customer_checkout_endpoint(request, data: OrderCreateInputSchema):
 
             items_list = [item.dict() for item in data.items]
 
+            # ---------------------------------------------------------
+            # Secure Backend Shipping Cost Resolution
+            # ---------------------------------------------------------
+            # Resolve actual shipping cost based on District / Thana in DB
+            # Do NOT blindly trust client-supplied data.shipping_cost.
+            actual_shipping_cost = Decimal('130.00')  # Default outside Dhaka rate
+            if data.shipping_district and data.shipping_thana:
+                # 1. Exact match by District & Thana name
+                thana_match = Thana.objects.filter(
+                    district__name__iexact=data.shipping_district.strip(),
+                    name__iexact=data.shipping_thana.strip(),
+                    is_active=True
+                ).first()
+                if not thana_match:
+                    # Case-insensitive or partial fallback
+                    thana_match = Thana.objects.filter(
+                        name__iexact=data.shipping_thana.strip(),
+                        is_active=True
+                    ).first()
+
+                if thana_match and thana_match.shipping_cost is not None:
+                    actual_shipping_cost = Decimal(str(thana_match.shipping_cost))
+                else:
+                    # District fallback
+                    dist_lower = data.shipping_district.strip().lower()
+                    if "dhaka city" in dist_lower:
+                        actual_shipping_cost = Decimal('80.00')
+                    elif "sub-urban" in dist_lower or "suburban" in dist_lower:
+                        actual_shipping_cost = Decimal('110.00')
+                    elif "dhaka" in dist_lower:
+                        actual_shipping_cost = Decimal('80.00')
+                    else:
+                        actual_shipping_cost = Decimal('130.00')
+
+            # Check if order qualifies for combo bundle free delivery (only if active combo with free_delivery exists for this item count)
+            from apps.marketing.models import ComboOffer
+            total_items_count = sum(int(item.quantity) for item in data.items)
+            qualifies_bundle_free = ComboOffer.objects.filter(
+                is_active=True,
+                items_count=total_items_count,
+                free_delivery=True
+            ).exists()
+
+            if qualifies_bundle_free:
+                final_shipping_cost = Decimal('0.00')
+            else:
+                final_shipping_cost = actual_shipping_cost
+
             # Secure Backend Promo Calculation
             subtotal = sum(Decimal(str(item.price)) * int(item.quantity) for item in data.items)
             final_discount_amount = Decimal('0.00')
@@ -1189,7 +1237,7 @@ def customer_checkout_endpoint(request, data: OrderCreateInputSchema):
                         elif promo.reward_type == 'fixed':
                             final_discount_amount = promo.discount_value
                         elif promo.reward_type == 'freeship':
-                            final_discount_amount = data.shipping_cost
+                            final_discount_amount = final_shipping_cost
                         applied_promo = promo
                 except PromoCode.DoesNotExist:
                     pass
@@ -1204,7 +1252,7 @@ def customer_checkout_endpoint(request, data: OrderCreateInputSchema):
                 shipping_thana=data.shipping_thana,
                 shipping_postal_code=data.shipping_postal_code,
                 discount_amount=final_discount_amount,
-                shipping_cost=data.shipping_cost,
+                shipping_cost=final_shipping_cost,
                 customer_notes=data.customer_notes,
                 internal_notes=data.internal_notes
             )

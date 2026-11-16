@@ -351,6 +351,17 @@ export default function CheckoutPage() {
       .then(res => res.json())
       .then(data => {
         setDistricts(data);
+
+        // If district was pre-filled from cached guest profile, sync its districtId
+        setFormData(prev => {
+          if (prev.district && !prev.districtId && Array.isArray(data)) {
+            const matchedDist = data.find((d: any) => d.name.toLowerCase() === prev.district.toLowerCase());
+            if (matchedDist) {
+              return { ...prev, district: matchedDist.name, districtId: matchedDist.id };
+            }
+          }
+          return prev;
+        });
       })
       .catch(err => console.error("Failed to load districts", err));
 
@@ -476,11 +487,21 @@ export default function CheckoutPage() {
         .then(data => {
           setThanas(data);
           setFormData(prev => {
-            const validThana = data.find((t: any) => t.id === prev.thanaId);
+            // Find valid thana by thanaId or match by thana name (for auto-filled guest profiles)
+            const validThana = data.find((t: any) => 
+              t.id === prev.thanaId || 
+              (prev.thana && t.name.toLowerCase() === prev.thana.toLowerCase())
+            );
+
             if (validThana) {
-              const isBundleFree = typeof window !== "undefined" && localStorage.getItem("poshplex_bundle_free_shipping") === "true";
+              // Only grant bundle free shipping if the cart actually contains 3 or more items
+              const totalCartItemsCount = cart.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
+              const isBundleFree = typeof window !== "undefined" && 
+                localStorage.getItem("poshplex_bundle_free_shipping") === "true" && 
+                totalCartItemsCount >= 3;
+
               setShippingCost(isBundleFree ? 0 : (Number(validThana.shipping_cost) || 0));
-              return prev;
+              return { ...prev, thana: validThana.name, thanaId: validThana.id };
             }
             setShippingCost(0);
             return { ...prev, thana: "", thanaId: 0 };
@@ -491,7 +512,7 @@ export default function CheckoutPage() {
       setThanas([]);
       setShippingCost(0);
     }
-  }, [formData.districtId]);
+  }, [formData.districtId, cart]);
 
   const handleApplyPromo = async () => {
     if (!promoCode) return;
@@ -877,7 +898,12 @@ export default function CheckoutPage() {
                         fpixel.saveUserData({ ct: name });
                         const selectedThana = thanas.find(t => t.id === id);
                         if (selectedThana) {
-                          setShippingCost(Number(selectedThana.shipping_cost) || 0);
+                          const totalCartItemsCount = cart.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
+                          const isBundleFree = typeof window !== "undefined" && 
+                            localStorage.getItem("poshplex_bundle_free_shipping") === "true" && 
+                            totalCartItemsCount >= 3;
+
+                          setShippingCost(isBundleFree ? 0 : (Number(selectedThana.shipping_cost) || 0));
                         }
                         reEnrichInitiateCheckout(updated);
                       }}
