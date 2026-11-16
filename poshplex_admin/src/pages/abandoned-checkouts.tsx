@@ -66,6 +66,8 @@ export const AbandonedCheckoutsPage: React.FC = () => {
   const [editingRecord, setEditingRecord] = useState<AbandonedItem | null>(null);
   const [editForm] = Form.useForm();
   const [savingEdit, setSavingEdit] = useState(false);
+  const [locationRates, setLocationRates] = useState<any[]>([]);
+  const [selectedDistrict, setSelectedDistrict] = useState<string>("");
 
   const fetchAbandonedCheckouts = async () => {
     setLoading(true);
@@ -101,6 +103,21 @@ export const AbandonedCheckoutsPage: React.FC = () => {
     fetchAbandonedCheckouts();
   }, [page, limit, activeTab]);
 
+  useEffect(() => {
+    // Load shipping locations (districts and thanas)
+    const loadLocations = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/orders/shipping-locations/rates`);
+        if (res.data?.districts) {
+          setLocationRates(res.data.districts);
+        }
+      } catch (err) {
+        console.error("Failed to load shipping locations", err);
+      }
+    };
+    loadLocations();
+  }, []);
+
   const handleSearch = () => {
     setPage(1);
     fetchAbandonedCheckouts();
@@ -117,12 +134,13 @@ export const AbandonedCheckoutsPage: React.FC = () => {
 
   const openEditModal = (record: AbandonedItem) => {
     setEditingRecord(record);
+    setSelectedDistrict(record.shipping_district || "");
     editForm.setFieldsValue({
       customer_name: record.customer_name || "",
       phone: record.phone || "",
       customer_email: record.customer_email || "",
-      shipping_district: record.shipping_district || "",
-      shipping_thana: record.shipping_thana || "",
+      shipping_district: record.shipping_district || undefined,
+      shipping_thana: record.shipping_thana || undefined,
       shipping_address: record.shipping_address || "",
     });
     setIsEditModalOpen(true);
@@ -547,7 +565,11 @@ export const AbandonedCheckoutsPage: React.FC = () => {
         okText="Save Details"
       >
         <Form form={editForm} layout="vertical">
-          <Form.Item name="customer_name" label="Full Name">
+          <Form.Item
+            name="customer_name"
+            label="Full Name"
+            rules={[{ required: true, message: "Please enter customer full name" }]}
+          >
             <Input placeholder="e.g. Rahman Ahmed" />
           </Form.Item>
           <Form.Item
@@ -563,7 +585,7 @@ export const AbandonedCheckoutsPage: React.FC = () => {
                   if (clean.startsWith("01") && clean.length === 11) {
                     return Promise.resolve();
                   }
-                  return Promise.reject(new Error("Enter a valid 11-digit BD number (01...)"));
+                  return Promise.reject(new Error("Please provide a valid 11-digit Bangladeshi mobile number starting with 01 (e.g., 017XXXXXXXX)."));
                 }
               }
             ]}
@@ -575,17 +597,62 @@ export const AbandonedCheckoutsPage: React.FC = () => {
           </Form.Item>
           <Row gutter={12}>
             <Col span={12}>
-              <Form.Item name="shipping_district" label="District">
-                <Input placeholder="e.g. Dhaka" />
+              <Form.Item
+                name="shipping_district"
+                label="District"
+                rules={[{ required: true, message: "Please select a District" }]}
+              >
+                <Select
+                  showSearch
+                  placeholder="Select district"
+                  optionFilterProp="children"
+                  filterOption={(input, option) =>
+                    String(option?.children ?? "").toLowerCase().includes(input.toLowerCase())
+                  }
+                  onChange={(val) => {
+                    setSelectedDistrict(val);
+                    editForm.setFieldsValue({ shipping_thana: undefined });
+                  }}
+                >
+                  {locationRates.map((d: any) => (
+                    <Select.Option key={d.name} value={d.name}>
+                      {d.name}
+                    </Select.Option>
+                  ))}
+                </Select>
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="shipping_thana" label="Thana / Police Station">
-                <Input placeholder="e.g. Mirpur" />
+              <Form.Item
+                name="shipping_thana"
+                label="Thana / Police Station"
+                rules={[{ required: true, message: "Please select Area (Thana)" }]}
+              >
+                <Select
+                  showSearch
+                  placeholder={selectedDistrict ? "Select thana" : "Select district first"}
+                  disabled={!selectedDistrict}
+                  optionFilterProp="children"
+                  filterOption={(input, option) =>
+                    String(option?.children ?? "").toLowerCase().includes(input.toLowerCase())
+                  }
+                >
+                  {locationRates
+                    .find((d: any) => d.name === selectedDistrict)
+                    ?.thanas?.map((t: string) => (
+                      <Select.Option key={t} value={t}>
+                        {t}
+                      </Select.Option>
+                    ))}
+                </Select>
               </Form.Item>
             </Col>
           </Row>
-          <Form.Item name="shipping_address" label="Street / House / Delivery Address">
+          <Form.Item
+            name="shipping_address"
+            label="Street / House / Delivery Address"
+            rules={[{ required: true, message: "Please provide delivery address" }]}
+          >
             <Input.TextArea rows={3} placeholder="House 12, Road 4, Sector 7..." />
           </Form.Item>
         </Form>
