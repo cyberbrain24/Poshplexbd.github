@@ -513,8 +513,8 @@ class IdentityLink(models.Model):
     """
     visitor_id = models.CharField(max_length=100, db_index=True, help_text="First-party visitor UUID")
     customer = models.ForeignKey('crm.CustomerProfile', on_delete=models.CASCADE, related_name='identity_links')
-    phone = models.CharField(max_length=50, blank=True, default='', db_index=True)
-    email = models.EmailField(blank=True, default='')
+    phone = models.CharField(max_length=50, blank=True, null=True, default='', db_index=True)
+    email = models.EmailField(blank=True, null=True, default='')
     source = models.CharField(max_length=50, default='checkout', help_text="Source: checkout, login, phone_entry, messenger")
     confidence_score = models.IntegerField(default=100)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)

@@ -141,8 +141,8 @@ def link_session_to_customer(session: VisitorSession, phone: str = "", email: st
             visitor_id=session.visitor_id,
             customer=profile,
             defaults={
-                "phone": clean_phone or getattr(profile, 'phone', ''),
-                "email": email or getattr(profile, 'email', ''),
+                "phone": clean_phone or getattr(profile, 'phone', '') or '',
+                "email": email or getattr(profile, 'email', '') or '',
                 "source": source,
                 "confidence_score": 100
             }
@@ -373,6 +373,8 @@ def record_order_attribution_touchpoints(
     visitor_id: Optional[str] = None,
     session_id: Optional[str] = None,
     utm_campaign: Optional[str] = None,
+    campaign_id: Optional[str] = None,
+    ad_id: Optional[str] = None,
     fbc: Optional[str] = None,
     customer_phone: Optional[str] = None,
     attribution_window_days: int = 30
@@ -403,16 +405,38 @@ def record_order_attribution_touchpoints(
     now = timezone.now()
     window_start = now - datetime.timedelta(days=attribution_window_days)
 
-    # 1. Find all candidate VisitorSessions
-    sessions_query = VisitorSession.objects.filter(started_at__gte=window_start)
+    # 1. Identity Resolution (M6): Collect all visitor_ids stitched to this customer
+    linked_visitor_ids = set()
+    if visitor_id:
+        linked_visitor_ids.add(visitor_id)
+
+    if customer_phone:
+        clean_p = ''.join(filter(str.isdigit, str(customer_phone)))
+        if len(clean_p) >= 10:
+            # Link current visitor/session to customer profile
+            if session_id or visitor_id:
+                s_curr = None
+                if session_id:
+                    s_curr = VisitorSession.objects.filter(session_id=session_id).first()
+                if not s_curr and visitor_id:
+                    s_curr = VisitorSession.objects.filter(visitor_id=visitor_id).order_by('-started_at').first()
+                if s_curr:
+                    link_session_to_customer(s_curr, phone=clean_p, source="checkout")
+
+            links = IdentityLink.objects.filter(customer__phone__icontains=clean_p[-10:])
+            for l in links:
+                linked_visitor_ids.add(l.visitor_id)
+
+    # Find candidate sessions, excluding bot traffic (M8)
+    sessions_query = VisitorSession.objects.filter(started_at__gte=window_start).exclude(is_bot=True)
     candidates = []
 
-    # Match by visitor_id
-    if visitor_id:
-        v_sessions = list(sessions_query.filter(visitor_id=visitor_id).order_by('started_at'))
+    # Match by linked visitor_ids
+    if linked_visitor_ids:
+        v_sessions = list(sessions_query.filter(visitor_id__in=linked_visitor_ids).order_by('started_at'))
         candidates.extend(v_sessions)
 
-    # Match by phone / customer profile
+    # Match by customer profile directly (phone match)
     if customer_phone:
         clean_p = ''.join(filter(str.isdigit, str(customer_phone)))
         if len(clean_p) >= 10:
@@ -423,7 +447,7 @@ def record_order_attribution_touchpoints(
 
     # Match by active session_id
     if session_id:
-        s_obj = VisitorSession.objects.filter(session_id=session_id).first()
+        s_obj = sessions_query.filter(session_id=session_id).first()
         if s_obj and s_obj not in candidates:
             candidates.append(s_obj)
 
@@ -432,21 +456,32 @@ def record_order_attribution_touchpoints(
 
     # If no candidate sessions exist, attempt to resolve campaign from order/params and create a direct session
     fallback_campaign = None
-    if utm_campaign:
+    if campaign_id:
+        if str(campaign_id).isdigit():
+            fallback_campaign = Campaign.objects.filter(id=int(campaign_id)).exclude(status='ARCHIVED').first()
+        if not fallback_campaign:
+            fallback_campaign = Campaign.objects.filter(meta_campaign_id=str(campaign_id)).exclude(status='ARCHIVED').first()
+
+    if not fallback_campaign and utm_campaign:
         if utm_campaign.isdigit():
-            fallback_campaign = Campaign.objects.filter(id=int(utm_campaign)).first()
+            fallback_campaign = Campaign.objects.filter(id=int(utm_campaign)).exclude(status='ARCHIVED').first()
         if not fallback_campaign:
-            fallback_campaign = Campaign.objects.filter(meta_campaign_id=utm_campaign).first()
+            fallback_campaign = Campaign.objects.filter(meta_campaign_id=utm_campaign).exclude(status='ARCHIVED').first()
         if not fallback_campaign:
-            fallback_campaign = Campaign.objects.filter(name__iexact=utm_campaign).first()
+            fallback_campaign = Campaign.objects.filter(name__iexact=utm_campaign).exclude(status='ARCHIVED').first()
 
     if not candidates:
         # Create a synthetic fallback session
+        # Strict Rule 3: Paid Meta requires ad_id, campaign_id, or fallback_campaign. fbc alone = ORGANIC_SOCIAL.
+        is_paid = bool(campaign_id or ad_id or fallback_campaign)
+        channel_source = 'PAID_META' if is_paid else ('ORGANIC_SOCIAL' if fbc else 'DIRECT')
         fallback_session = VisitorSession.objects.create(
             visitor_id=visitor_id or str(uuid.uuid4()),
             session_id=session_id or str(uuid.uuid4()),
-            channel_source='PAID_META' if (fbc or fallback_campaign) else 'DIRECT',
+            channel_source=channel_source,
             campaign=fallback_campaign,
+            meta_campaign_id=campaign_id or (fallback_campaign.meta_campaign_id if fallback_campaign else ""),
+            meta_ad_id=ad_id or "",
             utm_campaign=utm_campaign or "",
             fbc=fbc or "",
             is_engaged=True

@@ -74,6 +74,8 @@ class OrderCreateInputSchema(Schema):
     utm_medium: Optional[str] = None
     utm_campaign: Optional[str] = None
     utm_content: Optional[str] = None
+    campaign_id: Optional[str] = None
+    ad_id: Optional[str] = None
     fbc: Optional[str] = None
     fbp: Optional[str] = None
 
@@ -1333,6 +1335,8 @@ def customer_checkout_endpoint(request, data: OrderCreateInputSchema):
                     visitor_id=getattr(data, 'visitor_id', None),
                     session_id=getattr(data, 'session_id', None),
                     utm_campaign=getattr(data, 'utm_campaign', None),
+                    campaign_id=getattr(data, 'campaign_id', None),
+                    ad_id=getattr(data, 'ad_id', None),
                     fbc=getattr(data, 'fbc', None),
                     customer_phone=final_phone or order.shipping_phone
                 )

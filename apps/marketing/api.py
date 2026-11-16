@@ -1385,7 +1385,9 @@ from apps.marketing.models import (
     VisitorSession,
     RawTrackingEvent,
     OrderAttributionTouchpoint,
-    DailyAdPerformanceSummary
+    DailyAdPerformanceSummary,
+    IdentityLink,
+    MetaCapiLog
 )
 from apps.marketing.tasks import process_tracking_event, rebuild_daily_ad_summaries_task
 from apps.orders.models import Order
@@ -1402,6 +1404,10 @@ class TrackingEventInputSchema(Schema):
     utm_campaign: Optional[str] = None
     utm_content: Optional[str] = None
     utm_term: Optional[str] = None
+    campaign_id: Optional[str] = None
+    adset_id: Optional[str] = None
+    ad_id: Optional[str] = None
+    ad_name: Optional[str] = None
     fbc: Optional[str] = None
     fbp: Optional[str] = None
     landing_page: Optional[str] = None
@@ -1693,19 +1699,23 @@ def get_attribution_reconciliation(request, date: Optional[str] = None):
     tracked_count = tracked_orders.values('order_id').distinct().count()
     tracked_rev = tracked_orders.aggregate(s=Sum('attributed_order_value'))['s'] or Decimal('0.00')
 
-    # 3. Raw Events Intake
+    # 3. Meta CAPI Received (M12 Audit Logs)
+    meta_capi_logs = MetaCapiLog.objects.filter(event_time__date=target_date, event_name__iexact='purchase')
+    meta_capi_received = meta_capi_logs.filter(status='SUCCESS').values('order_id').distinct().count()
+    meta_capi_dropped_old = meta_capi_logs.filter(status='SKIPPED_AGE').count()
+    meta_capi_failed = meta_capi_logs.filter(status='FAILED').count()
+
+    # 4. Raw Events Intake
     raw_events_count = RawTrackingEvent.objects.filter(server_timestamp__date=target_date).count()
     quarantined_count = RawTrackingEvent.objects.filter(server_timestamp__date=target_date, status='QUARANTINED').count()
 
-    # Calculate discrepancy
+    # Calculate discrepancy between storefront orders and tracked attribution
     diff = abs(storefront_count - tracked_count)
     variance_pct = round((diff / storefront_count * 100), 2) if storefront_count > 0 else 0.0
 
     status = "HEALTHY"
-    if variance_pct > 5.0:
-        status = "DISCREPANCY"
-    elif variance_pct > 2.0:
-        status = "ATTENTION"
+    if variance_pct > 2.0:
+        status = "DISCREPANCY" if variance_pct > 5.0 else "ATTENTION"
 
     return {
         "date": str(target_date),
@@ -1718,6 +1728,11 @@ def get_attribution_reconciliation(request, date: Optional[str] = None):
         "attribution_tracked": {
             "orders_count": tracked_count,
             "revenue": float(tracked_rev)
+        },
+        "meta_capi": {
+            "received_purchases": meta_capi_received,
+            "dropped_older_than_7d": meta_capi_dropped_old,
+            "failed_dispatches": meta_capi_failed
         },
         "raw_events": {
             "total_intake": raw_events_count,

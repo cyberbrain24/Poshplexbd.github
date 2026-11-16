@@ -254,10 +254,10 @@ def run_meta_agent_cycle():
 # CUSTOMER DATA & ATTRIBUTION PLATFORM ASYNC TASKS
 # ============================================================================
 
-@shared_task(name='apps.marketing.tasks.process_tracking_event')
+@shared_task(name='apps.marketing.tasks.process_tracking_event', queue='tracking_queue')
 def process_tracking_event(event_data, ip_address=None, user_agent=None):
     """
-    Asynchronous intake for first-party tracking events.
+    Asynchronous intake for first-party tracking events routed to dedicated tracking_queue.
     Enforces validation schema, tracks visitor session, links customer identity,
     and appends to RawTrackingEvent.
     """
@@ -270,7 +270,7 @@ def process_tracking_event(event_data, ip_address=None, user_agent=None):
         return {"status": "error", "error": str(e)}
 
 
-@shared_task(name='apps.marketing.tasks.process_tracking_events_batch')
+@shared_task(name='apps.marketing.tasks.process_tracking_events_batch', queue='tracking_queue')
 def process_tracking_events_batch(events_list):
     """
     Processes a batch of up to 100 queued events from Redis to reduce DB roundtrips.
@@ -286,6 +286,35 @@ def process_tracking_events_batch(events_list):
             errors += 1
     logger.info(f"process_tracking_events_batch finished: {processed_count} processed, {errors} errors.")
     return {"processed": processed_count, "errors": errors}
+
+
+@shared_task(name='apps.marketing.tasks.cleanup_expired_tracking_events', queue='tracking_queue')
+def cleanup_expired_tracking_events():
+    """
+    Runs weekly via Celery Beat.
+    Enforces data retention:
+      - 90 days for high-volume telemetry (scroll, time_on_page, page_view).
+      - 25 months (750 days) for conversion/order/checkout events.
+    """
+    from apps.marketing.models import RawTrackingEvent
+    now = timezone.now()
+
+    # 1. Purge telemetry older than 90 days
+    ninety_days_ago = now - datetime.timedelta(days=90)
+    telemetry_deleted, _ = RawTrackingEvent.objects.filter(
+        server_timestamp__lt=ninety_days_ago,
+        event_name__in=['scroll', 'time_on_page', 'page_view', 'scroll_depth']
+    ).delete()
+
+    # 2. Purge conversion events older than 25 months (~750 days)
+    twenty_five_months_ago = now - datetime.timedelta(days=750)
+    conversions_deleted, _ = RawTrackingEvent.objects.filter(
+        server_timestamp__lt=twenty_five_months_ago
+    ).delete()
+
+    total_purged = telemetry_deleted + conversions_deleted
+    logger.info(f"cleanup_expired_tracking_events completed: Purged {telemetry_deleted} telemetry events (>90d) and {conversions_deleted} old events (>25m).")
+    return {"purged_telemetry": telemetry_deleted, "purged_old": conversions_deleted, "total": total_purged}
 
 
 @shared_task(name='apps.marketing.tasks.rebuild_daily_ad_summaries_task')
@@ -304,11 +333,12 @@ def rebuild_daily_ad_summaries_task(target_date_str=None):
     return {"date": str(target_date), "summaries_rebuilt": count}
 
 
-@shared_task(name='apps.marketing.tasks.send_meta_capi_lifecycle_event_task')
+@shared_task(name='apps.marketing.tasks.send_meta_capi_lifecycle_event_task', queue='tracking_queue')
 def send_meta_capi_lifecycle_event_task(order_id: int, event_type: str):
     """
     Dispatches Meta Conversions API lifecycle events (e.g. OrderConfirmed, OrderDelivered).
-    Fetches customer identifiers, order value, and Pixel credentials.
+    Fetches customer identifiers, real occurrence timestamp, and Pixel credentials.
+    Enforces the 7-day age guard and logs in MetaCapiLog.
     """
     from apps.orders.models import Order
     from apps.marketing.models import MetaAdAccount, VisitorSession, OrderAttributionTouchpoint
@@ -318,6 +348,15 @@ def send_meta_capi_lifecycle_event_task(order_id: int, event_type: str):
     order = Order.objects.filter(id=order_id).first()
     if not order:
         return {"status": "error", "message": f"Order #{order_id} not found"}
+
+    # Resolve real event occurrence time
+    real_event_time = None
+    if event_type == "OrderDelivered":
+        real_event_time = order.delivered_at or getattr(order.status_history.filter(status='delivered').first(), 'timestamp', None) or order.updated_at
+    elif event_type == "OrderConfirmed":
+        real_event_time = getattr(order.status_history.filter(status='confirmed').first(), 'timestamp', None) or order.updated_at
+    if not real_event_time:
+        real_event_time = order.updated_at or timezone.now()
 
     # Get active Pixel ID and Access Token
     pixel_id = ""
@@ -356,7 +395,8 @@ def send_meta_capi_lifecycle_event_task(order_id: int, event_type: str):
         phone=order.shipping_phone,
         email=getattr(order.user, 'email', None) if order.user else None,
         fbc=fbc,
-        fbp=fbp
+        fbp=fbp,
+        event_time=real_event_time
     )
 
 

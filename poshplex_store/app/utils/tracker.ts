@@ -16,6 +16,10 @@ export interface AttributionContext {
   utm_campaign: string;
   utm_content: string;
   utm_term: string;
+  campaign_id?: string;
+  adset_id?: string;
+  ad_id?: string;
+  ad_name?: string;
   fbc?: string;
   fbp?: string;
   landing_page: string;
@@ -98,7 +102,7 @@ export const getOrCreateSessionId = (): string => {
 };
 
 /**
- * Captures and caches UTM parameters from current URL or landing storage.
+ * Captures and caches UTM parameters and granular Meta Ad IDs from landing URL.
  */
 export const captureLandingParameters = (): void => {
   if (typeof window === "undefined") return;
@@ -109,15 +113,23 @@ export const captureLandingParameters = (): void => {
     const utmCampaign = params.get("utm_campaign");
     const utmContent = params.get("utm_content");
     const utmTerm = params.get("utm_term");
+    const campaignId = params.get("campaign_id");
+    const adsetId = params.get("adset_id");
+    const adId = params.get("ad_id");
+    const adName = params.get("utm_content") || params.get("ad_name");
     const fbclid = params.get("fbclid");
 
-    if (utmSource || utmCampaign || fbclid) {
+    if (utmSource || utmCampaign || fbclid || campaignId || adId) {
       const captured = {
         utm_source: utmSource || "",
         utm_medium: utmMedium || "",
         utm_campaign: utmCampaign || "",
         utm_content: utmContent || "",
         utm_term: utmTerm || "",
+        campaign_id: campaignId || "",
+        adset_id: adsetId || "",
+        ad_id: adId || "",
+        ad_name: adName || "",
         fbclid: fbclid || "",
         landing_page: window.location.href,
         referrer: document.referrer || "",
@@ -140,6 +152,10 @@ export const getAttributionContext = (): AttributionContext => {
   let utm_campaign = "";
   let utm_content = "";
   let utm_term = "";
+  let campaign_id = "";
+  let adset_id = "";
+  let ad_id = "";
+  let ad_name = "";
   let landing_page = "";
   let referrer = "";
 
@@ -155,10 +171,14 @@ export const getAttributionContext = (): AttributionContext => {
       utm_campaign = params.get("utm_campaign") || "";
       utm_content = params.get("utm_content") || "";
       utm_term = params.get("utm_term") || "";
+      campaign_id = params.get("campaign_id") || "";
+      adset_id = params.get("adset_id") || "";
+      ad_id = params.get("ad_id") || "";
+      ad_name = params.get("utm_content") || params.get("ad_name") || "";
     } catch {}
 
     // 2. Fallback to cached landing parameters if direct navigation within session
-    if (!utm_campaign && !utm_source) {
+    if (!utm_campaign && !utm_source && !campaign_id && !ad_id) {
       try {
         const storedRaw = localStorage.getItem("posh_landing_attribution");
         if (storedRaw) {
@@ -170,6 +190,10 @@ export const getAttributionContext = (): AttributionContext => {
             utm_campaign = stored.utm_campaign || "";
             utm_content = stored.utm_content || "";
             utm_term = stored.utm_term || "";
+            campaign_id = stored.campaign_id || "";
+            adset_id = stored.adset_id || "";
+            ad_id = stored.ad_id || "";
+            ad_name = stored.ad_name || "";
             if (!referrer) referrer = stored.referrer || "";
             if (stored.landing_page) landing_page = stored.landing_page;
           }
@@ -189,6 +213,10 @@ export const getAttributionContext = (): AttributionContext => {
     utm_campaign,
     utm_content,
     utm_term,
+    campaign_id: campaign_id || undefined,
+    adset_id: adset_id || undefined,
+    ad_id: ad_id || undefined,
+    ad_name: ad_name || undefined,
     fbc: fbc || undefined,
     fbp: fbp || undefined,
     landing_page,
@@ -224,6 +252,10 @@ export const trackEvent = (
     utm_campaign: ctx.utm_campaign,
     utm_content: ctx.utm_content,
     utm_term: ctx.utm_term,
+    campaign_id: ctx.campaign_id,
+    adset_id: ctx.adset_id,
+    ad_id: ctx.ad_id,
+    ad_name: ctx.ad_name,
     fbc: ctx.fbc,
     fbp: ctx.fbp,
     landing_page: ctx.landing_page,

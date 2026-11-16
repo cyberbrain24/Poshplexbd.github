@@ -1,4 +1,5 @@
 import time
+import datetime
 import logging
 import requests
 from decimal import Decimal
@@ -214,21 +215,54 @@ def send_capi_lifecycle_event(
     email: Optional[str] = None,
     fbc: Optional[str] = None,
     fbp: Optional[str] = None,
+    event_time: Optional[Any] = None,
     event_source_url: str = "https://poshplexbd.com"
 ) -> Dict[str, Any]:
     """
     Dispatches server-side lifecycle events (e.g. OrderConfirmed, OrderDelivered)
-    to Meta Conversions API (CAPI) with SHA-256 hashed user data.
+    to Meta Conversions API (CAPI) with SHA-256 hashed user data and audit logging.
+    Enforces Meta's strict 7-day maximum age window.
     """
     import hashlib
+    from django.utils import timezone
+    from apps.marketing.models import MetaCapiLog
 
     if not pixel_id or not access_token:
         logger.info(f"Skipping CAPI lifecycle event {event_name} for #{order_id}: missing pixel_id or access_token.")
         return {"status": "skipped", "reason": "missing_credentials"}
 
+    # Resolve real event occurrence time
+    now_ts = int(time.time())
+    if event_time:
+        if isinstance(event_time, (datetime.datetime, timezone.datetime)):
+            unix_event_time = int(event_time.timestamp())
+            dt_event_time = event_time
+        elif isinstance(event_time, (int, float)):
+            unix_event_time = int(event_time)
+            dt_event_time = timezone.datetime.fromtimestamp(unix_event_time, tz=timezone.utc)
+        else:
+            unix_event_time = now_ts
+            dt_event_time = timezone.now()
+    else:
+        unix_event_time = now_ts
+        dt_event_time = timezone.now()
+
+    # Meta Hard Rule: Events older than 7 days (604,800 seconds) are rejected and fail the request
+    age_seconds = now_ts - unix_event_time
+    if age_seconds > 7 * 86400:
+        logger.warning(f"Dropping CAPI {event_name} for Order #{order_id}: event age is {age_seconds}s (>7 days max).")
+        MetaCapiLog.objects.create(
+            order_id=order_id,
+            event_name=event_name,
+            event_id=f"posh_order_{order_id}_{event_name.lower()}",
+            event_time=dt_event_time,
+            status='SKIPPED_AGE',
+            error_message=f"Event is {age_seconds}s old, exceeding Meta 7-day Conversions API limit."
+        )
+        return {"status": "skipped", "reason": "event_older_than_7_days"}
+
     user_data: Dict[str, Any] = {}
     if phone:
-        # Standardize Bangladeshi phone number (e.g. 88017...)
         digits = ''.join(filter(str.isdigit, str(phone)))
         if digits.startswith("0"):
             digits = "88" + digits
@@ -245,10 +279,11 @@ def send_capi_lifecycle_event(
     if fbp:
         user_data["fbp"] = fbp.strip()
 
+    custom_event_id = f"posh_order_{order_id}_{event_name.lower()}"
     event_payload = {
         "event_name": event_name,
-        "event_time": int(time.time()),
-        "event_id": f"posh_order_{order_id}_{event_name.lower()}",
+        "event_time": unix_event_time,
+        "event_id": custom_event_id,
         "event_source_url": event_source_url,
         "action_source": "website",
         "user_data": user_data,
@@ -269,9 +304,33 @@ def send_capi_lifecycle_event(
             timeout=15
         )
         data = resp.json()
-        logger.info(f"Meta CAPI {event_name} dispatched for Order #{order_id}: {data}")
+        http_code = resp.status_code
+        status_label = 'SUCCESS' if http_code == 200 and not data.get('error') else 'FAILED'
+        err_msg = str(data.get('error', ''))
+
+        # Audit log in MetaCapiLog
+        MetaCapiLog.objects.create(
+            order_id=order_id,
+            event_name=event_name,
+            event_id=custom_event_id,
+            event_time=dt_event_time,
+            status=status_label,
+            http_status=http_code,
+            payload=event_payload,
+            response=data,
+            error_message=err_msg
+        )
+        logger.info(f"Meta CAPI {event_name} dispatched for Order #{order_id} [{status_label}]: {data}")
         return data
     except Exception as e:
         logger.warning(f"Failed to dispatch Meta CAPI {event_name} for Order #{order_id}: {e}")
+        MetaCapiLog.objects.create(
+            order_id=order_id,
+            event_name=event_name,
+            event_id=custom_event_id,
+            event_time=dt_event_time,
+            status='FAILED',
+            error_message=str(e)
+        )
         return {"status": "error", "error": str(e)}
 

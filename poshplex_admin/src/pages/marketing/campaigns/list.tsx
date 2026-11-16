@@ -879,7 +879,7 @@ export const CampaignList: React.FC = () => {
 
           {/* Reconciliation Audit Badge */}
           {reconciliation && (
-            <Tooltip title={`Storefront Orders: ${reconciliation.storefront?.orders_count || 0} | Tracked Touchpoints: ${reconciliation.attribution_tracked?.orders_count || 0} | Raw Intake: ${reconciliation.raw_events?.total_intake || 0}`}>
+            <Tooltip title={`Storefront Orders: ${reconciliation.storefront?.orders_count || 0} | Tracked Touchpoints: ${reconciliation.attribution_tracked?.orders_count || 0} | Meta CAPI Received: ${reconciliation.meta_capi?.received_purchases || 0} | Raw Intake: ${reconciliation.raw_events?.total_intake || 0}`}>
               <Tag
                 icon={reconciliation.status === "HEALTHY" ? <CheckCircleOutlined /> : <WarningOutlined />}
                 color={reconciliation.status === "HEALTHY" ? "success" : "warning"}

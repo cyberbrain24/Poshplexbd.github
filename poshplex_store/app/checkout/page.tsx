@@ -645,6 +645,8 @@ export default function CheckoutPage() {
         utm_medium: attrCtx.utm_medium,
         utm_campaign: attrCtx.utm_campaign,
         utm_content: attrCtx.utm_content,
+        campaign_id: attrCtx.campaign_id,
+        ad_id: attrCtx.ad_id,
         fbc: attrCtx.fbc,
         fbp: attrCtx.fbp,
         items: cart.map(item => ({
@@ -695,6 +697,7 @@ export default function CheckoutPage() {
         const purchaseLn = rawLn || purchaseFn;
         const resolvedZip = formData.postalCode || fpixel.resolveBangladeshZip(formData.district || formData.thana) || "1200";
         const fbc = fpixel.getOrCreateFbc();
+        const purchaseEventId = `posh_order_${txId}`;
 
         fpixel.trackEvent("Purchase", {
            transaction_id: txId,
@@ -725,7 +728,7 @@ export default function CheckoutPage() {
            ge: finalGender,
            db: finalDob,
            fbc: fbc || undefined
-        });
+        }, purchaseEventId);
 
         fpixel.saveUserData({
            em: formData.email,

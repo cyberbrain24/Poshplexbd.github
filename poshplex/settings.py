@@ -220,6 +220,11 @@ CELERY_ACCEPT_CONTENT = ['application/json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_ROUTES = {
+    'apps.marketing.tasks.process_tracking*': {'queue': 'tracking_queue'},
+    'apps.marketing.tasks.cleanup_expired_tracking_events': {'queue': 'tracking_queue'},
+    'apps.marketing.tasks.send_meta_capi_lifecycle_event_task': {'queue': 'tracking_queue'},
+}
 
 if DEBUG:
     # Run tasks synchronously locally to prevent freezing if Redis is down
