@@ -83,6 +83,7 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
 
   const rawMenuItems = [
     { key: "/reports", icon: <BarChartOutlined />, label: "Sales Reports", module: "report" },
+    { key: "/tasks", icon: <CheckSquareOutlined />, label: "Task Management", module: "tasks" },
     { key: "/abandoned-checkouts", icon: <PhoneOutlined style={{ color: "#f59e0b" }} />, label: "Abandoned Queue", module: "abandoned_checkouts" },
     { key: "/orders", icon: <ShoppingCartOutlined />, label: "Orders Queue", module: "orders" },
     { key: "/printing", icon: <PrinterOutlined />, label: "Printing Queue", module: "printing" },
@@ -91,7 +92,6 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
     { key: "/crm", icon: <TeamOutlined />, label: "CRM Profiles", module: "crm" },
     { key: "/catalog", icon: <AppstoreOutlined />, label: "Catalog Manager", module: "catalog" },
     { key: "/promo-codes", icon: <GiftOutlined />, label: "Discount Engine", module: "promo_codes" },
-    { key: "/tasks", icon: <CheckSquareOutlined />, label: "Task Management", module: "tasks" },
     { key: "/finance", icon: <AuditOutlined />, label: "Financial Ledger", module: "finance" },
     {
       key: "sub-meta-engine",
