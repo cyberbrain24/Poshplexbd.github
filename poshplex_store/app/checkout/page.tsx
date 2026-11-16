@@ -204,6 +204,12 @@ export default function CheckoutPage() {
   const lastEnrichedFingerprint = useRef<string>("");
   const enrichDebounceTimer = useRef<NodeJS.Timeout | null>(null);
 
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const phoneInputRef = useRef<HTMLInputElement>(null);
+  const districtRef = useRef<HTMLDivElement>(null);
+  const thanaRef = useRef<HTMLDivElement>(null);
+  const contactDetailsRef = useRef<HTMLDivElement>(null);
+
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -612,17 +618,38 @@ export default function CheckoutPage() {
 
     if (cart.length === 0) {
       setError("Your cart is empty.");
+      toast.error("Your cart is empty.");
+      return;
+    }
+
+    if (!formData.name || !formData.name.trim()) {
+      setError("Please enter your full name.");
+      toast.error("Please enter your full name.");
+      nameInputRef.current?.focus();
+      nameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
 
     const finalPhone = normalizeBDPhone(formData.phone);
     if (!isValidBDPhone(finalPhone)) {
       setError("Please provide a valid 11-digit Bangladeshi mobile number starting with 01 (e.g., 017XXXXXXXX).");
+      toast.error("Please provide a valid 11-digit mobile number.");
+      phoneInputRef.current?.focus();
+      phoneInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
 
-    if (!formData.district || !formData.thana) {
-      setError("Please select both a District and Area (Thana).");
+    if (!formData.district) {
+      setError("Please select your District.");
+      toast.error("Please select your District.");
+      districtRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
+    if (!formData.thana) {
+      setError("Please select your Area / Thana.");
+      toast.error("Please select your Area / Thana.");
+      thanaRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
 
@@ -838,7 +865,7 @@ if (success) {
           </Link>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} id="checkout-form" className="checkout-form">
+        <form onSubmit={handleSubmit} id="checkout-form" className="checkout-form" noValidate>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 420px", gap: 48, alignItems: "start" }} className="checkout-grid">
             {/* Left Column: My contact details */}
             <div>
@@ -850,12 +877,22 @@ if (success) {
                 )}
 
                 {/* My contact details */}
-                <div className="checkout-section">
+                <div className="checkout-section" ref={contactDetailsRef}>
                   <h3 className="checkout-section-title">My contact details</h3>
                   <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
                     <div>
                       <label style={labelStyle}>Full Name *</label>
-                      <input required type="text" name="name" value={formData.name} onChange={handleChange} onBlur={() => reEnrichInitiateCheckout(formData)} style={inputStyle} placeholder="John Doe" />
+                      <input 
+                        ref={nameInputRef}
+                        required 
+                        type="text" 
+                        name="name" 
+                        value={formData.name} 
+                        onChange={handleChange} 
+                        onBlur={() => reEnrichInitiateCheckout(formData)} 
+                        style={inputStyle} 
+                        placeholder="John Doe" 
+                      />
                     </div>
                     <div>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
@@ -866,6 +903,7 @@ if (success) {
                       </div>
                       <div style={{ position: "relative" }}>
                         <input 
+                          ref={phoneInputRef}
                           required 
                           type="tel" 
                           inputMode="numeric"
@@ -873,7 +911,7 @@ if (success) {
                           name="phone" 
                           value={formData.phone} 
                           onChange={handleChange} 
-                          onBlur={handlePhoneBlur}
+                          onBlur={handlePhoneBlur} 
                           style={{
                             ...inputStyle,
                             borderColor: isPhoneValid ? "#10b981" : (phoneTouched && formData.phone ? "#ef4444" : "var(--border-color, #ddd)"),
@@ -893,36 +931,9 @@ if (success) {
                           <span>Invalid phone number. Must be 11 digits starting with 01 (e.g. 017XXXXXXXX).</span>
                         </div>
                       )}
-                      <div style={{ position: "relative" }}>
-                        <input
-                          required
-                          type="tel"
-                          name="phone"
-                          value={formData.phone}
-                          onChange={handleChange}
-                          onBlur={handlePhoneBlur}
-                          style={{
-                            ...inputStyle,
-                            borderColor: isPhoneValid ? "#10b981" : (phoneTouched && formData.phone ? "#ef4444" : "var(--border-color, #ddd)"),
-                            backgroundColor: phoneTouched && formData.phone && !isPhoneValid ? "rgba(239, 68, 68, 0.04)" : "rgba(255,255,255,0.03)",
-                            paddingRight: 40
-                          }}
-                          placeholder="01XXXXXXXXX"
-                        />
-                        <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", display: "flex", alignItems: "center" }}>
-                          {isPhoneValid && <CheckCircle2 size={18} color="#10b981" />}
-                          {phoneTouched && formData.phone && !isPhoneValid && <AlertCircle size={18} color="#ef4444" />}
-                        </div>
-                      </div>
-                      {phoneTouched && formData.phone && !isPhoneValid && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 6, fontSize: 12, color: "#ef4444", fontWeight: 600 }}>
-                          <AlertCircle size={14} />
-                          <span>Invalid phone number. Must be 11 digits starting with 01 (e.g. 017XXXXXXXX).</span>
-                        </div>
-                      )}
                     </div>
                     {/* EMAIL SECTION REMOVED */}
-                    <div style={{ zIndex: 20 }}>
+                    <div style={{ zIndex: 20 }} ref={districtRef}>
                       <label style={labelStyle}>District *</label>
                       <SearchableSelect 
                         options={districts}
@@ -937,7 +948,7 @@ if (success) {
                         }}
                       />
                     </div>
-                    <div style={{ zIndex: 10 }}>
+                    <div style={{ zIndex: 10 }} ref={thanaRef}>
                       <label style={labelStyle}>Area / Thana *</label>
                       <SearchableSelect 
                         options={thanas}
@@ -1197,9 +1208,9 @@ if (success) {
         }
 
         @keyframes pulse-btn {
-          0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(17, 17, 17, 0.4); }
-          70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(17, 17, 17, 0); }
-          100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(17, 17, 17, 0); }
+          0% { transform: scale(1); box-shadow: 0 4px 12px rgba(47, 47, 47, 0.2); }
+          50% { transform: scale(1.02); box-shadow: 0 6px 20px rgba(239, 68, 68, 0.35); }
+          100% { transform: scale(1); box-shadow: 0 4px 12px rgba(47, 47, 47, 0.2); }
         }
 
         .place-order-btn {
@@ -1243,7 +1254,7 @@ if (success) {
           }
           .checkout-container {
             padding-top: 12px !important;
-            padding-bottom: 32px !important;
+            padding-bottom: 100px !important;
           }
           .checkout-header {
             margin-bottom: 12px !important;
@@ -1335,18 +1346,19 @@ if (success) {
           }
           .delivery-terms-title { font-size: 10px !important; margin-bottom: 2px !important; }
 
-          /* In-flow Place Order Button (No Sticky Mobile Footer) */
+          /* Sticky Place Order Button on Mobile Footer */
           .place-order-wrapper {
-            position: static !important;
-            bottom: auto !important;
-            left: auto !important;
-            right: auto !important;
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
             width: 100% !important;
-            background: transparent !important;
-            padding: 0 !important;
-            margin: 16px 0 0 0 !important;
-            box-shadow: none !important;
-            z-index: auto !important;
+            background: #ffffff !important;
+            padding: 12px 16px !important;
+            margin: 0 !important;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.12) !important;
+            border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+            z-index: 9999 !important;
           }
           .place-order-btn {
             background-color: #2f2f2f !important;
@@ -1355,15 +1367,15 @@ if (success) {
             font-size: 15px !important;
             font-weight: 800 !important;
             padding: 15px 20px !important;
-            margin: 0 !important;
+            margin: 0 auto !important;
             width: 100% !important;
             max-width: 100% !important;
             display: flex !important;
             justify-content: center !important;
             align-items: center !important;
             border-radius: 8px !important;
-            animation: none !important;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+            animation: pulse-btn 2s infinite ease-in-out !important;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25) !important;
           }
           
           .promo-input {
