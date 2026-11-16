@@ -5,7 +5,7 @@ import {
 } from "antd";
 import {
   CheckSquareOutlined, DeleteOutlined, PlusOutlined, CheckOutlined, EditOutlined,
-  FolderAddOutlined, CaretRightOutlined, TagOutlined, FolderOutlined
+  UserAddOutlined, CaretRightOutlined, TagOutlined, TeamOutlined, UserOutlined, CloseCircleOutlined
 } from "@ant-design/icons";
 import axios from "axios";
 import { useCan, useGetIdentity } from "@refinedev/core";
@@ -43,17 +43,26 @@ const TasksPage: React.FC = () => {
   const [categories, setCategories] = useState<TaskCategory[]>([]);
   const [staff, setStaff] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [activeCategoryKey, setActiveCategoryKey] = useState<string>("all");
+  const [activeAssigneeKey, setActiveAssigneeKey] = useState<string>("all");
+  
+  // Custom added assignee IDs tracked in state & localStorage
+  const [selectedAssigneeIds, setSelectedAssigneeIds] = useState<number[]>(() => {
+    try {
+      const saved = localStorage.getItem("poshplex_task_assignee_tabs");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
   // Task Create/Edit Modal
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createForm] = Form.useForm();
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
-  // Category Create Modal
-  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
-  const [categoryForm] = Form.useForm();
-  const [savingCategory, setSavingCategory] = useState(false);
+  // Add Assignee Tab Modal
+  const [isAssigneeModalOpen, setIsAssigneeModalOpen] = useState(false);
+  const [assigneeForm] = Form.useForm();
 
   // Complete Modal
   const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
@@ -101,7 +110,7 @@ const TasksPage: React.FC = () => {
         const res = await axios.get(`${API_BASE}/core/staff`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setStaff(res.data);
+        setStaff(res.data || []);
       } catch (err: any) {
         if (err?.response?.status !== 403) message.error("Failed to load staff list.");
       }
@@ -129,6 +138,13 @@ const TasksPage: React.FC = () => {
           headers: { Authorization: `Bearer ${token}` }
         });
         message.success("Task created and assigned successfully!");
+        
+        // Also ensure assignee is pinned to tabs if not already
+        if (values.assignee_id && !selectedAssigneeIds.includes(values.assignee_id)) {
+          const updated = [...selectedAssigneeIds, values.assignee_id];
+          setSelectedAssigneeIds(updated);
+          localStorage.setItem("poshplex_task_assignee_tabs", JSON.stringify(updated));
+        }
       }
       setIsCreateModalOpen(false);
       createForm.resetFields();
@@ -140,38 +156,28 @@ const TasksPage: React.FC = () => {
     }
   };
 
-  const handleCreateCategory = async (values: any) => {
-    try {
-      setSavingCategory(true);
-      await axios.post(`${API_BASE}/tasks/categories`, values, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      message.success("Task category created successfully!");
-      setIsCategoryModalOpen(false);
-      categoryForm.resetFields();
-      fetchCategories();
-    } catch (err: any) {
-      message.error(err?.response?.data?.message || "Failed to create category.");
-    } finally {
-      setSavingCategory(false);
+  const handleAddAssigneeTab = (values: { staff_id: number }) => {
+    const staffId = values.staff_id;
+    if (!selectedAssigneeIds.includes(staffId)) {
+      const updated = [...selectedAssigneeIds, staffId];
+      setSelectedAssigneeIds(updated);
+      localStorage.setItem("poshplex_task_assignee_tabs", JSON.stringify(updated));
     }
+    setActiveAssigneeKey(String(staffId));
+    setIsAssigneeModalOpen(false);
+    assigneeForm.resetFields();
+    message.success("Assignee tab added!");
   };
 
-  const handleDeleteCategory = async (catId: number, e: React.MouseEvent) => {
+  const handleRemoveAssigneeTab = (staffId: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    try {
-      await axios.delete(`${API_BASE}/tasks/categories/${catId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      message.success("Category deleted.");
-      if (activeCategoryKey === String(catId)) {
-        setActiveCategoryKey("all");
-      }
-      fetchCategories();
-      fetchTasks();
-    } catch (err: any) {
-      message.error("Failed to delete category.");
+    const updated = selectedAssigneeIds.filter(id => id !== staffId);
+    setSelectedAssigneeIds(updated);
+    localStorage.setItem("poshplex_task_assignee_tabs", JSON.stringify(updated));
+    if (activeAssigneeKey === String(staffId)) {
+      setActiveAssigneeKey("all");
     }
+    message.info("Assignee tab removed from view.");
   };
 
   const openEditModal = (task: Task) => {
@@ -188,8 +194,8 @@ const TasksPage: React.FC = () => {
   const openCreateModal = () => {
     setEditingTask(null);
     createForm.resetFields();
-    if (activeCategoryKey !== "all" && activeCategoryKey !== "uncategorized") {
-      createForm.setFieldsValue({ category_id: Number(activeCategoryKey) });
+    if (activeAssigneeKey !== "all") {
+      createForm.setFieldsValue({ assignee_id: Number(activeAssigneeKey) });
     }
     setIsCreateModalOpen(true);
   };
@@ -228,15 +234,45 @@ const TasksPage: React.FC = () => {
     }
   };
 
-  // Filter tasks by active category tab
-  const categoryTasks = tasks.filter(task => {
-    if (activeCategoryKey === "all") return true;
-    if (activeCategoryKey === "uncategorized") return !task.category_id;
-    return String(task.category_id) === activeCategoryKey;
+  // Compile list of unique assignees:
+  // Derived from existing tasks assignees + any explicitly pinned via "+ Add Assignee" + current user
+  const assigneeMap = new Map<number, { id: number; name: string; role?: string }>();
+
+  // 1. From staff list
+  staff.forEach(s => {
+    assigneeMap.set(s.user_id, {
+      id: s.user_id,
+      name: s.first_name ? `${s.first_name} ${s.last_name || ''}`.trim() : s.username,
+      role: s.role_name
+    });
   });
 
-  const pendingTasks = categoryTasks.filter(t => t.status === "pending");
-  const completedTasks = categoryTasks.filter(t => t.status === "completed");
+  // 2. From tasks (in case staff list hasn't loaded or user is not in staff list)
+  tasks.forEach(t => {
+    if (t.assignee_id && !assigneeMap.has(t.assignee_id)) {
+      assigneeMap.set(t.assignee_id, {
+        id: t.assignee_id,
+        name: t.assignee_username
+      });
+    }
+  });
+
+  // Unique assignee IDs to show as tabs:
+  // Includes any staff member who currently has tasks assigned, OR has been manually added via Add Assignee
+  const activeStaffIds = new Set<number>();
+  tasks.forEach(t => {
+    if (t.assignee_id) activeStaffIds.add(t.assignee_id);
+  });
+  selectedAssigneeIds.forEach(id => activeStaffIds.add(id));
+
+  // Filter tasks by active assignee tab
+  const filteredTasks = tasks.filter(task => {
+    if (activeAssigneeKey === "all") return true;
+    return String(task.assignee_id) === activeAssigneeKey;
+  });
+
+  const pendingTasks = filteredTasks.filter(t => t.status === "pending");
+  const completedTasks = filteredTasks.filter(t => t.status === "completed");
 
   const pendingColumns = [
     {
@@ -356,14 +392,14 @@ const TasksPage: React.FC = () => {
     }
   ];
 
-  // Build Category tabs
+  // Build Assignee tabs: First "All Tasks" / "All Assignees", then each assignee tab
   const tabItems = [
     {
       key: "all",
       label: (
         <span>
-          <FolderOutlined style={{ marginRight: 6 }} />
-          All Tasks
+          <TeamOutlined style={{ marginRight: 6 }} />
+          All Assignees
           <Badge
             count={tasks.filter(t => t.status === "pending").length}
             style={{ marginLeft: 8, backgroundColor: "#8b5cf6" }}
@@ -371,52 +407,36 @@ const TasksPage: React.FC = () => {
         </span>
       )
     },
-    ...categories.map(cat => ({
-      key: String(cat.id),
-      label: (
-        <span style={{ display: "inline-flex", alignItems: "center" }}>
-          <Tag color={cat.color || "blue"} style={{ margin: "0 6px 0 0", padding: "0 4px", fontSize: 10 }}>
-            ●
-          </Tag>
-          {cat.name}
-          <Badge
-            count={tasks.filter(t => t.status === "pending" && t.category_id === cat.id).length}
-            style={{ marginLeft: 8, backgroundColor: cat.color || "#3b82f6" }}
-          />
-          {canDelete?.can && (
-            <Popconfirm
-              title={`Delete "${cat.name}" category?`}
-              description="Tasks under this category will become Uncategorized."
-              onConfirm={(e) => handleDeleteCategory(cat.id, e as any)}
-              okText="Yes"
-              cancelText="No"
-            >
-              <Button
-                type="text"
-                size="small"
-                icon={<DeleteOutlined style={{ fontSize: 11, color: "#9ca3af" }} />}
-                style={{ marginLeft: 6, padding: 0, height: "auto" }}
-                onClick={(e) => e.stopPropagation()}
-              />
-            </Popconfirm>
-          )}
-        </span>
-      )
-    })),
-    ...(tasks.some(t => !t.category_id)
-      ? [{
-          key: "uncategorized",
-          label: (
-            <span>
-              Uncategorized
-              <Badge
-                count={tasks.filter(t => t.status === "pending" && !t.category_id).length}
-                style={{ marginLeft: 8, backgroundColor: "#6b7280" }}
-              />
-            </span>
-          )
-        }]
-      : [])
+    ...Array.from(activeStaffIds).map(staffId => {
+      const staffInfo = assigneeMap.get(staffId);
+      const name = staffInfo ? staffInfo.name : `Staff #${staffId}`;
+      const pendingCount = tasks.filter(t => t.status === "pending" && t.assignee_id === staffId).length;
+
+      return {
+        key: String(staffId),
+        label: (
+          <span style={{ display: "inline-flex", alignItems: "center" }}>
+            <UserOutlined style={{ marginRight: 6, color: "#3b82f6" }} />
+            {name}
+            <Badge
+              count={pendingCount}
+              style={{ marginLeft: 8, backgroundColor: pendingCount > 0 ? "#3b82f6" : "#4b5563" }}
+            />
+            {canCreate?.can && (
+              <Tooltip title="Remove tab from view">
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<CloseCircleOutlined style={{ fontSize: 11, color: "#9ca3af" }} />}
+                  style={{ marginLeft: 6, padding: 0, height: "auto" }}
+                  onClick={(e) => handleRemoveAssigneeTab(staffId, e)}
+                />
+              </Tooltip>
+            )}
+          </span>
+        )
+      };
+    })
   ];
 
   return (
@@ -427,14 +447,14 @@ const TasksPage: React.FC = () => {
         <Space wrap>
           {canCreate?.can && (
             <Button
-              icon={<FolderAddOutlined />}
+              icon={<UserAddOutlined />}
               onClick={() => {
-                categoryForm.resetFields();
-                setIsCategoryModalOpen(true);
+                assigneeForm.resetFields();
+                setIsAssigneeModalOpen(true);
               }}
               style={{ borderRadius: 6, background: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.15)" }}
             >
-              + Add Category
+              + Add Assignee
             </Button>
           )}
           {canCreate?.can && (
@@ -444,17 +464,17 @@ const TasksPage: React.FC = () => {
               onClick={openCreateModal}
               style={{ borderRadius: 6, background: "#8b5cf6", borderColor: "#8b5cf6" }}
             >
-              Assign Task
+              + Assign Task
             </Button>
           )}
         </Space>
       </div>
 
       <Card className="glass-card" style={{ borderRadius: 8 }}>
-        {/* Category Tabs */}
+        {/* Assignee Tabs */}
         <Tabs 
-          activeKey={activeCategoryKey} 
-          onChange={setActiveCategoryKey}
+          activeKey={activeAssigneeKey} 
+          onChange={setActiveAssigneeKey}
           items={tabItems}
           style={{ marginBottom: 16 }}
         />
@@ -472,7 +492,7 @@ const TasksPage: React.FC = () => {
             rowKey="id"
             loading={loading}
             pagination={{ pageSize: 10 }}
-            locale={{ emptyText: <Empty description="No pending tasks in this category." /> }}
+            locale={{ emptyText: <Empty description="No pending tasks for this assignee." /> }}
           />
         </div>
 
@@ -511,7 +531,7 @@ const TasksPage: React.FC = () => {
                     columns={completedColumns}
                     rowKey="id"
                     pagination={{ pageSize: 10 }}
-                    locale={{ emptyText: <Empty description="No completed tasks in this category yet." /> }}
+                    locale={{ emptyText: <Empty description="No completed tasks for this assignee yet." /> }}
                   />
                 </div>
               )
@@ -560,36 +580,32 @@ const TasksPage: React.FC = () => {
         </Form>
       </Modal>
 
-      {/* Add Task Category Modal */}
+      {/* Add Assignee Tab Modal */}
       <Modal
-        title="Create New Task Category"
-        open={isCategoryModalOpen}
-        onCancel={() => setIsCategoryModalOpen(false)}
-        onOk={() => categoryForm.submit()}
-        confirmLoading={savingCategory}
-        okText="Create Category"
+        title="Add Assignee Tab"
+        open={isAssigneeModalOpen}
+        onCancel={() => setIsAssigneeModalOpen(false)}
+        onOk={() => assigneeForm.submit()}
+        okText="Add Assignee Tab"
       >
-        <Form form={categoryForm} layout="vertical" onFinish={handleCreateCategory}>
+        <Form form={assigneeForm} layout="vertical" onFinish={handleAddAssigneeTab}>
+          <p style={{ color: "#9ca3af", marginBottom: 16 }}>
+            Select a staff member to add their personal task tab to the Task Management board.
+          </p>
           <Form.Item
-            name="name"
-            label="Category Name"
-            rules={[{ required: true, message: "Please enter category name" }]}
+            name="staff_id"
+            label="Select Staff Member"
+            rules={[{ required: true, message: "Please select a staff member" }]}
           >
-            <Input placeholder="e.g. Operations, Design, Marketing, Catalog, Tech..." />
-          </Form.Item>
-          <Form.Item
-            name="color"
-            label="Category Color Tag"
-            initialValue="#8b5cf6"
-          >
-            <Select>
-              <Select.Option value="#8b5cf6"><Tag color="#8b5cf6">Purple</Tag></Select.Option>
-              <Select.Option value="#3b82f6"><Tag color="#3b82f6">Blue</Tag></Select.Option>
-              <Select.Option value="#10b981"><Tag color="#10b981">Green</Tag></Select.Option>
-              <Select.Option value="#f59e0b"><Tag color="#f59e0b">Amber / Orange</Tag></Select.Option>
-              <Select.Option value="#ef4444"><Tag color="#ef4444">Red</Tag></Select.Option>
-              <Select.Option value="#ec4899"><Tag color="#ec4899">Pink</Tag></Select.Option>
-              <Select.Option value="#06b6d4"><Tag color="#06b6d4">Cyan</Tag></Select.Option>
+            <Select placeholder="Choose staff member" showSearch optionFilterProp="children">
+              {staff.map(s => {
+                const displayName = s.first_name ? `${s.first_name} ${s.last_name || ''}`.trim() : s.username;
+                return (
+                  <Select.Option key={s.user_id} value={s.user_id}>
+                    {displayName} ({s.username}) {s.role_name ? `- ${s.role_name}` : ''}
+                  </Select.Option>
+                );
+              })}
             </Select>
           </Form.Item>
         </Form>
