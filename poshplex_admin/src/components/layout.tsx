@@ -6,7 +6,7 @@ import {
   CarOutlined, GiftOutlined, SoundOutlined, SettingOutlined, PrinterOutlined,
   EllipsisOutlined, PictureOutlined, DesktopOutlined, CheckSquareOutlined, GlobalOutlined, BarChartOutlined,
   RocketOutlined, ThunderboltOutlined, RobotOutlined, EyeOutlined, SkinOutlined,
-  PhoneOutlined
+  PhoneOutlined, AimOutlined
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useLogout, useGetIdentity } from "@refinedev/core";
@@ -99,6 +99,7 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
       label: "Meta Engine",
       module: "marketing",
       children: [
+        { key: "/marketing/attribution", icon: <AimOutlined style={{ color: "#10b981" }} />, label: "Customer Data & Attribution", module: "marketing" },
         { key: "/marketing/dashboard", icon: <DashboardOutlined />, label: "Meta Ads Optimization Engine", module: "marketing" },
         { key: "/marketing/agent", icon: <RobotOutlined />, label: "AI Agent", module: "marketing" },
         { key: "/marketing/competitor", icon: <EyeOutlined />, label: "Competitor Spy", module: "marketing" },

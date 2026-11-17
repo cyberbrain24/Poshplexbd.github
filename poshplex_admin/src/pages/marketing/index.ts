@@ -1,4 +1,5 @@
 export { MarketingDashboard } from "./dashboard";
+export { AttributionPlatformPage } from "./attribution";
 export { CampaignList } from "./campaigns/list";
 export { CampaignCreateWizard } from "./campaigns/create";
 export { CampaignShow } from "./campaigns/show";

@@ -1752,6 +1752,40 @@ def trigger_attribution_rebuild(request, date: Optional[str] = None):
     return {"success": True, "result": res}
 
 
+@router.get("/attribution/diagnostics/", auth=BearerAuth())
+def get_attribution_diagnostics(request):
+    """
+    Diagnostic stream for Customer Data & Attribution Platform:
+    Returns recent raw events, identity resolutions, CAPI logs, and total volume counters.
+    """
+    enforce_permission(request, "marketing", "view")
+
+    recent_events = list(RawTrackingEvent.objects.order_by('-server_timestamp')[:20].values(
+        'event_id', 'event_name', 'visitor_id', 'status', 'is_bot', 'quarantine_reason', 'server_timestamp'
+    ))
+
+    recent_identities = list(IdentityLink.objects.order_by('-created_at')[:20].values(
+        'visitor_id', 'phone', 'email', 'source', 'confidence_score', 'created_at'
+    ))
+
+    recent_capi_logs = list(MetaCapiLog.objects.order_by('-created_at')[:20].values(
+        'order_id', 'event_name', 'event_id', 'status', 'status_code', 'age_at_send_hours', 'created_at'
+    ))
+
+    return {
+        "summary": {
+            "total_events": RawTrackingEvent.objects.count(),
+            "total_sessions": VisitorSession.objects.count(),
+            "total_identities": IdentityLink.objects.count(),
+            "total_capi_logs": MetaCapiLog.objects.count(),
+        },
+        "recent_events": recent_events,
+        "recent_identities": recent_identities,
+        "recent_capi_logs": recent_capi_logs,
+    }
+
+
+
 
 
 

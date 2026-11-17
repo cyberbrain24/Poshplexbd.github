@@ -28,6 +28,7 @@ const LocationsPage = React.lazy(() => import("./pages/locations"));
 const ReportsPage = React.lazy(() => import("./pages/reports"));
 
 // Meta Engine Module Pages
+const AttributionPlatformPage = React.lazy(() => import("./pages/marketing").then(m => ({ default: m.AttributionPlatformPage })));
 const MarketingDashboard = React.lazy(() => import("./pages/marketing").then(m => ({ default: m.MarketingDashboard })));
 const CampaignList = React.lazy(() => import("./pages/marketing").then(m => ({ default: m.CampaignList })));
 const CampaignCreateWizard = React.lazy(() => import("./pages/marketing").then(m => ({ default: m.CampaignCreateWizard })));
@@ -83,6 +84,11 @@ export const App: React.FC = () => {
                 create: "/marketing/campaigns/create",
                 show: "/marketing/campaigns/:id",
                 meta: { label: "Campaigns" },
+              },
+              {
+                name: "marketing-attribution",
+                list: "/marketing/attribution",
+                meta: { label: "Customer Data & Attribution" },
               },
               {
                 name: "meta-engine",
@@ -161,6 +167,7 @@ export const App: React.FC = () => {
                   <Route path="/locations" element={<LocationsPage />} />
 
                   {/* Meta Engine Routes */}
+                  <Route path="/marketing/attribution" element={<AttributionPlatformPage />} />
                   <Route path="/marketing/dashboard" element={<MarketingDashboard />} />
                   <Route path="/marketing/agent" element={<MetaAgentPage />} />
                   <Route path="/marketing/competitor" element={<CompetitorSpyPage />} />
