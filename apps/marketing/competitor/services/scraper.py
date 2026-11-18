@@ -289,8 +289,9 @@ class WebsitePlatformService:
                    ("cargo" in c_name and "cargo" in p_name):
                     is_match = True
 
-                if is_match and p.price > 0:
-                    posh_price = float(p.price)
+                p_price_val = getattr(p, 'base_price', None) or getattr(p, 'price', 0)
+                if is_match and p_price_val and float(p_price_val) > 0:
+                    posh_price = float(p_price_val)
                     price_diff = c_price - posh_price
                     pct_diff = (price_diff / c_price) * 100
 
