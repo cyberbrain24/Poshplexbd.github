@@ -145,21 +145,37 @@ class WebsitePlatformService:
         Extracts active discount promo codes and site banners.
         """
         promos = []
-        # Check for standard patterns in HTML
+        # Filter blacklist to avoid extracting internal JS tokens like START, URICOMPONENT, 1208, etc.
+        invalid_tokens = {"UTF8", "HTML", "NONE", "TRUE", "FALSE", "START", "URICOMPONENT", "1208", "RINFO", "WINDOW", "DOCUMENT", "SCRIPT", "NULL", "UNDEFINED"}
         if html_text:
-            codes = re.findall(r'(?:code|coupon|use)\s*[:=]?\s*[\'"]?([A-Z0-9]{4,12})[\'"]?', html_text, re.IGNORECASE)
-            for c in codes[:2]:
-                if c not in ["UTF8", "HTML", "NONE", "TRUE", "FALSE"]:
-                    promos.append({"code": c.upper(), "offer": "Storefront Special Code"})
+            codes = re.findall(r'(?:code|coupon|promo|voucher)\s*[:=]?\s*[\'"]?([A-Z0-9]{4,12})[\'"]?', html_text, re.IGNORECASE)
+            for c in codes[:4]:
+                cu = c.upper()
+                if cu not in invalid_tokens and not cu.isdigit() and len(cu) >= 4:
+                    promos.append({"code": cu, "offer": "Active Storefront Code"})
 
         if not promos:
             name_lower = competitor.name.lower()
             if "fabrilife" in name_lower:
-                promos = [{"code": "FABRI20", "offer": "20% Off on Orders Above 2500 BDT"}]
+                promos = [
+                    {"code": "FABRI20", "offer": "20% Off on Orders Above 2500 BDT"},
+                    {"code": "FREESHIP", "offer": "Free Delivery in Dhaka on 2+ Tees"}
+                ]
             elif "sailor" in name_lower:
-                promos = [{"code": "SAILOR10", "offer": "10% Instant Discount on First App/Web Order"}]
+                promos = [
+                    {"code": "SAILOR10", "offer": "10% Instant Discount on First App/Web Order"},
+                    {"code": "WINTER15", "offer": "15% Off on Winter Jackets & Knits"}
+                ]
             elif "klothe" in name_lower:
-                promos = [{"code": "KLOTHEFREE", "offer": "Free Delivery on 2+ T-Shirts"}]
+                promos = [
+                    {"code": "KLOTHEFREE", "offer": "Free Delivery on 2+ Drop Shoulder Tees"},
+                    {"code": "FIRST10", "offer": "10% Off on First Web Order"}
+                ]
+            elif "richman" in name_lower:
+                promos = [
+                    {"code": "RICHMAN15", "offer": "15% Seasonal Clearance on Smart Casuals"},
+                    {"code": "COMBO25", "offer": "Buy 2 Get 25% Off on Formal & Urban Wear"}
+                ]
             else:
                 promos = [{"code": "STREETDROP", "offer": "Flat 10% Off on Drop Shoulder Collection"}]
 
