@@ -396,7 +396,8 @@ from apps.marketing.models import (
     AgentConfig, AgentActionLog, AgentMemoryEntry
 )
 from apps.marketing.schemas import (
-    MetaAdAccountConnectSchema, MetaAdAccountResponseSchema,
+    MetaAdAccountConnectSchema, MetaAdAccountUpdateSchema, MetaAdAccountResponseSchema,
+    MetaGraphExplorerTestInput,
     CampaignCreateSchema, CampaignUpdateSchema, CampaignScaleSchema, CampaignResponseSchema,
     AdSetResponseSchema, CreativeResponseSchema,
     AnalyticsOverviewSchema, TimeseriesDataPointSchema, ProductAttributionSchema,
@@ -568,6 +569,93 @@ def connect_ad_account(request, payload: MetaAdAccountConnectSchema):
     account.is_active = True
     account.save()
     return account
+
+@router.post("/ad-accounts/test-graph-api/", auth=BearerAuth())
+def test_graph_api_explorer(request, payload: MetaGraphExplorerTestInput):
+    """
+    In-admin Graph API Explorer testing simulator.
+    Executes raw Meta Marketing Graph API queries to verify use-case compliance and debug queries.
+    """
+    enforce_permission(request, "marketing", "view")
+
+    # Resolve token
+    token = None
+    account_prefix = ""
+    if payload.account_id:
+        acc = get_object_or_404(MetaAdAccount, id=payload.account_id)
+        token = acc.get_access_token()
+        account_prefix = acc.meta_account_id
+    else:
+        first_acc = MetaAdAccount.objects.filter(is_active=True).first()
+        if first_acc:
+            token = first_acc.get_access_token()
+            account_prefix = first_acc.meta_account_id
+
+    if not token:
+        raise HttpError(400, "No connected active ad account or token found. Please connect an ad account first.")
+
+    from apps.marketing.services.meta_client import MetaAPIClient
+    client = MetaAPIClient(token, account_id=account_prefix)
+
+    ep = (payload.endpoint or "").strip().lstrip("/")
+    # Replace placeholder {ad_account_id} or {act}
+    if account_prefix:
+        ep = ep.replace("{ad_account_id}", account_prefix).replace("{act}", account_prefix)
+
+    try:
+        method = (payload.method or "GET").upper()
+        if method == "GET":
+            res = client.get(ep, params=payload.params or {})
+        elif method == "POST":
+            res = client.post(ep, data=payload.params or {})
+        else:
+            raise HttpError(400, f"Unsupported method: {method}")
+
+        return {
+            "success": True,
+            "endpoint": ep,
+            "status_code": 200,
+            "data": res
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "endpoint": ep,
+            "error": str(e)
+        }
+
+@router.put("/ad-accounts/{account_id}/", response=MetaAdAccountResponseSchema, auth=BearerAuth())
+def update_ad_account(request, account_id: int, payload: MetaAdAccountUpdateSchema):
+    """Edit existing Meta Ad Account credentials and settings in the database."""
+    enforce_permission(request, "marketing", "edit")
+    account = get_object_or_404(MetaAdAccount, id=account_id)
+
+    if payload.name is not None:
+        account.name = payload.name.strip()
+    if payload.currency is not None:
+        account.currency = payload.currency.strip().upper()
+    if payload.timezone is not None:
+        account.timezone = payload.timezone.strip()
+    if payload.daily_spend_cap is not None:
+        account.daily_spend_cap = payload.daily_spend_cap
+    if payload.is_active is not None:
+        account.is_active = payload.is_active
+    if payload.access_token and payload.access_token.strip():
+        account.set_access_token(payload.access_token.strip())
+
+    account.save()
+    return account
+
+@router.delete("/ad-accounts/{account_id}/", auth=BearerAuth())
+def delete_ad_account(request, account_id: int):
+    """Delete a connected Meta Ad Account from the database."""
+    enforce_permission(request, "marketing", "edit")
+    account = get_object_or_404(MetaAdAccount, id=account_id)
+    acc_name = account.name
+    acc_id = account.meta_account_id
+    account.delete()
+    return {"success": True, "message": f"Ad account {acc_name} ({acc_id}) removed successfully."}
+
 
 @router.post("/ad-accounts/{account_id}/sync/", auth=BearerAuth())
 def sync_ad_account(request, account_id: int):

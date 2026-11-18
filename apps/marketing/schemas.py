@@ -15,6 +15,21 @@ class MetaAdAccountConnectSchema(Schema):
     timezone: Optional[str] = "Asia/Dhaka"
     daily_spend_cap: Optional[Decimal] = Decimal('0.00')
 
+class MetaAdAccountUpdateSchema(Schema):
+    name: Optional[str] = None
+    access_token: Optional[str] = None
+    currency: Optional[str] = None
+    timezone: Optional[str] = None
+    daily_spend_cap: Optional[Decimal] = None
+    is_active: Optional[bool] = None
+
+class MetaGraphExplorerTestInput(Schema):
+    account_id: Optional[int] = None
+    endpoint: str = Field(..., description="e.g. act_123/campaigns or me/permissions")
+    method: Optional[str] = "GET"
+    params: Optional[Dict[str, Any]] = None
+
+
 class MetaAdAccountResponseSchema(Schema):
     id: int
     meta_account_id: str
