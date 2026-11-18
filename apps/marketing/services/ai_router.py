@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_MODELS = {
     'OPENAI': 'gpt-4o-mini',
-    'GEMINI': 'gemini-2.0-flash',
+    'GEMINI': 'gemini-flash-lite-latest',
     'ANTHROPIC': 'claude-3-5-sonnet-20241022',
     'DEEPSEEK': 'deepseek-chat',
     'GROQ': 'llama-3.3-70b-versatile',
@@ -29,6 +29,8 @@ DEFAULT_BASE_URLS = {
 ESTIMATED_COST_PER_1K = {
     'gpt-4o-mini': Decimal('0.00035'),
     'gpt-4o': Decimal('0.00500'),
+    'gemini-flash-lite-latest': Decimal('0.00010'),
+    'gemini-flash-latest': Decimal('0.00015'),
     'gemini-2.0-flash': Decimal('0.00020'),
     'gemini-1.5-pro': Decimal('0.00250'),
     'claude-3-5-sonnet-20241022': Decimal('0.00600'),
@@ -36,6 +38,7 @@ ESTIMATED_COST_PER_1K = {
     'deepseek-chat': Decimal('0.00028'),
     'llama-3.3-70b-versatile': Decimal('0.00060'),
 }
+
 
 
 def ensure_default_operation_routes():
@@ -103,6 +106,73 @@ def get_ai_route_for_operation(operation: str) -> Optional[AIOperationRoute]:
     return route
 
 
+def _execute_openai_compat_http(
+    base_url: str,
+    api_key: str,
+    model: str,
+    messages: List[Dict[str, str]],
+    temperature: float = 0.3,
+    max_tokens: int = 800,
+    json_mode: bool = False,
+    timeout: int = 20
+) -> Dict[str, Any]:
+    """
+    Zero-dependency HTTP client for OpenAI-compatible chat completion endpoints.
+    Used for OpenAI, Google Gemini OpenAI adapter, DeepSeek, Groq, and custom endpoints.
+    """
+    import urllib.request
+    import json
+    import ssl
+
+    clean_base = (base_url or 'https://api.openai.com/v1').rstrip('/')
+    if not clean_base.endswith('/chat/completions'):
+        url = f"{clean_base}/chat/completions"
+    else:
+        url = clean_base
+
+    payload: Dict[str, Any] = {
+        "model": model,
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+    if json_mode:
+        payload["response_format"] = {"type": "json_object"}
+
+    body = json.dumps(payload).encode('utf-8')
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}"
+    }
+
+    req = urllib.request.Request(url, data=body, headers=headers)
+    ctx = ssl.create_default_context()
+
+    try:
+        with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+            return data
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode('utf-8') if hasattr(e, 'read') else str(e)
+        try:
+            parsed_err = json.loads(error_body)
+            if isinstance(parsed_err, dict) and 'error' in parsed_err:
+                err_detail = parsed_err['error']
+                if isinstance(err_detail, dict):
+                    err_msg = err_detail.get('message', error_body)
+                else:
+                    err_msg = str(err_detail)
+            elif isinstance(parsed_err, list) and len(parsed_err) > 0 and 'error' in parsed_err[0]:
+                err_msg = parsed_err[0]['error'].get('message', error_body)
+            else:
+                err_msg = error_body
+        except Exception:
+            err_msg = error_body
+        raise ValueError(f"HTTP {e.code}: {err_msg}")
+    except Exception as e:
+        raise ValueError(f"Network error: {str(e)}")
+
+
 def test_provider_connection(provider: AIProviderConfig) -> Dict[str, Any]:
     """
     Sends a test request to verify API key validity and network latency.
@@ -118,16 +188,23 @@ def test_provider_connection(provider: AIProviderConfig) -> Dict[str, Any]:
 
         # Test using OpenAI client protocol (supported by OpenAI, Gemini, DeepSeek, Groq, Custom)
         if provider_type in ['OPENAI', 'GEMINI', 'DEEPSEEK', 'GROQ', 'CUSTOM']:
-            from openai import OpenAI
-            client = OpenAI(api_key=api_key, base_url=base_url)
             model = provider.default_model or DEFAULT_MODELS.get(provider_type, 'gpt-4o-mini')
 
-            # Minimal ping completion
-            response = client.chat.completions.create(
+            # Minimal ping completion using zero-dependency HTTP
+            data = _execute_openai_compat_http(
+                base_url=base_url,
+                api_key=api_key,
                 model=model,
                 messages=[{"role": "user", "content": "Ping. Respond with 'OK'."}],
                 max_tokens=5,
+                timeout=15
             )
+
+            choices = data.get('choices', [])
+            if not choices:
+                raise ValueError(f"Unexpected response format: {data}")
+
+            reply_text = choices[0].get('message', {}).get('content', '').strip()
             elapsed_ms = int((time.time() - start_time) * 1000)
 
             provider.last_tested_at = timezone.now()
@@ -140,9 +217,10 @@ def test_provider_connection(provider: AIProviderConfig) -> Dict[str, Any]:
                 "success": True,
                 "latency_ms": elapsed_ms,
                 "model": model,
-                "reply": response.choices[0].message.content.strip(),
+                "reply": reply_text,
                 "message": f"Successfully connected to {provider.name} in {elapsed_ms}ms"
             }
+
 
         elif provider_type == 'ANTHROPIC':
             import requests
@@ -232,26 +310,26 @@ def call_ai_for_operation(
     if not api_key:
         raise ValueError(f"No active AI Provider or API Key configured for operation '{operation}'. Please configure one in Meta Engine -> API Integration.")
 
-    # Execution via OpenAI protocol
-    from openai import OpenAI
-    client = OpenAI(api_key=api_key, base_url=base_url)
-
-    kwargs: Dict[str, Any] = {
-        "model": model_name,
-        "messages": messages,
-        "temperature": temp,
-        "max_tokens": max_tokens,
-    }
-    if json_mode:
-        kwargs["response_format"] = {"type": "json_object"}
-
     start_time = time.time()
-    response = client.chat.completions.create(**kwargs)
+    data = _execute_openai_compat_http(
+        base_url=base_url,
+        api_key=api_key,
+        model=model_name,
+        messages=messages,
+        temperature=temp,
+        max_tokens=max_tokens,
+        json_mode=json_mode,
+        timeout=30
+    )
     elapsed_ms = int((time.time() - start_time) * 1000)
 
-    content = response.choices[0].message.content or ""
-    usage = response.usage
-    total_tokens = usage.total_tokens if usage else 250
+    choices = data.get('choices', [])
+    content = ""
+    if choices:
+        content = choices[0].get('message', {}).get('content', '') or ""
+
+    usage = data.get('usage', {})
+    total_tokens = usage.get('total_tokens', 250) if isinstance(usage, dict) else 250
 
     # Calculate estimated cost
     rate = ESTIMATED_COST_PER_1K.get(model_name, Decimal('0.00035'))

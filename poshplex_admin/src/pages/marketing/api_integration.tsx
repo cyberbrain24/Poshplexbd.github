@@ -21,7 +21,7 @@ const API_BASE = `${SERVER_BASE}/api/v1/marketing/ai-integration`;
 
 const PROVIDER_DEFAULTS: Record<string, { model: string; baseUrl: string }> = {
   OPENAI: { model: "gpt-4o-mini", baseUrl: "https://api.openai.com/v1" },
-  GEMINI: { model: "gemini-2.0-flash", baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai/" },
+  GEMINI: { model: "gemini-flash-lite-latest", baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai/" },
   ANTHROPIC: { model: "claude-3-5-sonnet-20241022", baseUrl: "https://api.anthropic.com/v1" },
   DEEPSEEK: { model: "deepseek-chat", baseUrl: "https://api.deepseek.com" },
   GROQ: { model: "llama-3.3-70b-versatile", baseUrl: "https://api.groq.com/openai/v1" },
