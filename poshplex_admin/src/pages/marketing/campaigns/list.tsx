@@ -1,21 +1,50 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
   Table, Tag, Button, Space, Card, Input, Select, Typography,
-  Modal, message, Tooltip, Avatar, Statistic, Row, Col
+  Modal, message, Tooltip, Avatar, Statistic, Row, Col, DatePicker, Checkbox, Divider
 } from "antd";
 import {
   PlusOutlined, SearchOutlined, PlayCircleOutlined, PauseCircleOutlined,
   CloudUploadOutlined, RiseOutlined, EyeOutlined, ReloadOutlined, StopOutlined,
   InfoCircleOutlined, SafetyCertificateOutlined, CheckCircleOutlined, WarningOutlined,
-  ThunderboltOutlined, AimOutlined
+  ThunderboltOutlined, AimOutlined, AppstoreOutlined, SettingOutlined, SwapOutlined,
+  CalendarOutlined, FilterOutlined, ArrowUpOutlined, ArrowDownOutlined
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import dayjs from "dayjs";
 
 const { Title, Text } = Typography;
+const { RangePicker } = DatePicker;
 
 const SERVER_BASE = import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000');
 const API_BASE = `${SERVER_BASE}/api/v1/marketing`;
+
+// All available Meta columns definition
+const ALL_COLUMN_KEYS = [
+  { key: "status", label: "Status", group: "core", default: true },
+  { key: "budget_amount", label: "Budget", group: "core", default: true, fixed: true },
+  { key: "total_spend", label: "Amount Spent", group: "core", default: true, fixed: true },
+  { key: "results", label: "Results (Purchases)", group: "core", default: true, fixed: true },
+  { key: "cost_per_result", label: "Cost Per Result", group: "core", default: true, fixed: true },
+  { key: "delivered_rate", label: "Delivered Rate", group: "attribution", default: true },
+  { key: "net_ad_profit", label: "Net Ad Profit", group: "attribution", default: true },
+  { key: "roas_delivered", label: "Delivered ROAS", group: "attribution", default: true },
+  { key: "impressions", label: "Impressions", group: "performance", default: true },
+  { key: "reach", label: "Reach", group: "performance", default: true },
+  { key: "frequency", label: "Frequency", group: "performance", default: true },
+  { key: "cpm", label: "CPM Cost", group: "performance", default: true },
+  { key: "shop_clicks", label: "Shop Clicks", group: "clicks", default: true },
+  { key: "link_clicks", label: "Link Clicks", group: "clicks", default: true },
+  { key: "cpc", label: "CPC (Cost/Link Click)", group: "clicks", default: true },
+  { key: "total_clicks", label: "Total Clicks (All)", group: "clicks", default: true },
+  { key: "ctr_all", label: "CTR All (%)", group: "clicks", default: true },
+  { key: "cpc_all", label: "CPC All", group: "clicks", default: true },
+  { key: "landing_page_views", label: "Landing Page Views", group: "funnel", default: true },
+  { key: "cost_per_landing_page", label: "Cost / Landing Page", group: "funnel", default: true },
+];
+
+const DEFAULT_VISIBLE_KEYS = ALL_COLUMN_KEYS.filter(c => c.default).map(c => c.key);
 
 export const CampaignList: React.FC = () => {
   const navigate = useNavigate();
@@ -25,7 +54,24 @@ export const CampaignList: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+
+  // Status Filter: "ACTIVE" by default as requested
+  const [statusFilter, setStatusFilter] = useState<string>("ACTIVE");
+
+  // Date Filter: "today" by default as requested
+  const [datePreset, setDatePreset] = useState<string>("today");
+  const [customDateRange, setCustomDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
+
+  // Column Rearrange and Customization State
+  const [visibleColumnKeys, setVisibleColumnKeys] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem("poshplex_meta_campaign_columns");
+      return saved ? JSON.parse(saved) : DEFAULT_VISIBLE_KEYS;
+    } catch {
+      return DEFAULT_VISIBLE_KEYS;
+    }
+  });
+  const [isColumnModalOpen, setIsColumnModalOpen] = useState(false);
 
   // Customer Data & Attribution Platform State
   const [attributionModel, setAttributionModel] = useState<string>("last_paid");
@@ -102,8 +148,15 @@ export const CampaignList: React.FC = () => {
       const headers = { Authorization: `Bearer ${token}` };
       const params: any = {};
       if (search) params.search = search;
-      if (statusFilter) params.status = statusFilter;
+      if (statusFilter && statusFilter !== "ALL") params.status = statusFilter;
       if (selectedAccountId) params.ad_account_id = selectedAccountId;
+
+      if (datePreset === "custom" && customDateRange) {
+        params.start_date = customDateRange[0].format("YYYY-MM-DD");
+        params.end_date = customDateRange[1].format("YYYY-MM-DD");
+      } else if (datePreset && datePreset !== "all") {
+        params.date_preset = datePreset;
+      }
 
       const res = await axios.get(`${API_BASE}/campaigns/`, { headers, params });
       setCampaigns(res.data || []);
@@ -148,190 +201,130 @@ export const CampaignList: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    fetchAdAccounts();
-    fetchReconciliation();
-  }, []);
-
-  useEffect(() => {
-    fetchCampaigns();
-    fetchAttributionSummary(attributionModel);
-  }, [statusFilter, selectedAccountId, attributionModel]);
-
-  const handleDeploy = async (id: number) => {
-    message.loading({ content: "Deploying campaign to Meta Marketing API...", key: "deploy" });
-    try {
-      const token = localStorage.getItem("poshplex_access_token");
-      await axios.post(`${API_BASE}/campaigns/${id}/deploy/`, {}, { headers: { Authorization: `Bearer ${token}` } });
-      message.success({ content: "Campaign successfully deployed to Meta!", key: "deploy" });
-      fetchCampaigns();
-    } catch (err: any) {
-      message.error({ content: err?.response?.data?.message || "Failed to deploy campaign.", key: "deploy" });
-    }
-  };
-
-  const handlePause = async (id: number) => {
-    try {
-      const token = localStorage.getItem("poshplex_access_token");
-      await axios.post(`${API_BASE}/campaigns/${id}/pause/`, {}, { headers: { Authorization: `Bearer ${token}` } });
-      message.success("Campaign paused.");
-      fetchCampaigns();
-    } catch (err) {
-      message.error("Failed to pause campaign.");
-    }
-  };
-
-  const handleResume = async (id: number) => {
-    try {
-      const token = localStorage.getItem("poshplex_access_token");
-      await axios.post(`${API_BASE}/campaigns/${id}/resume/`, {}, { headers: { Authorization: `Bearer ${token}` } });
-      message.success("Campaign resumed.");
-      fetchCampaigns();
-    } catch (err) {
-      message.error("Failed to resume campaign.");
-    }
-  };
-
-  const handleScale = async (id: number) => {
-    try {
-      const token = localStorage.getItem("poshplex_access_token");
-      const res = await axios.post(`${API_BASE}/campaigns/${id}/scale/`, { percentage: 20 }, { headers: { Authorization: `Bearer ${token}` } });
-      message.success(`Scaled daily budget +20% to $${res.data.new_budget}!`);
-      fetchCampaigns();
-    } catch (err: any) {
-      message.error(err?.response?.data?.message || "Failed to scale budget.");
-    }
-  };
-
   const handleStopAllAds = () => {
     Modal.confirm({
-      title: "EMERGENCY: Pause All Active Meta Ads?",
+      title: "STOP ALL META ADS IMMEDIATELY?",
       icon: <StopOutlined style={{ color: "#ef4444" }} />,
-      content: "This will immediately send pause requests to Meta API for all active campaigns across all connected ad accounts. Do you want to proceed?",
-      okText: "STOP ALL ADS NOW",
+      content: (
+        <div>
+          <p>This will send emergency pause commands to the Meta Marketing API for <strong>every active campaign</strong> across all connected ad accounts.</p>
+          <p style={{ color: "#ef4444", fontWeight: 600 }}>Are you sure you want to pause all live ads?</p>
+        </div>
+      ),
+      okText: "Yes, STOP ALL ADS",
       okType: "danger",
       cancelText: "Cancel",
       onOk: async () => {
         try {
           const token = localStorage.getItem("poshplex_access_token");
-          const res = await axios.post(`${API_BASE}/campaigns/stop-all/`, {}, { headers: { Authorization: `Bearer ${token}` } });
-          message.warning(res.data.message || "All campaigns have been paused.");
+          const headers = { Authorization: `Bearer ${token}` };
+          const activeCampaigns = campaigns.filter(c => c.status === "ACTIVE");
+          let pausedCount = 0;
+          for (const c of activeCampaigns) {
+            try {
+              await axios.post(`${API_BASE}/campaigns/${c.id}/pause/`, {}, { headers });
+              pausedCount++;
+            } catch (err) {
+              console.error(`Failed to pause campaign ${c.id}`, err);
+            }
+          }
+          message.success(`Successfully paused ${pausedCount} active campaigns.`);
           fetchCampaigns();
-        } catch (err: any) {
-          message.error("Failed to stop campaigns: " + (err?.response?.data?.message || err.message));
+        } catch (err) {
+          message.error("Failed to execute emergency stop.");
         }
       }
     });
   };
 
-  // Helper formatting utilities
-  const getCurrency = (record: any) => (record?.currency === "BDT" ? "৳" : "$");
+  useEffect(() => {
+    fetchAdAccounts();
+    fetchAttributionSummary();
+    fetchReconciliation();
+  }, []);
+
+  useEffect(() => {
+    fetchCampaigns();
+  }, [statusFilter, datePreset, customDateRange, selectedAccountId]);
 
   const fmtCurrency = (val: any, record?: any) => {
     const num = Number(val || 0);
-    const curr = record ? getCurrency(record) : "$";
-    return `${curr}${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const curr = (record?.currency || "USD").toUpperCase();
+    if (curr === "BDT") {
+      return `৳${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    return `$${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   const fmtNumber = (val: any) => {
     const num = Number(val || 0);
-    return num > 0 ? num.toLocaleString() : "—";
+    return num.toLocaleString();
   };
 
-  // Summary rollups for top KPI bar
+  // Re-ordering logic for columns
+  const moveColumn = (index: number, direction: "up" | "down") => {
+    const newKeys = [...visibleColumnKeys];
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= newKeys.length) return;
+    const temp = newKeys[index];
+    newKeys[index] = newKeys[targetIndex];
+    newKeys[targetIndex] = temp;
+    setVisibleColumnKeys(newKeys);
+    localStorage.setItem("poshplex_meta_campaign_columns", JSON.stringify(newKeys));
+  };
+
+  const toggleColumnKey = (key: string) => {
+    let next: string[];
+    if (visibleColumnKeys.includes(key)) {
+      next = visibleColumnKeys.filter(k => k !== key);
+    } else {
+      next = [...visibleColumnKeys, key];
+    }
+    setVisibleColumnKeys(next);
+    localStorage.setItem("poshplex_meta_campaign_columns", JSON.stringify(next));
+  };
+
+  // Summary rollups for top KPI bar and bottom summary row
   const summary = useMemo(() => {
+    const totalBudget = campaigns.reduce((acc, c) => acc + Number(c.budget_amount || 0), 0);
     const totalSpend = campaigns.reduce((acc, c) => acc + Number(c.total_spend || 0), 0);
     const totalResults = campaigns.reduce((acc, c) => acc + Number(c.results || 0), 0);
     const totalImpressions = campaigns.reduce((acc, c) => acc + Number(c.impressions || 0), 0);
+    const totalReach = campaigns.reduce((acc, c) => acc + Number(c.reach || c.impressions || 0), 0);
     const totalClicks = campaigns.reduce((acc, c) => acc + Number(c.total_clicks || c.clicks || 0), 0);
+    const totalLinkClicks = campaigns.reduce((acc, c) => acc + Number(c.link_clicks || 0), 0);
+    const totalShopClicks = campaigns.reduce((acc, c) => acc + Number(c.shop_clicks || 0), 0);
+    const totalLpv = campaigns.reduce((acc, c) => acc + Number(c.landing_page_views || 0), 0);
+    const avgFrequency = totalReach > 0 ? (totalImpressions / totalReach) : 1.0;
     const avgCtr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
     const avgCpc = totalClicks > 0 ? totalSpend / totalClicks : 0;
+    const avgCpr = totalResults > 0 ? totalSpend / totalResults : 0;
 
     return {
       count: campaigns.length,
+      budget: totalBudget,
       spend: totalSpend,
       results: totalResults,
       impressions: totalImpressions,
+      reach: totalReach,
+      frequency: avgFrequency,
       clicks: totalClicks,
+      linkClicks: totalLinkClicks,
+      shopClicks: totalShopClicks,
+      lpv: totalLpv,
       ctr: avgCtr,
       cpc: avgCpc,
+      cpr: avgCpr,
     };
   }, [campaigns]);
 
-  // Exact 18 columns in the sequence requested by user + fixed actions
-  const columns: any[] = [
-    // 1. Campaign name
-    {
-      title: "Campaign name",
-      dataIndex: "name",
-      key: "name",
-      fixed: "left",
-      width: 260,
-      render: (name: string, record: any) => (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", maxWidth: 245, minWidth: 0 }}>
-          <Avatar
-            shape="square"
-            size={32}
-            src={record.linked_product_image}
-            style={{ backgroundColor: "#27272a", border: "1px solid rgba(255,255,255,0.1)", flexShrink: 0 }}
-          >
-            {name ? name.charAt(0) : "C"}
-          </Avatar>
-          <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
-            <Tooltip title={name} placement="topLeft">
-              <span
-                style={{
-                  color: "#f8fafc",
-                  fontSize: 11.5,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  display: "block",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap"
-                }}
-                onClick={() => navigate(`/marketing/campaigns/${record.id}`)}
-              >
-                {name}
-              </span>
-            </Tooltip>
-            <div
-              style={{
-                fontSize: 9.5,
-                color: "#94a3b8",
-                lineHeight: 1.2,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap"
-              }}
-            >
-              {record.linked_product_name ? record.linked_product_name : "Generic"} · {record.objective}
-            </div>
-            {record.meta_campaign_id && (
-              <div
-                style={{
-                  fontSize: 9,
-                  color: "#a78bfa",
-                  fontFamily: "monospace",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap"
-                }}
-              >
-                ID: {record.meta_campaign_id}
-              </div>
-            )}
-          </div>
-        </div>
-      ),
-    },
-
-    // 2. Status
-    {
+  // Master Column Definition Map with compact styling
+  const columnDefinitionMap: Record<string, any> = {
+    status: {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      width: 95,
+      width: 75,
       align: "center",
       render: (status: string) => {
         let color = "default";
@@ -343,12 +336,13 @@ export const CampaignList: React.FC = () => {
           <Tag
             color={color}
             style={{
-              fontSize: 9.5,
-              padding: "0 5px",
-              lineHeight: "18px",
-              fontWeight: 600,
+              fontSize: 9,
+              padding: "0 4px",
+              lineHeight: "16px",
+              fontWeight: 700,
               textTransform: "uppercase",
-              borderRadius: 3
+              borderRadius: 2,
+              margin: 0
             }}
           >
             {status}
@@ -357,525 +351,404 @@ export const CampaignList: React.FC = () => {
       },
     },
 
-    // 3. Budget
-    {
+    budget_amount: {
       title: "Budget",
       dataIndex: "budget_amount",
       key: "budget_amount",
       align: "right",
-      width: 100,
+      width: 80,
       render: (amount: number, record: any) => (
-        <div style={{ textAlign: "right" }}>
-          <Text strong style={{ fontSize: 11.5, color: "#f8fafc" }}>
+        <div style={{ textAlign: "right", lineHeight: 1.1 }}>
+          <Text strong style={{ fontSize: 11, color: "#f8fafc" }}>
             {fmtCurrency(amount, record)}
           </Text>
-          <div style={{ fontSize: 9, color: "#94a3b8" }}>
-            /{record.budget_type === "DAILY" ? "day" : "lifetime"}
+          <div style={{ fontSize: 8.5, color: "#94a3b8" }}>
+            /{record.budget_type === "DAILY" ? "d" : "lt"}
           </div>
         </div>
       ),
     },
 
-    // 4. Amount Spent
-    {
+    total_spend: {
       title: "Amount Spent",
       dataIndex: "total_spend",
       key: "total_spend",
       align: "right",
-      width: 105,
+      width: 90,
       render: (spend: number, record: any) => (
-        <Text style={{ fontSize: 11.5, fontWeight: 600, color: Number(spend) > 0 ? "#fca5a5" : "#94a3b8" }}>
+        <Text style={{ fontSize: 11, fontWeight: 700, color: Number(spend) > 0 ? "#fca5a5" : "#94a3b8" }}>
           {fmtCurrency(spend, record)}
         </Text>
       ),
     },
 
-    // 5. Results
-    {
-      title: (
-        <Tooltip title="Total conversions / purchases achieved">
-          <span>Results <InfoCircleOutlined style={{ fontSize: 9, color: "#64748b" }} /></span>
-        </Tooltip>
-      ),
+    results: {
+      title: "Results",
       dataIndex: "results",
       key: "results",
       align: "right",
-      width: 85,
+      width: 75,
       render: (results: number) => {
         const val = Number(results || 0);
         return (
-          <Text strong style={{ fontSize: 11.5, color: val > 0 ? "#34d399" : "#64748b" }}>
+          <Text strong style={{ fontSize: 11, color: val > 0 ? "#34d399" : "#64748b" }}>
             {val > 0 ? val.toLocaleString() : "—"}
           </Text>
         );
       },
     },
 
-    // 6. Cost Per result
-    {
-      title: (
-        <Tooltip title="Cost Per Result = Amount Spent / Results">
-          <span>Cost Per result <InfoCircleOutlined style={{ fontSize: 9, color: "#64748b" }} /></span>
-        </Tooltip>
-      ),
+    cost_per_result: {
+      title: "Cost / Result",
       dataIndex: "cost_per_result",
       key: "cost_per_result",
       align: "right",
-      width: 115,
+      width: 85,
       render: (cpr: number, record: any) => {
         const val = Number(cpr || 0);
         return (
-          <Text style={{ fontSize: 11, color: val > 0 ? "#f8fafc" : "#64748b" }}>
+          <Text style={{ fontSize: 10.5, color: val > 0 ? "#f8fafc" : "#64748b" }}>
             {val > 0 ? fmtCurrency(val, record) : "—"}
           </Text>
         );
       },
     },
 
-    // 6a. Delivered Rate (Attribution Engine)
-    {
-      title: (
-        <Tooltip title="Courier confirmed delivered orders and fulfillment success percentage under the selected attribution model">
-          <span>Delivered Rate <InfoCircleOutlined style={{ fontSize: 9, color: "#64748b" }} /></span>
-        </Tooltip>
-      ),
+    delivered_rate: {
+      title: "Delivered",
       key: "delivered_rate",
       align: "right",
-      width: 125,
+      width: 85,
       render: (_: any, record: any) => {
         const attr = attributionMap[record.id];
         const deliv = attr ? attr.delivered_orders : 0;
         const rate = attr ? attr.delivery_success_rate : 0;
         const rateColor = rate >= 80 ? "#10b981" : rate >= 60 ? "#f59e0b" : rate > 0 ? "#ef4444" : "#64748b";
         return (
-          <div style={{ textAlign: "right" }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#f8fafc" }}>{deliv}</span>
-            {deliv > 0 ? (
-              <Tag style={{ marginLeft: 5, fontSize: 9.5, padding: "0 4px", border: "none", backgroundColor: `${rateColor}22`, color: rateColor }}>
-                {rate}%
-              </Tag>
-            ) : <span style={{ fontSize: 10, color: "#64748b", marginLeft: 4 }}>—</span>}
+          <div style={{ textAlign: "right", lineHeight: 1.1 }}>
+            <span style={{ fontSize: 10.5, fontWeight: 700, color: "#f8fafc" }}>{deliv}</span>
+            {deliv > 0 && (
+              <span style={{ marginLeft: 3, fontSize: 8.5, color: rateColor }}>
+                ({rate}%)
+              </span>
+            )}
           </div>
         );
       }
     },
 
-    // 6b. True Net Ad Profit (Delivered Rev - COGS - Delivery Cost - Return Loss - Spend)
-    {
-      title: (
-        <Tooltip title="True Net Ad Profit = Delivered Revenue - Product COGS - Courier Delivery Cost - Return Courier Loss - Meta Ad Spend (BDT)">
-          <span>Net Ad Profit <InfoCircleOutlined style={{ fontSize: 9, color: "#64748b" }} /></span>
-        </Tooltip>
-      ),
+    net_ad_profit: {
+      title: "Net Profit",
       key: "net_ad_profit",
       align: "right",
-      width: 135,
+      width: 95,
       render: (_: any, record: any) => {
         const attr = attributionMap[record.id];
         const net = attr ? Number(attr.net_ad_profit || 0) : 0;
-        const isPositive = net > 0;
-        const isNegative = net < 0;
         return (
           <span style={{
-            fontSize: 11,
+            fontSize: 10.5,
             fontWeight: 700,
-            color: isPositive ? "#34d399" : isNegative ? "#f87171" : "#64748b"
+            color: net > 0 ? "#34d399" : net < 0 ? "#f87171" : "#64748b"
           }}>
-            {net !== 0 ? `৳${net.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
+            {net !== 0 ? `৳${Math.round(net).toLocaleString()}` : "—"}
           </span>
         );
       }
     },
 
-    // 6c. Delivered ROAS
-    {
-      title: (
-        <Tooltip title="Real ROAS = Delivered Order Revenue / Meta Ad Spend (BDT)">
-          <span>Delivered ROAS <InfoCircleOutlined style={{ fontSize: 9, color: "#64748b" }} /></span>
-        </Tooltip>
-      ),
+    roas_delivered: {
+      title: "ROAS",
       key: "roas_delivered",
       align: "right",
-      width: 110,
+      width: 70,
       render: (_: any, record: any) => {
         const attr = attributionMap[record.id];
         const roas = attr ? Number(attr.roas || 0) : 0;
         const roasColor = roas >= 3.0 ? "#34d399" : roas >= 1.8 ? "#38bdf8" : roas > 0 ? "#f87171" : "#64748b";
         return (
-          <span style={{ fontSize: 11, fontWeight: 700, color: roasColor }}>
+          <span style={{ fontSize: 10.5, fontWeight: 700, color: roasColor }}>
             {roas > 0 ? `${roas.toFixed(2)}x` : "—"}
           </span>
         );
       }
     },
 
-    // 7. Impression
-    {
-      title: "Impression",
+    impressions: {
+      title: "Impr.",
       dataIndex: "impressions",
       key: "impressions",
       align: "right",
-      width: 95,
-      render: (impressions: number) => (
-        <span style={{ fontSize: 11, color: "#e2e8f0" }}>{fmtNumber(impressions)}</span>
-      ),
+      width: 75,
+      render: (val: number) => <span style={{ fontSize: 10.5, color: "#e2e8f0" }}>{fmtNumber(val)}</span>,
     },
 
-    // 8. Reach
-    {
-      title: (
-        <Tooltip title="Estimated total unique people who saw your ads">
-          <span>Reach <InfoCircleOutlined style={{ fontSize: 9, color: "#64748b" }} /></span>
-        </Tooltip>
-      ),
+    reach: {
+      title: "Reach",
       dataIndex: "reach",
       key: "reach",
       align: "right",
-      width: 90,
-      render: (reach: number, record: any) => {
-        const val = Number(reach || record.impressions || 0);
-        return <span style={{ fontSize: 11, color: "#e2e8f0" }}>{fmtNumber(val)}</span>;
-      },
+      width: 75,
+      render: (reach: number, record: any) => <span style={{ fontSize: 10.5, color: "#e2e8f0" }}>{fmtNumber(reach || record.impressions)}</span>,
     },
 
-    // 9. Frequency
-    {
-      title: (
-        <Tooltip title="Average number of times each person saw your ad (Impressions / Reach)">
-          <span>Frequency <InfoCircleOutlined style={{ fontSize: 9, color: "#64748b" }} /></span>
-        </Tooltip>
-      ),
+    frequency: {
+      title: "Freq.",
       dataIndex: "frequency",
       key: "frequency",
       align: "right",
-      width: 85,
-      render: (freq: number) => {
-        const val = Number(freq || 1.0);
-        return <span style={{ fontSize: 11, color: "#cbd5e1" }}>{val.toFixed(2)}</span>;
-      },
+      width: 65,
+      render: (freq: number) => <span style={{ fontSize: 10.5, color: "#cbd5e1" }}>{Number(freq || 1.0).toFixed(2)}</span>,
     },
 
-    // 10. CPM Cost
-    {
-      title: (
-        <Tooltip title="Cost Per 1,000 Impressions">
-          <span>CPM Cost <InfoCircleOutlined style={{ fontSize: 9, color: "#64748b" }} /></span>
-        </Tooltip>
-      ),
+    cpm: {
+      title: "CPM",
       dataIndex: "cpm",
       key: "cpm",
       align: "right",
-      width: 95,
-      render: (cpm: number, record: any) => {
-        const val = Number(cpm || 0);
-        return (
-          <span style={{ fontSize: 11, color: val > 0 ? "#cbd5e1" : "#64748b" }}>
-            {val > 0 ? fmtCurrency(val, record) : "—"}
-          </span>
-        );
-      },
+      width: 75,
+      render: (cpm: number, record: any) => <span style={{ fontSize: 10.5, color: cpm ? "#cbd5e1" : "#64748b" }}>{cpm ? fmtCurrency(cpm, record) : "—"}</span>,
     },
 
-    // 11. Shop Clicks
-    {
-      title: (
-        <Tooltip title="Clicks on shop tags, product cards, or commerce catalog items">
-          <span>Shop Clicks <InfoCircleOutlined style={{ fontSize: 9, color: "#64748b" }} /></span>
-        </Tooltip>
-      ),
+    shop_clicks: {
+      title: "Shop Clicks",
       dataIndex: "shop_clicks",
       key: "shop_clicks",
       align: "right",
-      width: 90,
-      render: (clicks: number) => (
-        <span style={{ fontSize: 11, color: clicks ? "#38bdf8" : "#64748b" }}>
-          {fmtNumber(clicks)}
-        </span>
-      ),
+      width: 75,
+      render: (clicks: number) => <span style={{ fontSize: 10.5, color: clicks ? "#38bdf8" : "#64748b" }}>{fmtNumber(clicks)}</span>,
     },
 
-    // 12. Link Clicks
-    {
-      title: (
-        <Tooltip title="Inline link clicks leading to your storefront">
-          <span>Link Clicks <InfoCircleOutlined style={{ fontSize: 9, color: "#64748b" }} /></span>
-        </Tooltip>
-      ),
+    link_clicks: {
+      title: "Link Clicks",
       dataIndex: "link_clicks",
       key: "link_clicks",
       align: "right",
-      width: 90,
-      render: (clicks: number) => (
-        <span style={{ fontSize: 11, color: "#e2e8f0" }}>{fmtNumber(clicks)}</span>
-      ),
+      width: 75,
+      render: (clicks: number) => <span style={{ fontSize: 10.5, color: "#e2e8f0" }}>{fmtNumber(clicks)}</span>,
     },
 
-    // 13. CPC (Cost per link click)
-    {
-      title: (
-        <Tooltip title="Cost Per Link Click = Amount Spent / Link Clicks">
-          <span>CPC <InfoCircleOutlined style={{ fontSize: 9, color: "#64748b" }} /></span>
-        </Tooltip>
-      ),
+    cpc: {
+      title: "CPC",
       dataIndex: "cpc",
       key: "cpc",
       align: "right",
-      width: 85,
-      render: (cpc: number, record: any) => {
-        const val = Number(cpc || 0);
-        return (
-          <span style={{ fontSize: 11, color: val > 0 ? "#cbd5e1" : "#64748b" }}>
-            {val > 0 ? fmtCurrency(val, record) : "—"}
-          </span>
-        );
-      },
+      width: 70,
+      render: (cpc: number, record: any) => <span style={{ fontSize: 10.5, color: cpc ? "#cbd5e1" : "#64748b" }}>{cpc ? fmtCurrency(cpc, record) : "—"}</span>,
     },
 
-    // 14. total click
-    {
-      title: (
-        <Tooltip title="Total clicks across all ad elements (links, photos, reactions, comments)">
-          <span>total click <InfoCircleOutlined style={{ fontSize: 9, color: "#64748b" }} /></span>
-        </Tooltip>
-      ),
+    total_clicks: {
+      title: "Clicks",
       dataIndex: "total_clicks",
       key: "total_clicks",
       align: "right",
-      width: 90,
-      render: (clicks: number, record: any) => {
-        const val = Number(clicks || record.clicks || 0);
-        return <span style={{ fontSize: 11, color: "#e2e8f0" }}>{fmtNumber(val)}</span>;
-      },
+      width: 75,
+      render: (clicks: number, record: any) => <span style={{ fontSize: 10.5, color: "#e2e8f0" }}>{fmtNumber(clicks || record.clicks)}</span>,
     },
 
-    // 15. CTR ALL
-    {
-      title: (
-        <Tooltip title="Click-Through Rate (All Clicks / Impressions * 100%)">
-          <span>CTR ALL <InfoCircleOutlined style={{ fontSize: 9, color: "#64748b" }} /></span>
-        </Tooltip>
-      ),
+    ctr_all: {
+      title: "CTR %",
       dataIndex: "ctr_all",
       key: "ctr_all",
       align: "right",
-      width: 85,
-      render: (ctr: number) => {
-        const val = Number(ctr || 0);
-        return (
-          <span style={{ fontSize: 11, color: val > 0 ? "#f8fafc" : "#64748b" }}>
-            {val > 0 ? `${val.toFixed(2)}%` : "0.00%"}
-          </span>
-        );
-      },
+      width: 65,
+      render: (ctr: number) => <span style={{ fontSize: 10.5, color: ctr ? "#f8fafc" : "#64748b" }}>{ctr ? `${Number(ctr).toFixed(2)}%` : "0%"}</span>,
     },
 
-    // 16. CPC all
-    {
-      title: (
-        <Tooltip title="Cost Per Click (All) = Amount Spent / Total Clicks">
-          <span>CPC all <InfoCircleOutlined style={{ fontSize: 9, color: "#64748b" }} /></span>
-        </Tooltip>
-      ),
+    cpc_all: {
+      title: "CPC All",
       dataIndex: "cpc_all",
       key: "cpc_all",
       align: "right",
-      width: 85,
-      render: (cpcAll: number, record: any) => {
-        const val = Number(cpcAll || 0);
-        return (
-          <span style={{ fontSize: 11, color: val > 0 ? "#cbd5e1" : "#64748b" }}>
-            {val > 0 ? fmtCurrency(val, record) : "—"}
-          </span>
-        );
-      },
+      width: 70,
+      render: (cpcAll: number, record: any) => <span style={{ fontSize: 10.5, color: cpcAll ? "#cbd5e1" : "#64748b" }}>{cpcAll ? fmtCurrency(cpcAll, record) : "—"}</span>,
     },
 
-    // 17. Landing Page Views
-    {
-      title: (
-        <Tooltip title="Confirmed landing page views recorded by Meta Pixel / CAPI">
-          <span>Landing Page Views <InfoCircleOutlined style={{ fontSize: 9, color: "#64748b" }} /></span>
-        </Tooltip>
-      ),
+    landing_page_views: {
+      title: "LP Views",
       dataIndex: "landing_page_views",
       key: "landing_page_views",
       align: "right",
-      width: 130,
-      render: (lpv: number) => (
-        <span style={{ fontSize: 11, color: lpv ? "#a78bfa" : "#64748b" }}>
-          {fmtNumber(lpv)}
-        </span>
-      ),
+      width: 75,
+      render: (lpv: number) => <span style={{ fontSize: 10.5, color: lpv ? "#a78bfa" : "#64748b" }}>{fmtNumber(lpv)}</span>,
     },
 
-    // 18. Cost per landing page
-    {
-      title: (
-        <Tooltip title="Cost Per Landing Page View = Amount Spent / Landing Page Views">
-          <span>Cost per landing page <InfoCircleOutlined style={{ fontSize: 9, color: "#64748b" }} /></span>
-        </Tooltip>
-      ),
+    cost_per_landing_page: {
+      title: "Cost/LPV",
       dataIndex: "cost_per_landing_page",
       key: "cost_per_landing_page",
       align: "right",
-      width: 140,
-      render: (cost: number, record: any) => {
-        const val = Number(cost || 0);
-        return (
-          <span style={{ fontSize: 11, color: val > 0 ? "#cbd5e1" : "#64748b" }}>
-            {val > 0 ? fmtCurrency(val, record) : "—"}
-          </span>
-        );
-      },
+      width: 75,
+      render: (cost: number, record: any) => <span style={{ fontSize: 10.5, color: cost ? "#cbd5e1" : "#64748b" }}>{cost ? fmtCurrency(cost, record) : "—"}</span>,
     },
+  };
 
-    // Pinned Actions
-    {
-      title: "Actions",
-      key: "actions",
-      fixed: "right",
-      align: "center",
-      width: 125,
-      render: (_: any, record: any) => {
-        const isDraft = record.status === "DRAFT" || record.status === "ERROR";
-        const isActive = record.status === "ACTIVE";
+  // Fixed Left Column: Campaign Name
+  const fixedCampaignNameColumn = {
+    title: "Campaign name",
+    dataIndex: "name",
+    key: "name",
+    fixed: "left" as const,
+    width: 220,
+    render: (name: string, record: any) => (
+      <div style={{ display: "flex", alignItems: "center", gap: 6, width: "100%", maxWidth: 210, minWidth: 0 }}>
+        <Avatar
+          shape="square"
+          size={26}
+          src={record.linked_product_image}
+          style={{ backgroundColor: "#27272a", border: "1px solid rgba(255,255,255,0.1)", flexShrink: 0, fontSize: 10 }}
+        >
+          {name ? name.charAt(0) : "C"}
+        </Avatar>
+        <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+          <Tooltip title={name} placement="topLeft">
+            <span
+              style={{
+                color: "#f8fafc",
+                fontSize: 11,
+                fontWeight: 700,
+                cursor: "pointer",
+                display: "block",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap"
+              }}
+              onClick={() => navigate(`/marketing/campaigns/${record.id}`)}
+            >
+              {name}
+            </span>
+          </Tooltip>
+          <div
+            style={{
+              fontSize: 8.5,
+              color: "#94a3b8",
+              lineHeight: 1.1,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap"
+            }}
+          >
+            {record.linked_product_name ? record.linked_product_name : "Generic"} · {record.objective}
+          </div>
+        </div>
+      </div>
+    ),
+  };
 
-        return (
-          <Space size={4}>
-            {isDraft ? (
-              <Tooltip title="Deploy campaign to Meta">
-                <Button
-                  type="primary"
-                  size="small"
-                  icon={<CloudUploadOutlined style={{ fontSize: 11 }} />}
-                  onClick={() => handleDeploy(record.id)}
-                  style={{ backgroundColor: "#8b5cf6", height: 22, padding: "0 6px", fontSize: 10.5 }}
-                >
-                  Deploy
-                </Button>
-              </Tooltip>
-            ) : isActive ? (
-              <Tooltip title="Pause delivery on Meta">
-                <Button
-                  size="small"
-                  icon={<PauseCircleOutlined style={{ fontSize: 11 }} />}
-                  onClick={() => handlePause(record.id)}
-                  style={{ height: 22, width: 22, padding: 0 }}
-                />
-              </Tooltip>
-            ) : (
-              <Tooltip title="Resume delivery on Meta">
-                <Button
-                  size="small"
-                  icon={<PlayCircleOutlined style={{ fontSize: 11 }} />}
-                  onClick={() => handleResume(record.id)}
-                  style={{ height: 22, width: 22, padding: 0 }}
-                />
-              </Tooltip>
-            )}
+  // Fixed Right Column: Actions
+  const fixedActionsColumn = {
+    title: "Actions",
+    key: "actions",
+    fixed: "right" as const,
+    align: "center" as const,
+    width: 100,
+    render: (_: any, record: any) => {
+      const isDraft = record.status === "DRAFT" || record.status === "ERROR";
+      const isActive = record.status === "ACTIVE";
 
-            {isActive && (
-              <Tooltip title="Scale Budget +20%">
-                <Button
-                  size="small"
-                  icon={<RiseOutlined style={{ fontSize: 11 }} />}
-                  onClick={() => handleScale(record.id)}
-                  style={{ height: 22, width: 22, padding: 0 }}
-                />
-              </Tooltip>
-            )}
-
-            <Tooltip title="View Campaign Details">
+      return (
+        <Space size={3}>
+          {isDraft ? (
+            <Tooltip title="Deploy campaign to Meta">
               <Button
+                type="primary"
                 size="small"
-                icon={<EyeOutlined style={{ fontSize: 11 }} />}
+                icon={<CloudUploadOutlined style={{ fontSize: 10 }} />}
+                style={{ fontSize: 10, padding: "0 6px", height: 22, backgroundColor: "#8b5cf6" }}
                 onClick={() => navigate(`/marketing/campaigns/${record.id}`)}
-                style={{ height: 22, width: 22, padding: 0 }}
               />
             </Tooltip>
-          </Space>
-        );
-      },
+          ) : isActive ? (
+            <Tooltip title="Pause Live Campaign">
+              <Button
+                danger
+                size="small"
+                icon={<PauseCircleOutlined style={{ fontSize: 10 }} />}
+                style={{ fontSize: 10, padding: "0 6px", height: 22 }}
+                onClick={async () => {
+                  try {
+                    const token = localStorage.getItem("poshplex_access_token");
+                    await axios.post(`${API_BASE}/campaigns/${record.id}/pause/`, {}, { headers: { Authorization: `Bearer ${token}` } });
+                    message.success("Campaign paused on Meta!");
+                    fetchCampaigns();
+                  } catch {
+                    message.error("Failed to pause campaign");
+                  }
+                }}
+              />
+            </Tooltip>
+          ) : (
+            <Tooltip title="Resume Campaign">
+              <Button
+                size="small"
+                icon={<PlayCircleOutlined style={{ fontSize: 10, color: "#10b981" }} />}
+                style={{ fontSize: 10, padding: "0 6px", height: 22 }}
+                onClick={async () => {
+                  try {
+                    const token = localStorage.getItem("poshplex_access_token");
+                    await axios.post(`${API_BASE}/campaigns/${record.id}/resume/`, {}, { headers: { Authorization: `Bearer ${token}` } });
+                    message.success("Campaign resumed on Meta!");
+                    fetchCampaigns();
+                  } catch {
+                    message.error("Failed to resume campaign");
+                  }
+                }}
+              />
+            </Tooltip>
+          )}
+
+          <Tooltip title="View Details">
+            <Button
+              size="small"
+              icon={<EyeOutlined style={{ fontSize: 10 }} />}
+              style={{ fontSize: 10, padding: "0 6px", height: 22 }}
+              onClick={() => navigate(`/marketing/campaigns/${record.id}`)}
+            />
+          </Tooltip>
+        </Space>
+      );
     },
-  ];
+  };
+
+  // Compile Active Columns based on User Rearrange Order
+  const activeColumns = useMemo(() => {
+    const dynamicCols: any[] = [];
+    visibleColumnKeys.forEach((key) => {
+      if (columnDefinitionMap[key]) {
+        dynamicCols.push(columnDefinitionMap[key]);
+      }
+    });
+    return [fixedCampaignNameColumn, ...dynamicCols, fixedActionsColumn];
+  }, [visibleColumnKeys, attributionMap]);
 
   return (
     <div>
-      {/* Dense styling overrides to cleanly fit all 18 Meta metrics */}
-      <style>{`
-        .meta-dense-campaigns-table .ant-table {
-          background: #0d0d12 !important;
-          color: #e2e8f0;
-          font-family: inherit;
-        }
-        .meta-dense-campaigns-table .ant-table-thead > tr > th {
-          font-size: 10px !important;
-          font-weight: 700 !important;
-          letter-spacing: 0.35px !important;
-          text-transform: uppercase !important;
-          color: #94a3b8 !important;
-          background: #15151e !important;
-          padding: 6px 7px !important;
-          white-space: nowrap !important;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-          border-right: 1px solid rgba(255, 255, 255, 0.03) !important;
-        }
-        .meta-dense-campaigns-table .ant-table-tbody > tr > td {
-          font-size: 11px !important;
-          padding: 5px 7px !important;
-          white-space: nowrap !important;
-          font-variant-numeric: tabular-nums !important;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-          border-right: 1px solid rgba(255, 255, 255, 0.02) !important;
-          background: #0f0f15 !important;
-        }
-        .meta-dense-campaigns-table .ant-table-tbody > tr:hover > td {
-          background: #1a1a24 !important;
-        }
-        .meta-dense-campaigns-table .ant-table-cell-fix-left {
-          background: #121218 !important;
-          box-shadow: 2px 0 8px rgba(0, 0, 0, 0.4) !important;
-        }
-        .meta-dense-campaigns-table .ant-table-cell-fix-right {
-          background: #121218 !important;
-          box-shadow: -2px 0 8px rgba(0, 0, 0, 0.4) !important;
-        }
-        .meta-dense-campaigns-table .ant-table-tbody > tr:hover > .ant-table-cell-fix-left,
-        .meta-dense-campaigns-table .ant-table-tbody > tr:hover > .ant-table-cell-fix-right {
-          background: #1e1e2c !important;
-        }
-        .meta-dense-campaigns-table .ant-pagination {
-          margin: 10px 0 0 0 !important;
-        }
-      `}</style>
-
-      {/* Header bar */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
+      {/* Header Bar */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 10 }}>
         <div>
           <Title level={4} style={{ margin: 0, color: "#ffffff", fontWeight: 700 }}>Meta Campaigns & Attribution Platform</Title>
-          <Text style={{ color: "#94a3b8", fontSize: 11.5 }}>
+          <Text style={{ color: "#9ca3af", fontSize: 11.5 }}>
             Customer journey attribution, delivery outcomes & true contribution profit (M1–M22)
           </Text>
         </div>
-        <Space size={8} wrap>
+        <Space wrap size={6}>
           {/* Attribution Model Switcher */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, backgroundColor: "#1c1c28", padding: "2px 8px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.12)" }}>
-            <AimOutlined style={{ color: "#a78bfa", fontSize: 12 }} />
-            <Text style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>Model:</Text>
-            <Select
-              size="small"
-              bordered={false}
-              value={attributionModel}
-              onChange={(val) => setAttributionModel(val)}
-              style={{ width: 175, fontSize: 11.5 }}
-              options={[
-                { label: "🎯 Last Paid Touch", value: "last_paid" },
-                { label: "🚀 First Touch", value: "first_touch" },
-                { label: "⚖️ Linear Split", value: "linear" },
-                { label: "💎 Position (40/40/20)", value: "position_based" }
-              ]}
-            />
-          </div>
+          <Select
+            size="small"
+            value={attributionModel}
+            onChange={(val) => {
+              setAttributionModel(val);
+              fetchAttributionSummary(val);
+            }}
+            style={{ width: 150, fontSize: 11 }}
+            options={[
+              { label: "Last Paid Touch", value: "last_paid" },
+              { label: "Linear Multi-Touch", value: "linear" },
+              { label: "Time Decay", value: "time_decay" },
+              { label: "First Touch", value: "first_touch" },
+              { label: "Last Non-Direct", value: "last_non_direct" },
+            ]}
+          />
 
           {/* Reconciliation Audit Badge */}
           {reconciliation && (
@@ -883,7 +756,7 @@ export const CampaignList: React.FC = () => {
               <Tag
                 icon={reconciliation.status === "HEALTHY" ? <CheckCircleOutlined /> : <WarningOutlined />}
                 color={reconciliation.status === "HEALTHY" ? "success" : "warning"}
-                style={{ fontSize: 11, padding: "2px 8px", borderRadius: 4, cursor: "pointer", margin: 0 }}
+                style={{ fontSize: 10, padding: "1px 6px", borderRadius: 3, cursor: "pointer", margin: 0 }}
               >
                 3-Way Audit: {reconciliation.variance_percentage}% var ({reconciliation.status})
               </Tag>
@@ -892,7 +765,7 @@ export const CampaignList: React.FC = () => {
 
           <Button
             size="small"
-            icon={<ThunderboltOutlined style={{ fontSize: 11 }} />}
+            icon={<ThunderboltOutlined style={{ fontSize: 10 }} />}
             loading={rebuilding}
             onClick={handleRebuildSummaries}
             style={{ fontSize: 11, backgroundColor: "#181824", borderColor: "rgba(255,255,255,0.12)", color: "#cbd5e1" }}
@@ -903,21 +776,21 @@ export const CampaignList: React.FC = () => {
           <Button
             type="primary"
             size="small"
-            icon={<ReloadOutlined style={{ fontSize: 11 }} />}
+            icon={<ReloadOutlined style={{ fontSize: 10 }} />}
             loading={syncing}
             onClick={handleSyncFromMeta}
             style={{ backgroundColor: "#8b5cf6", borderColor: "#8b5cf6", fontSize: 11 }}
           >
             Sync from Meta
           </Button>
-          <Button size="small" icon={<ReloadOutlined style={{ fontSize: 11 }} />} onClick={fetchCampaigns}>
+          <Button size="small" icon={<ReloadOutlined style={{ fontSize: 10 }} />} onClick={fetchCampaigns}>
             Refresh
           </Button>
           <Button
             danger
             type="primary"
             size="small"
-            icon={<StopOutlined style={{ fontSize: 11 }} />}
+            icon={<StopOutlined style={{ fontSize: 10 }} />}
             onClick={handleStopAllAds}
             style={{ backgroundColor: "#dc2626", borderColor: "#dc2626", fontSize: 11 }}
           >
@@ -932,53 +805,53 @@ export const CampaignList: React.FC = () => {
         style={{
           backgroundColor: "#121218",
           borderColor: "rgba(255,255,255,0.08)",
-          borderRadius: 8,
-          marginBottom: 12
+          borderRadius: 6,
+          marginBottom: 10
         }}
-        bodyStyle={{ padding: "10px 14px" }}
+        bodyStyle={{ padding: "8px 12px" }}
       >
-        <Row gutter={[12, 8]} align="middle">
+        <Row gutter={[12, 6]} align="middle">
           <Col xs={12} sm={8} md={4}>
-            <div style={{ fontSize: 10, color: "#94a3b8", textTransform: "uppercase", fontWeight: 600 }}>Active Campaigns</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "#f8fafc" }}>{summary.count}</div>
+            <div style={{ fontSize: 9.5, color: "#94a3b8", textTransform: "uppercase", fontWeight: 700 }}>Active Campaigns</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#f8fafc" }}>{summary.count}</div>
           </Col>
           <Col xs={12} sm={8} md={4}>
-            <div style={{ fontSize: 10, color: "#94a3b8", textTransform: "uppercase", fontWeight: 600 }}>Total Spent (Ad Spend)</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "#f87171" }}>
+            <div style={{ fontSize: 9.5, color: "#94a3b8", textTransform: "uppercase", fontWeight: 700 }}>Total Spent (Ad Spend)</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#f87171" }}>
               ${summary.spend.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              <span style={{ fontSize: 10.5, color: "#94a3b8", fontWeight: 400, marginLeft: 4 }}>
+              <span style={{ fontSize: 10, color: "#94a3b8", fontWeight: 400, marginLeft: 4 }}>
                 (৳{(summary.spend * 122).toLocaleString(undefined, { maximumFractionDigits: 0 })})
               </span>
             </div>
           </Col>
           <Col xs={12} sm={8} md={4}>
-            <div style={{ fontSize: 10, color: "#94a3b8", textTransform: "uppercase", fontWeight: 600 }}>Delivered Orders</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "#34d399" }}>
+            <div style={{ fontSize: 9.5, color: "#94a3b8", textTransform: "uppercase", fontWeight: 700 }}>Delivered Orders</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#34d399" }}>
               {attributionOverview?.total_delivered_orders !== undefined ? attributionOverview.total_delivered_orders : summary.results}
-              <Tag style={{ marginLeft: 6, fontSize: 10, padding: "0 4px", border: "none", backgroundColor: "rgba(16, 185, 129, 0.15)", color: "#10b981" }}>
+              <Tag style={{ marginLeft: 4, fontSize: 9, padding: "0 3px", border: "none", backgroundColor: "rgba(16, 185, 129, 0.15)", color: "#10b981" }}>
                 {attributionOverview?.delivery_success_rate !== undefined ? `${attributionOverview.delivery_success_rate}% success` : "Meta tracked"}
               </Tag>
             </div>
           </Col>
           <Col xs={12} sm={8} md={4}>
-            <div style={{ fontSize: 10, color: "#94a3b8", textTransform: "uppercase", fontWeight: 600 }}>Delivered Revenue</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "#38bdf8" }}>
+            <div style={{ fontSize: 9.5, color: "#94a3b8", textTransform: "uppercase", fontWeight: 700 }}>Delivered Revenue</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#38bdf8" }}>
               ৳{(attributionOverview?.total_delivered_revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
           </Col>
           <Col xs={12} sm={8} md={4}>
-            <div style={{ fontSize: 10, color: "#94a3b8", textTransform: "uppercase", fontWeight: 600 }}>True Net Ad Profit</div>
+            <div style={{ fontSize: 9.5, color: "#94a3b8", textTransform: "uppercase", fontWeight: 700 }}>True Net Ad Profit</div>
             <div style={{
-              fontSize: 15,
-              fontWeight: 700,
+              fontSize: 14,
+              fontWeight: 800,
               color: (attributionOverview?.total_net_ad_profit || 0) >= 0 ? "#10b981" : "#f87171"
             }}>
               ৳{(attributionOverview?.total_net_ad_profit || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
           </Col>
           <Col xs={12} sm={8} md={4}>
-            <div style={{ fontSize: 10, color: "#94a3b8", textTransform: "uppercase", fontWeight: 600 }}>Delivered ROAS</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "#a78bfa" }}>
+            <div style={{ fontSize: 9.5, color: "#94a3b8", textTransform: "uppercase", fontWeight: 700 }}>Delivered ROAS</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#a78bfa" }}>
               {attributionOverview?.roas_delivered ? `${attributionOverview.roas_delivered}x` : `${summary.ctr.toFixed(2)}% CTR`}
             </div>
           </Col>
@@ -993,69 +866,301 @@ export const CampaignList: React.FC = () => {
           borderColor: "rgba(255,255,255,0.08)",
           borderRadius: 8
         }}
-        bodyStyle={{ padding: "10px" }}
+        bodyStyle={{ padding: "8px" }}
       >
         {/* Filters bar */}
-        <div style={{ display: "flex", gap: 10, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap", alignItems: "center" }}>
           <Select
             size="small"
             placeholder="All Meta Ad Accounts"
             allowClear
             value={selectedAccountId}
             onChange={(v) => setSelectedAccountId(v)}
-            style={{ minWidth: 200, fontSize: 11.5 }}
+            style={{ minWidth: 170, fontSize: 11 }}
             options={adAccounts.map(acc => ({
               label: `${acc.name} (${acc.currency || 'USD'})`,
               value: acc.id
             }))}
           />
+
           <Input
             size="small"
-            placeholder="Search campaigns by name..."
+            placeholder="Search campaigns..."
             prefix={<SearchOutlined style={{ color: "#9ca3af", fontSize: 11 }} />}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onPressEnter={fetchCampaigns}
-            style={{ width: "min(240px, 100%)", fontSize: 11.5 }}
+            style={{ width: 170, fontSize: 11 }}
           />
+
+          {/* 1. Status Filter: Active, Inactive/Paused, All (Default: Active) */}
           <Select
             size="small"
-            placeholder="Filter by Status"
-            allowClear
             value={statusFilter}
             onChange={(v) => setStatusFilter(v)}
-            style={{ minWidth: 130, flex: "1 1 130px", fontSize: 11.5 }}
+            style={{ width: 120, fontSize: 11 }}
             options={[
-              { label: "Active", value: "ACTIVE" },
-              { label: "Paused", value: "PAUSED" },
-              { label: "Archived", value: "ARCHIVED" },
+              { label: "Active Ads", value: "ACTIVE" },
+              { label: "Inactive / Paused", value: "PAUSED" },
+              { label: "All Statuses", value: "ALL" },
             ]}
           />
-          <Button size="small" onClick={fetchCampaigns} style={{ fontSize: 11.5 }}>
-            Filter
+
+          {/* 2. Date Filter: Today, Yesterday, Today & Yesterday, Last 30 Days, This Month, Last Month, Date Range */}
+          <Select
+            size="small"
+            value={datePreset}
+            onChange={(v) => {
+              setDatePreset(v);
+              if (v !== "custom") setCustomDateRange(null);
+            }}
+            style={{ width: 150, fontSize: 11 }}
+            options={[
+              { label: "Today (Default)", value: "today" },
+              { label: "Yesterday", value: "yesterday" },
+              { label: "Today & Yesterday", value: "today_yesterday" },
+              { label: "Last 30 Days", value: "last_30d" },
+              { label: "This Month", value: "this_month" },
+              { label: "Last Month", value: "last_month" },
+              { label: "Custom Date Range", value: "custom" },
+              { label: "Lifetime (All Time)", value: "all" },
+            ]}
+          />
+
+          {datePreset === "custom" && (
+            <RangePicker
+              size="small"
+              value={customDateRange}
+              onChange={(dates: any) => setCustomDateRange(dates)}
+              style={{ fontSize: 11, width: 210 }}
+            />
+          )}
+
+          {/* Rearrange Columns Button */}
+          <Button
+            size="small"
+            icon={<SettingOutlined style={{ color: "#8b5cf6" }} />}
+            onClick={() => setIsColumnModalOpen(true)}
+            style={{ fontSize: 11, borderColor: "rgba(139, 92, 246, 0.4)" }}
+          >
+            Rearrange Columns ({visibleColumnKeys.length})
           </Button>
+
           <div style={{ marginLeft: "auto", fontSize: 10.5, color: "#64748b" }}>
-            Showing {campaigns.length} campaigns · Horizontal scroll enabled
+            Showing {campaigns.length} ads · Sorted: Active & Top Performers First
           </div>
         </div>
 
-        {/* 18-Column Dense Table */}
+        {/* Dense Table with Mouse Scroll & Freezed Essential Columns */}
         <Table
           className="meta-dense-campaigns-table"
           size="small"
           dataSource={campaigns}
-          columns={columns}
+          columns={activeColumns}
           rowKey="id"
           loading={loading}
-          scroll={{ x: 2000 }}
+          scroll={{ x: 1800, y: 600 }}
           pagination={{
-            pageSize: 15,
+            pageSize: 20,
             showSizeChanger: true,
-            pageSizeOptions: ["10", "15", "25", "50"],
+            pageSizeOptions: ["15", "20", "35", "50", "100"],
             size: "small"
           }}
+          summary={() => (
+            <Table.Summary fixed="bottom">
+              <Table.Summary.Row style={{ backgroundColor: "#0c0c10", fontWeight: 800 }}>
+                <Table.Summary.Cell index={0} fixed="left">
+                  <div style={{ color: "#ffffff", fontSize: 11, textTransform: "uppercase" }}>
+                    TOTAL ({campaigns.length} Ads)
+                  </div>
+                </Table.Summary.Cell>
+
+                {visibleColumnKeys.map((colKey, idx) => {
+                  let content = "—";
+                  if (colKey === "budget_amount") {
+                    content = `$${summary.budget.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                  } else if (colKey === "total_spend") {
+                    content = `$${summary.spend.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                  } else if (colKey === "results") {
+                    content = summary.results.toLocaleString();
+                  } else if (colKey === "cost_per_result") {
+                    content = summary.cpr > 0 ? `$${summary.cpr.toFixed(2)}` : "—";
+                  } else if (colKey === "delivered_rate") {
+                    content = attributionOverview?.total_delivered_orders !== undefined ? `${attributionOverview.total_delivered_orders}` : `${summary.results}`;
+                  } else if (colKey === "net_ad_profit") {
+                    const net = attributionOverview?.total_net_ad_profit || 0;
+                    content = `৳${Math.round(net).toLocaleString()}`;
+                  } else if (colKey === "roas_delivered") {
+                    content = attributionOverview?.roas_delivered ? `${attributionOverview.roas_delivered}x` : "—";
+                  } else if (colKey === "impressions") {
+                    content = summary.impressions.toLocaleString();
+                  } else if (colKey === "reach") {
+                    content = summary.reach.toLocaleString();
+                  } else if (colKey === "frequency") {
+                    content = summary.frequency.toFixed(2);
+                  } else if (colKey === "cpm") {
+                    content = summary.impressions > 0 ? `$${((summary.spend / summary.impressions) * 1000).toFixed(2)}` : "—";
+                  } else if (colKey === "shop_clicks") {
+                    content = summary.shopClicks.toLocaleString();
+                  } else if (colKey === "link_clicks") {
+                    content = summary.linkClicks.toLocaleString();
+                  } else if (colKey === "cpc") {
+                    content = summary.linkClicks > 0 ? `$${(summary.spend / summary.linkClicks).toFixed(2)}` : "—";
+                  } else if (colKey === "total_clicks") {
+                    content = summary.clicks.toLocaleString();
+                  } else if (colKey === "ctr_all") {
+                    content = `${summary.ctr.toFixed(2)}%`;
+                  } else if (colKey === "cpc_all") {
+                    content = `$${summary.cpc.toFixed(2)}`;
+                  } else if (colKey === "landing_page_views") {
+                    content = summary.lpv.toLocaleString();
+                  } else if (colKey === "cost_per_landing_page") {
+                    content = summary.lpv > 0 ? `$${(summary.spend / summary.lpv).toFixed(2)}` : "—";
+                  }
+
+                  return (
+                    <Table.Summary.Cell index={idx + 1} key={colKey} align="right">
+                      <Text style={{ fontSize: 11, color: colKey === "total_spend" ? "#f87171" : colKey === "results" ? "#34d399" : "#ffffff", fontWeight: 800 }}>
+                        {content}
+                      </Text>
+                    </Table.Summary.Cell>
+                  );
+                })}
+
+                <Table.Summary.Cell index={visibleColumnKeys.length + 1} fixed="right" align="center">
+                  <span style={{ fontSize: 10, color: "#64748b" }}>—</span>
+                </Table.Summary.Cell>
+              </Table.Summary.Row>
+            </Table.Summary>
+          )}
         />
       </Card>
+
+      {/* Rearrange Columns & Visibility Modal */}
+      <Modal
+        title={
+          <Space>
+            <SettingOutlined style={{ color: "#8b5cf6" }} />
+            <span>Customize & Rearrange Columns</span>
+          </Space>
+        }
+        open={isColumnModalOpen}
+        onCancel={() => setIsColumnModalOpen(false)}
+        footer={[
+          <Button
+            key="reset"
+            onClick={() => {
+              setVisibleColumnKeys(DEFAULT_VISIBLE_KEYS);
+              localStorage.setItem("poshplex_meta_campaign_columns", JSON.stringify(DEFAULT_VISIBLE_KEYS));
+              message.info("Reset to default columns.");
+            }}
+          >
+            Reset Default
+          </Button>,
+          <Button
+            key="save"
+            type="primary"
+            onClick={() => {
+              setIsColumnModalOpen(false);
+              message.success("Columns saved!");
+            }}
+            style={{ backgroundColor: "#8b5cf6" }}
+          >
+            Done
+          </Button>
+        ]}
+        width={580}
+      >
+        <Paragraph style={{ color: "#9ca3af", fontSize: 12 }}>
+          Select which metrics to display on your table, and use the <strong>Up / Down</strong> buttons to reorder them based on your preference.
+        </Paragraph>
+
+        <div style={{ maxHeight: 380, overflowY: "auto", paddingRight: 8 }}>
+          {visibleColumnKeys.map((key, index) => {
+            const col = ALL_COLUMN_KEYS.find(c => c.key === key);
+            if (!col) return null;
+            return (
+              <div
+                key={key}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "6px 12px",
+                  marginBottom: 6,
+                  backgroundColor: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: 6
+                }}
+              >
+                <Space>
+                  <Checkbox
+                    checked={true}
+                    onChange={() => toggleColumnKey(key)}
+                  />
+                  <Text style={{ color: "#f8fafc", fontSize: 12, fontWeight: 600 }}>
+                    {col.label}
+                  </Text>
+                  {col.fixed && <Tag color="blue" style={{ fontSize: 9 }}>Fixed Metric</Tag>}
+                </Space>
+
+                <Space size={4}>
+                  <Button
+                    size="small"
+                    icon={<ArrowUpOutlined />}
+                    disabled={index === 0}
+                    onClick={() => moveColumn(index, "up")}
+                  />
+                  <Button
+                    size="small"
+                    icon={<ArrowDownOutlined />}
+                    disabled={index === visibleColumnKeys.length - 1}
+                    onClick={() => moveColumn(index, "down")}
+                  />
+                </Space>
+              </div>
+            );
+          })}
+
+          <Divider orientation="left" style={{ borderColor: "rgba(255,255,255,0.1)", fontSize: 11, color: "#9ca3af" }}>
+            Add Inactive / Hidden Columns
+          </Divider>
+
+          {ALL_COLUMN_KEYS.filter(c => !visibleColumnKeys.includes(c.key)).map(col => (
+            <div
+              key={col.key}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "6px 12px",
+                marginBottom: 6,
+                backgroundColor: "rgba(255,255,255,0.01)",
+                border: "1px dashed rgba(255,255,255,0.08)",
+                borderRadius: 6
+              }}
+            >
+              <Space>
+                <Checkbox
+                  checked={false}
+                  onChange={() => toggleColumnKey(col.key)}
+                />
+                <Text style={{ color: "#9ca3af", fontSize: 12 }}>
+                  {col.label}
+                </Text>
+              </Space>
+              <Button
+                size="small"
+                type="dashed"
+                onClick={() => toggleColumnKey(col.key)}
+                style={{ fontSize: 11 }}
+              >
+                + Add
+              </Button>
+            </div>
+          ))}
+        </div>
+      </Modal>
     </div>
   );
 };

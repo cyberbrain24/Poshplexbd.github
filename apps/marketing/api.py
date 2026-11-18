@@ -420,9 +420,15 @@ from apps.marketing.agent.brain import MetaAgent, chat_with_agent
 from apps.marketing.agent.memory import agent_memory
 from apps.marketing.agent.tools import create_campaign_from_product, pause_campaign, scale_campaign
 
-def _serialize_campaign(c: Campaign) -> dict:
+def _serialize_campaign(c: Campaign, date_start: Optional[str] = None, date_stop: Optional[str] = None) -> dict:
     """Helper to attach live snapshots and product metadata to CampaignResponseSchema."""
-    snapshots = c.snapshots.all()
+    snapshots_qs = c.snapshots.all()
+    if date_start:
+        snapshots_qs = snapshots_qs.filter(snapshot_time__date__gte=date_start)
+    if date_stop:
+        snapshots_qs = snapshots_qs.filter(snapshot_time__date__lte=date_stop)
+
+    snapshots = list(snapshots_qs)
     total_spend = sum((s.spend for s in snapshots), Decimal('0.00'))
     total_rev = sum((s.revenue_attributed for s in snapshots), Decimal('0.00'))
     roas = round(float(total_rev) / float(total_spend), 2) if total_spend > 0 else 0.0
@@ -804,18 +810,70 @@ def receive_meta_webhook(request):
 # --- Campaigns CRUD ---
 
 @router.get("/campaigns/", response=List[CampaignResponseSchema], auth=BearerAuth())
-def list_campaigns(request, status: Optional[str] = None, search: Optional[str] = None, ad_account_id: Optional[int] = None):
+def list_campaigns(
+    request,
+    status: Optional[str] = None,
+    search: Optional[str] = None,
+    ad_account_id: Optional[int] = None,
+    date_preset: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+):
     """List marketing campaigns with attached targeting, creative, and performance aggregates."""
     enforce_permission(request, "marketing", "view")
     qs = Campaign.objects.select_related('ad_account', 'linked_product').prefetch_related('adsets__creatives', 'snapshots').all()
     if ad_account_id:
         qs = qs.filter(ad_account_id=ad_account_id)
-    if status:
+    if status and status.upper() != "ALL":
         qs = qs.filter(status=status.upper())
     if search:
         qs = qs.filter(name__icontains=search)
 
-    return [_serialize_campaign(c) for c in qs]
+    # Resolve date boundaries
+    today = timezone.localdate()
+    d_start = None
+    d_stop = None
+
+    if date_preset:
+        preset = date_preset.lower()
+        if preset == "today":
+            d_start = str(today)
+            d_stop = str(today)
+        elif preset == "yesterday":
+            y = today - datetime.timedelta(days=1)
+            d_start = str(y)
+            d_stop = str(y)
+        elif preset in ["today_yesterday", "today_and_yesterday"]:
+            d_start = str(today - datetime.timedelta(days=1))
+            d_stop = str(today)
+        elif preset in ["last_30d", "last_30_days", "30d"]:
+            d_start = str(today - datetime.timedelta(days=30))
+            d_stop = str(today)
+        elif preset in ["this_month", "this_month"]:
+            d_start = str(today.replace(day=1))
+            d_stop = str(today)
+        elif preset in ["last_month"]:
+            first_of_this_month = today.replace(day=1)
+            last_day_of_last_month = first_of_this_month - datetime.timedelta(days=1)
+            d_start = str(last_day_of_last_month.replace(day=1))
+            d_stop = str(last_day_of_last_month)
+    elif start_date and end_date:
+        d_start = start_date
+        d_stop = end_date
+
+    serialized = [_serialize_campaign(c, date_start=d_start, date_stop=d_stop) for c in qs]
+
+    # Sort logic: ACTIVE first, then best performer (descending results, then spend), then newest ID
+    def sort_key(item):
+        is_active = 0 if item.get('status') == 'ACTIVE' else 1
+        results = item.get('results') or 0
+        spend = float(item.get('total_spend') or 0)
+        c_id = item.get('id') or 0
+        return (is_active, -results, -spend, -c_id)
+
+    serialized.sort(key=sort_key)
+    return serialized
+
 
 @router.post("/campaigns/", response=CampaignResponseSchema, auth=BearerAuth())
 def create_campaign(request, payload: CampaignCreateSchema):
