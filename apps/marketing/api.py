@@ -1441,7 +1441,7 @@ def get_agent_status(request):
 def get_agent_logs(request, status: Optional[str] = None, limit: int = 50):
     """Lists audit trail of Agent decisions and actions."""
     enforce_permission(request, "marketing", "view")
-    qs = AgentActionLog.objects.all().select_related('campaign')
+    qs = AgentActionLog.objects.all().select_related('campaign').order_by('-created_at')
     if status:
         qs = qs.filter(status=status)
     logs = qs[:limit]
@@ -1464,13 +1464,25 @@ def get_agent_logs(request, status: Optional[str] = None, limit: int = 50):
     ]
 
 
+@router.delete("/agent/logs/", auth=BearerAuth())
+def clear_agent_logs(request):
+    """Deletes all Agent Action and Decision audit trail logs."""
+    enforce_permission(request, "marketing", "edit")
+    deleted_count, _ = AgentActionLog.objects.all().delete()
+    return {
+        "success": True,
+        "deleted_count": deleted_count,
+        "message": f"Successfully deleted {deleted_count} agent audit trail logs."
+    }
+
+
 @router.post("/agent/toggle-mode/", auth=BearerAuth())
 def toggle_agent_mode(request, payload: AgentToggleModeSchema):
-    """Toggles agent operating mode between SUGGEST and AUTO, updates budget/status."""
+    """Enforces SUGGEST ONLY advisory mode and updates agent enablement/budget."""
     enforce_permission(request, "marketing", "edit")
     config = AgentConfig.get_solo()
-    if payload.mode in ['SUGGEST', 'AUTO']:
-        config.mode = payload.mode
+    # Autonomous decision/execution mode is permanently disabled; agent operates strictly as advisor
+    config.mode = 'SUGGEST'
     if payload.is_enabled is not None:
         config.is_enabled = payload.is_enabled
     if payload.agent_daily_budget is not None and payload.agent_daily_budget > 0:
@@ -1478,10 +1490,10 @@ def toggle_agent_mode(request, payload: AgentToggleModeSchema):
     config.save()
     return {
         "success": True,
-        "mode": config.mode,
+        "mode": "SUGGEST",
         "is_enabled": config.is_enabled,
         "agent_daily_budget": float(config.agent_daily_budget),
-        "message": f"Agent operating mode set to {config.mode}."
+        "message": "Agent operating in Advisory (SUGGEST ONLY) mode."
     }
 
 

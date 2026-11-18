@@ -8,7 +8,8 @@ import {
   RobotOutlined, ThunderboltOutlined, CheckCircleOutlined, CloseCircleOutlined,
   SyncOutlined, SendOutlined, BulbOutlined, HistoryOutlined,
   SafetyCertificateOutlined, DollarOutlined, PlayCircleOutlined,
-  CheckOutlined, StopOutlined, UserOutlined, ClockCircleOutlined
+  CheckOutlined, StopOutlined, UserOutlined, ClockCircleOutlined,
+  DeleteOutlined, InfoCircleOutlined, EyeOutlined
 } from "@ant-design/icons";
 import axios from "axios";
 
@@ -39,6 +40,8 @@ export const MetaAgentPage: React.FC = () => {
   // Action execution state
   const [togglingMode, setTogglingMode] = useState<boolean>(false);
   const [runningCycle, setRunningCycle] = useState<boolean>(false);
+  const [clearingLogs, setClearingLogs] = useState<boolean>(false);
+  const [selectedLogDetail, setSelectedLogDetail] = useState<any | null>(null);
 
   const fetchAgentData = async () => {
     setLoading(true);
@@ -138,6 +141,22 @@ export const MetaAgentPage: React.FC = () => {
     }
   };
 
+  const handleClearAllLogs = async () => {
+    setClearingLogs(true);
+    try {
+      const token = localStorage.getItem("poshplex_access_token");
+      const res = await axios.delete(`${API_BASE}/agent/logs/`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      message.success(res.data.message || "All agent audit trail logs deleted.");
+      fetchAgentData();
+    } catch (err: any) {
+      message.error(err?.response?.data?.message || "Failed to clear audit trail logs.");
+    } finally {
+      setClearingLogs(false);
+    }
+  };
+
   const handleSendChat = async () => {
     if (!chatInput.trim()) return;
     const userMsg = chatInput.trim();
@@ -190,26 +209,40 @@ export const MetaAgentPage: React.FC = () => {
       ),
     },
     {
-      title: "Decision & Reasoning",
+      title: "Strategic Analysis & Algorithmic Rationale",
       dataIndex: "reasoning_text",
       key: "reasoning_text",
       render: (text: string, record: any) => (
         <div>
-          <Paragraph ellipsis={{ rows: 2, expandable: true, symbol: 'more' }} style={{ margin: 0, color: "#e4e4e7", fontSize: 13 }}>
+          <Paragraph ellipsis={{ rows: 2, expandable: true, symbol: 'View Full Analysis' }} style={{ margin: 0, color: "#e4e4e7", fontSize: 13, lineHeight: 1.6 }}>
             {text}
           </Paragraph>
-          <div style={{ fontSize: 11, color: "#a78bfa", marginTop: 2 }}>
-            Tool: <code>{record.tool_name}</code> {record.campaign_name && `· Campaign: ${record.campaign_name}`}
+          <div style={{ fontSize: 11, color: "#a78bfa", marginTop: 4, display: "flex", alignItems: "center", gap: 12 }}>
+            <span>Tool Target: <code style={{ color: "#38bdf8" }}>{record.tool_name}</code></span>
+            {record.campaign_name && <span>Campaign: <strong style={{ color: "#facc15" }}>{record.campaign_name}</strong></span>}
+            <Button
+              type="link"
+              size="small"
+              icon={<EyeOutlined />}
+              onClick={() => setSelectedLogDetail(record)}
+              style={{ padding: 0, height: "auto", color: "#c084fc", fontSize: 12 }}
+            >
+              Full Deep Dive
+            </Button>
           </div>
         </div>
       ),
     },
     {
-      title: "Action Taken",
+      title: "Strategic Proposal",
       dataIndex: "action_taken",
       key: "action_taken",
-      width: 170,
-      render: (text: string) => <Tag color="purple">{text}</Tag>,
+      width: 220,
+      render: (text: string) => (
+        <Tag color="purple" style={{ whiteSpace: "normal", padding: "4px 8px", lineHeight: 1.4 }}>
+          {text}
+        </Tag>
+      ),
     },
     {
       title: "Cost Impact",
@@ -223,17 +256,34 @@ export const MetaAgentPage: React.FC = () => {
       ),
     },
     {
-      title: "Status",
+      title: "Proposal State",
       dataIndex: "status",
       key: "status",
-      width: 130,
+      width: 140,
       render: (st: string) => {
         let color = "default";
-        if (st === "SUCCESS" || st === "EXECUTED") color = "success";
-        else if (st === "NEEDS_APPROVAL") color = "warning";
-        else if (st === "FAILED" || st === "REJECTED") color = "error";
-        return <Tag color={color}>{st}</Tag>;
+        let label = st;
+        if (st === "SUCCESS" || st === "EXECUTED") { color = "success"; label = "Executed"; }
+        else if (st === "NEEDS_APPROVAL") { color = "processing"; label = "Pending Review"; }
+        else if (st === "FAILED" || st === "REJECTED") { color = "error"; label = "Dismissed"; }
+        return <Tag color={color}>{label}</Tag>;
       },
+    },
+    {
+      title: "Action",
+      key: "action",
+      width: 110,
+      render: (_: any, record: any) => (
+        <Button
+          type="primary"
+          size="small"
+          icon={<EyeOutlined />}
+          onClick={() => setSelectedLogDetail(record)}
+          style={{ backgroundColor: "#7c3aed", borderColor: "#7c3aed" }}
+        >
+          Details
+        </Button>
+      ),
     },
   ];
 
@@ -302,34 +352,24 @@ export const MetaAgentPage: React.FC = () => {
           </Card>
         </Col>
 
-        {/* Mode Toggle (SUGGEST vs AUTO) */}
+        {/* Advisory Mode Indicator (Decision Mode permanently disabled) */}
         <Col xs={24} md={8}>
           <Card style={{ backgroundColor: "#111116", borderColor: "rgba(255,255,255,0.08)", borderRadius: 10, height: "100%" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
               <div>
-                <Text style={{ color: "#9ca3af", fontSize: 12, textTransform: "uppercase", letterSpacing: 0.5 }}>Decision Mode</Text>
+                <Text style={{ color: "#9ca3af", fontSize: 12, textTransform: "uppercase", letterSpacing: 0.5 }}>Operating Mode</Text>
                 <div style={{ marginTop: 4 }}>
-                  <Tag color={statusData?.mode === "AUTO" ? "green" : "purple"} style={{ fontSize: 13, padding: "2px 8px" }}>
-                    {statusData?.mode === "AUTO" ? "⚡ AUTONOMOUS" : "🛡️ SUGGEST ONLY"}
+                  <Tag color="purple" style={{ fontSize: 13, padding: "2px 8px" }}>
+                    🛡️ SUGGESTION & RESEARCH ONLY
                   </Tag>
                 </div>
               </div>
-              <Space>
-                <Text style={{ fontSize: 12, color: statusData?.mode === "AUTO" ? "#10b981" : "#c4b5fd" }}>
-                  {statusData?.mode === "AUTO" ? "Auto-Execute" : "Suggest Mode"}
-                </Text>
-                <Switch
-                  checked={statusData?.mode === "AUTO"}
-                  loading={togglingMode}
-                  onChange={(checked) => handleToggleMode(checked ? "AUTO" : "SUGGEST")}
-                  style={{ backgroundColor: statusData?.mode === "AUTO" ? "#10b981" : "#8b5cf6" }}
-                />
-              </Space>
+              <Tooltip title="Auto-decision execution is permanently turned off to protect your ad accounts. The agent only provides research-backed strategic suggestions.">
+                <Tag color="cyan">Zero Risk Mode</Tag>
+              </Tooltip>
             </div>
             <Text style={{ color: "#71717a", fontSize: 12 }}>
-              {statusData?.mode === "AUTO"
-                ? "Agent has authority to pause low-ROAS ads and scale winners autonomously."
-                : "Human-in-the-loop: New campaigns and scales require one-click owner approval."}
+              Auto-apply is completely disabled. Agent conducts deep Meta algorithm & catalog research, generating actionable suggestions for owner review.
             </Text>
           </Card>
         </Col>
@@ -543,14 +583,36 @@ export const MetaAgentPage: React.FC = () => {
         </Col>
       </Row>
 
-      {/* SECTION 4: TODAY'S DECISIONS & ACTION AUDIT TRAIL */}
+      {/* SECTION 4: STRATEGIC AUDIT TRAIL & LOGS */}
       <Card
         title={
-          <Space>
-            <HistoryOutlined style={{ color: "#10b981" }} />
-            <span style={{ color: "#ffffff" }}>Decisions & Action Audit Trail</span>
-            <Tag color="blue">{logs.length} logged</Tag>
-          </Space>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", flexWrap: "wrap", gap: 12 }}>
+            <Space>
+              <HistoryOutlined style={{ color: "#10b981" }} />
+              <span style={{ color: "#ffffff" }}>Decisions & Action Audit Trail</span>
+              <Tag color="blue">{logs.length} logged</Tag>
+            </Space>
+            {logs.length > 0 && (
+              <Popconfirm
+                title="Delete all audit trail logs?"
+                description="This will permanently delete all logged decisions and strategic audit entries. This action cannot be undone."
+                onConfirm={handleClearAllLogs}
+                okText="Yes, Delete All"
+                cancelText="Cancel"
+                okButtonProps={{ danger: true }}
+              >
+                <Button
+                  danger
+                  icon={<DeleteOutlined />}
+                  loading={clearingLogs}
+                  size="small"
+                  style={{ backgroundColor: "rgba(239, 68, 68, 0.1)", borderColor: "rgba(239, 68, 68, 0.3)" }}
+                >
+                  Delete All Logs
+                </Button>
+              </Popconfirm>
+            )}
+          </div>
         }
         style={{ backgroundColor: "#111116", borderColor: "rgba(255,255,255,0.08)", borderRadius: 10 }}
       >
@@ -564,6 +626,130 @@ export const MetaAgentPage: React.FC = () => {
           style={{ backgroundColor: "transparent" }}
         />
       </Card>
+
+      {/* IN-DEPTH STRATEGIC LOG DETAILS MODAL */}
+      <Modal
+        title={
+          <Space>
+            <InfoCircleOutlined style={{ color: "#38bdf8" }} />
+            <span style={{ color: "#ffffff" }}>Meta Strategic Analysis & Rationale Deep Dive</span>
+          </Space>
+        }
+        open={!!selectedLogDetail}
+        onCancel={() => setSelectedLogDetail(null)}
+        footer={[
+          selectedLogDetail?.status === "NEEDS_APPROVAL" && (
+            <Button
+              key="reject"
+              danger
+              onClick={() => {
+                handleReject(selectedLogDetail.id);
+                setSelectedLogDetail(null);
+              }}
+            >
+              Dismiss Suggestion
+            </Button>
+          ),
+          selectedLogDetail?.status === "NEEDS_APPROVAL" && (
+            <Button
+              key="approve"
+              type="primary"
+              style={{ backgroundColor: "#10b981", borderColor: "#10b981" }}
+              onClick={() => {
+                handleApprove(selectedLogDetail.id);
+                setSelectedLogDetail(null);
+              }}
+            >
+              Apply & Deploy
+            </Button>
+          ),
+          <Button key="close" onClick={() => setSelectedLogDetail(null)}>
+            Close
+          </Button>
+        ]}
+        width={720}
+        styles={{
+          content: { backgroundColor: "#18181b", borderColor: "#27272a", color: "#ffffff" },
+          header: { backgroundColor: "#18181b", borderBottom: "1px solid #27272a" },
+          body: { padding: "20px 0" }
+        }}
+      >
+        {selectedLogDetail && (
+          <Space direction="vertical" size="large" style={{ width: "100%" }}>
+            <div>
+              <Text type="secondary" style={{ fontSize: 12, textTransform: "uppercase" }}>Strategic Proposal</Text>
+              <div style={{ marginTop: 4 }}>
+                <Title level={4} style={{ color: "#ffffff", margin: 0 }}>
+                  {selectedLogDetail.action_taken}
+                </Title>
+              </div>
+            </div>
+
+            <Row gutter={[16, 16]}>
+              <Col span={8}>
+                <div style={{ backgroundColor: "#111116", padding: 12, borderRadius: 8, border: "1px solid #27272a" }}>
+                  <Text type="secondary" style={{ fontSize: 11, display: "block" }}>TARGET TOOL</Text>
+                  <Text strong style={{ color: "#38bdf8", fontSize: 13 }}>{selectedLogDetail.tool_name}</Text>
+                </div>
+              </Col>
+              <Col span={8}>
+                <div style={{ backgroundColor: "#111116", padding: 12, borderRadius: 8, border: "1px solid #27272a" }}>
+                  <Text type="secondary" style={{ fontSize: 11, display: "block" }}>COST IMPACT</Text>
+                  <Text strong style={{ color: Number(selectedLogDetail.cost_impact) > 0 ? "#fbbf24" : "#9ca3af", fontSize: 13 }}>
+                    ${Number(selectedLogDetail.cost_impact).toFixed(2)} USD
+                  </Text>
+                </div>
+              </Col>
+              <Col span={8}>
+                <div style={{ backgroundColor: "#111116", padding: 12, borderRadius: 8, border: "1px solid #27272a" }}>
+                  <Text type="secondary" style={{ fontSize: 11, display: "block" }}>CURRENT STATE</Text>
+                  <Tag color={selectedLogDetail.status === "NEEDS_APPROVAL" ? "processing" : "default"}>
+                    {selectedLogDetail.status}
+                  </Tag>
+                </div>
+              </Col>
+            </Row>
+
+            <div style={{ backgroundColor: "rgba(139, 92, 246, 0.08)", padding: 16, borderRadius: 8, border: "1px solid rgba(139, 92, 246, 0.25)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <BulbOutlined style={{ color: "#facc15" }} />
+                <Text strong style={{ color: "#facc15", fontSize: 14 }}>In-Depth Meta Algorithm Analysis & Research</Text>
+              </div>
+              <Paragraph style={{ color: "#f4f4f5", fontSize: 14, lineHeight: 1.7, margin: 0, whiteSpace: "pre-wrap" }}>
+                {selectedLogDetail.reasoning_text}
+              </Paragraph>
+            </div>
+
+            {selectedLogDetail.tool_params && Object.keys(selectedLogDetail.tool_params).length > 0 && (
+              <div>
+                <Text type="secondary" style={{ fontSize: 12, textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+                  Execution Parameters & Payload
+                </Text>
+                <pre style={{
+                  backgroundColor: "#09090b",
+                  padding: 12,
+                  borderRadius: 6,
+                  border: "1px solid #27272a",
+                  color: "#a1a1aa",
+                  fontSize: 12,
+                  overflowX: "auto"
+                }}>
+                  {JSON.stringify(selectedLogDetail.tool_params, null, 2)}
+                </pre>
+              </div>
+            )}
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #27272a", paddingTop: 12 }}>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Logged at: {new Date(selectedLogDetail.created_at).toLocaleString()}
+              </Text>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Cycle ID: <code>{selectedLogDetail.agent_cycle_id}</code>
+              </Text>
+            </div>
+          </Space>
+        )}
+      </Modal>
     </div>
   );
 };

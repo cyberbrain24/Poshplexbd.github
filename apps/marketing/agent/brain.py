@@ -219,32 +219,38 @@ class MetaAgent:
             f"Analyze every campaign and suggest or execute optimization actions strictly following the rules."
         )
 
+        # Call LLM via standard HTTP handler (supporting Gemini, OpenAI, Claude, DeepSeek, etc.)
         if api_key:
             try:
-                from openai import OpenAI
-                client = OpenAI(api_key=api_key, base_url=base_url)
-                response = client.chat.completions.create(
+                from apps.marketing.services.ai_router import _execute_openai_compat_http
+                messages = [
+                    {"role": "system", "content": system_instruction},
+                    {"role": "user", "content": user_context}
+                ]
+                data = _execute_openai_compat_http(
+                    base_url=base_url,
+                    api_key=api_key,
                     model=model_name,
-                    messages=[
-                        {"role": "system", "content": system_instruction},
-                        {"role": "user", "content": user_context}
-                    ],
-                    max_tokens=max_tokens,
+                    messages=messages,
                     temperature=temp,
-                    response_format={"type": "json_object"}
+                    max_tokens=max_tokens,
+                    json_mode=True,
+                    timeout=30
                 )
-                content = response.choices[0].message.content
-                if active_route and active_route.provider:
-                    active_route.total_calls += 1
-                    active_route.provider.total_calls += 1
-                    active_route.save(update_fields=['total_calls'])
-                    active_route.provider.save(update_fields=['total_calls'])
+                choices = data.get("choices", [])
+                if choices:
+                    content = choices[0].get("message", {}).get("content", "")
+                    if active_route and active_route.provider:
+                        active_route.total_calls += 1
+                        active_route.provider.total_calls += 1
+                        active_route.save(update_fields=['total_calls'])
+                        active_route.provider.save(update_fields=['total_calls'])
 
-                parsed = json.loads(content)
-                if "actions" in parsed:
-                    return parsed
+                    parsed = json.loads(content)
+                    if "actions" in parsed:
+                        return parsed
             except Exception as e:
-                logger.warning(f"OpenAI agent reasoning failed: {e}. Falling back to deterministic expert heuristics.")
+                logger.warning(f"AI agent reasoning failed: {e}. Falling back to deterministic expert heuristics.")
 
         # Deterministic Expert Heuristic Reasoning Engine (Zero-Failure Fallback)
         return self._heuristic_reason(perception, research)
@@ -262,47 +268,69 @@ class MetaAgent:
             spend = camp["spend_window"]
             is_fatigued = camp.get("is_fatigued", False)
 
-            # Rule 1: ROAS < 1.0 and spend > 5.0 USD -> PAUSE
+            # Rule 1: ROAS < 1.0 and spend > 5.0 USD -> Suggest PAUSE
             if camp["status"] == "ACTIVE" and roas < 1.0 and spend > 5.0:
                 actions.append({
                     "tool": "pause_campaign",
                     "params": {"campaign_id": c_id, "reason": f"ROAS low ({roas}x) spend (${spend} USD) high"},
-                    "reasoning": f"{name} er ROAS {roas}x (spend ${spend} USD), profit hocche na. Tai budget bachaite campaign pause kora hoise.",
+                    "recommendation_title": f"Pause Campaign: {name}",
+                    "reasoning": (
+                        f"📊 [Meta Auction & Profit Analysis]: Campaign '{name}' has consumed ${spend} USD with an unprofitable ROAS of {roas}x. "
+                        f"Under Meta's Advantage+ delivery algorithm, continuing delivery on low-converting ad sets signals poor post-click engagement, "
+                        f"driving CPMs higher. 💡 [Practical Recommendation]: Pause this campaign to protect cash flow, and redeploy the budget into "
+                        f"higher-converting creative angles or trending catalog items."
+                    ),
                     "cost_impact": 0.00
                 })
-                summary_points.append(f"Paused {name} (ROAS {roas}x)")
+                summary_points.append(f"Recommended pause for {name} (ROAS {roas}x)")
 
-            # Rule 2: Out of stock product -> PAUSE
+            # Rule 2: Out of stock product -> Suggest PAUSE
             elif camp["status"] == "ACTIVE" and camp.get("product_is_sold_out"):
                 actions.append({
                     "tool": "pause_campaign",
                     "params": {"campaign_id": c_id, "reason": "Linked catalog product is sold out"},
-                    "reasoning": f"{name} er promoted product catalog-e stock out hoye gese. Out of stock e ad chalano burn.",
+                    "recommendation_title": f"Pause Stocked-Out Campaign: {name}",
+                    "reasoning": (
+                        f"📦 [Inventory Sync Guard]: The catalog product linked to '{name}' is currently 100% out of stock. "
+                        f"Meta's pixel will record bounces and abandoned checkouts, degrading the ad's Quality Ranking score in the auction. "
+                        f"💡 [Practical Recommendation]: Pause immediately until restocked to avoid burning ad spend on traffic that cannot checkout."
+                    ),
                     "cost_impact": 0.00
                 })
-                summary_points.append(f"Paused {name} due to stockout")
+                summary_points.append(f"Recommended pause for {name} due to stockout")
 
-            # Rule 3: ROAS > 3.5 -> SCALE +20%
+            # Rule 3: ROAS > 3.5 -> Suggest SCALE +20%
             elif camp["status"] == "ACTIVE" and roas >= 3.5 and camp["budget_amount"] < camp["max_budget_cap"]:
+                scale_amount = round(camp["budget_amount"] * 0.20, 2)
                 actions.append({
                     "tool": "scale_campaign",
                     "params": {"campaign_id": c_id, "percent": 20},
-                    "reasoning": f"{name} er ROAS {roas}x khub bhalo perform kortese! Budget +20% scale kora hocche profit barate.",
-                    "cost_impact": round(camp["budget_amount"] * 0.20, 2)
+                    "recommendation_title": f"Scale Winning Campaign: {name} (+20%)",
+                    "reasoning": (
+                        f"🚀 [Meta Scaling Opportunity]: Campaign '{name}' is generating an exceptional ROAS of {roas}x. "
+                        f"According to Meta's machine learning dynamics, budget increases exceeding 20% can destabilize the learning phase and inflate CPAs. "
+                        f"💡 [Practical Recommendation]: Increase daily budget by exactly +20% (+${scale_amount} USD) to capture additional high-intent buyers while keeping auction delivery stable."
+                    ),
+                    "cost_impact": scale_amount
                 })
-                summary_points.append(f"Scaled {name} +20% (ROAS {roas}x)")
+                summary_points.append(f"Recommended scaling {name} +20% (ROAS {roas}x)")
 
             # Rule 4: Creative Fatigue
             elif camp["status"] == "ACTIVE" and is_fatigued:
                 actions.append({
                     "tool": "notify_admin",
                     "params": {"message": f"Creative fatigue detected on {name}: CTR dropped 30% over 3 days. Recommend refreshing imagery.", "level": "WARNING"},
-                    "reasoning": f"{name} er CTR komtese, creative fatigue hoise. Notun visual asset dorkar.",
+                    "recommendation_title": f"Creative Refresh Needed: {name}",
+                    "reasoning": (
+                        f"⚠️ [Creative Fatigue Warning]: '{name}' has experienced a 30%+ drop in Click-Through Rate (CTR) over the past 72 hours, "
+                        f"indicating audience ad blindness in the target pool. Under Meta's 2026 auction logic, fatigued creative receives lower auction priority and higher CPMs. "
+                        f"💡 [Practical Recommendation]: Keep campaign active but introduce 2 fresh reel/lifestyle video angles to reset viewer engagement."
+                    ),
                     "cost_impact": 0.00
                 })
                 learnings.append({
                     "key": f"creative_fatigue_{c_id}",
-                    "insight": f"Campaign '{name}' experienced creative fatigue after 3 days; audience saturated.",
+                    "insight": f"Campaign '{name}' experienced creative fatigue; audience saturated.",
                     "importance": 1.2
                 })
 
@@ -313,7 +341,12 @@ class MetaAgent:
                 actions.append({
                     "tool": "create_campaign_from_product",
                     "params": {"product_id": top_prod["product_id"], "budget": 10.0},
-                    "reasoning": f"Catalog-e '{top_prod['name']}' sobcheye beshi order pacche. Test drop er jonno $10 USD budget-e ad run korar recommendation.",
+                    "recommendation_title": f"Launch Trending Streetwear Test: {top_prod['name']}",
+                    "reasoning": (
+                        f"🔥 [Catalog Sales Velocity Analysis]: '{top_prod['name']}' is demonstrating peak organic order velocity on the website over the last 7 days. "
+                        f"Meta's Advantage+ catalog algorithms perform best when feeding high-converting, high-affinity products into broad Dhaka streetwear demographics. "
+                        f"💡 [Practical Recommendation]: Launch an initial $10.00 USD test drop campaign targeting streetwear audiences to scale sales volume."
+                    ),
                     "cost_impact": 10.00
                 })
                 summary_points.append(f"Suggested test campaign for trending '{top_prod['name']}'")
@@ -328,7 +361,11 @@ class MetaAgent:
                     "message": f"Competitor Gap Detected: {top_gap['title']}. Action: {top_gap['recommendation']}",
                     "level": "INFO"
                 },
-                "reasoning": f"Market spy analysis-e competitor price advantage pawa gese. Counter-ad launch korle high conversion pawa jabe.",
+                "recommendation_title": f"Exploit Rival Market Gap: {top_gap['title']}",
+                "reasoning": (
+                    f"🕵️ [Competitor Intelligence & Hook Radar]: Comprehensive rival monitoring identified a key market opportunity: {top_gap['title']}. "
+                    f"💡 [Practical Sales Tactic]: {top_gap['recommendation']}. Deploying this positioning angle gives PoshPlex an immediate competitive edge."
+                ),
                 "cost_impact": 0.00
             })
             summary_points.append(f"Exploiting market gap: {top_gap['title']}")
@@ -348,136 +385,45 @@ class MetaAgent:
 
     def _act(self, decisions: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
-        Executes or stages actions respecting safety mode (SUGGEST vs AUTO).
+        Pure Advisory Mode: Stages all suggestions in AgentActionLog as 'SUGGESTION' / 'NEEDS_APPROVAL'
+        WITHOUT auto-applying or mutating Meta ads or local databases.
+        Only user approval can execute actions.
         """
         action_results = []
-        mode = self.config.mode
 
         for item in decisions.get("actions", []):
-            if self.tool_failure_count >= self.max_failures:
-                logger.error(f"[AGENT SAFETY] Maximum tool failures ({self.max_failures}) reached. Halting action execution.")
-                break
-
             tool_name = item.get("tool")
             params = item.get("params", {})
             reasoning = item.get("reasoning", "")
+            rec_title = item.get("recommendation_title") or item.get("action_taken") or f"SUGGESTION: {tool_name.replace('_', ' ').upper()}"
             cost_impact = Decimal(str(item.get("cost_impact", 0.00)))
-
-            # ----------------------------------------------------------------
-            # SAFETY MODE CHECK
-            # In SUGGEST mode, new campaigns ALWAYS require human approval.
-            # ----------------------------------------------------------------
-            if mode == 'SUGGEST' and tool_name == 'create_campaign_from_product':
-                log_entry = AgentActionLog.objects.create(
-                    agent_cycle_id=self.cycle_id,
-                    reasoning_text=reasoning,
-                    tool_name=tool_name,
-                    action_taken="SUGGEST_NEW_CAMPAIGN",
-                    outcome="Pending Human Approval in Admin Panel",
-                    cost_impact=cost_impact,
-                    status="NEEDS_APPROVAL",
-                    tool_params=params
-                )
-                action_results.append({
-                    "tool": tool_name,
-                    "status": "NEEDS_APPROVAL",
-                    "log_id": log_entry.id,
-                    "message": "Staged for admin approval."
-                })
-                continue
-
-            # In AUTO mode, execute tools directly
-            outcome = ""
-            status = "SUCCESS"
-
-            try:
-                if tool_name == "pause_campaign":
-                    res = pause_campaign(params.get("campaign_id"), reason=reasoning)
-                    outcome = json.dumps(res)
-                    if not res.get("success"):
-                        status = "FAILED"
-                        self.tool_failure_count += 1
-
-                elif tool_name == "scale_campaign":
-                    res = scale_campaign(params.get("campaign_id"), percent=params.get("percent", 20))
-                    outcome = json.dumps(res)
-                    if not res.get("success"):
-                        status = "FAILED"
-                        self.tool_failure_count += 1
-
-                elif tool_name == "create_campaign_from_product":
-                    res = create_campaign_from_product(params.get("product_id"), budget=params.get("budget", 1000.0))
-                    outcome = json.dumps(res)
-                    if not res.get("success"):
-                        status = "FAILED"
-                        self.tool_failure_count += 1
-
-                elif tool_name == "generate_copy":
-                    res = generate_copy(params.get("product_id"), angle=params.get("angle", "hype"))
-                    outcome = f"Generated headlines: {len(res.get('headlines', []))}"
-
-                elif tool_name == "analyze_competitor_ads":
-                    res = analyze_competitor_ads(params.get("keyword", "streetwear"))
-                    outcome = f"Analyzed {len(res.get('competitor_brands_analyzed', []))} brands"
-
-                elif tool_name == "create_lookalike_audience":
-                    res = create_lookalike_audience(params.get("campaign_id"))
-                    outcome = res.get("message", "Created lookalike audience")
-
-                elif tool_name == "notify_admin":
-                    res = notify_admin(params.get("message", ""), level=params.get("level", "INFO"))
-                    outcome = res.get("message", "Dispatched alert")
-
-                elif tool_name == "get_competitor_winning_ads":
-                    res = get_competitor_winning_ads(competitor_name=params.get("competitor_name"), limit=params.get("limit", 5))
-                    outcome = f"Retrieved {res.get('count', 0)} winning ads"
-
-                elif tool_name == "get_competitor_gaps":
-                    res = get_competitor_gaps(category=params.get("category"))
-                    outcome = f"Found {res.get('gaps_count', 0)} market gaps"
-
-                elif tool_name == "get_competitor_threat_report":
-                    res = get_competitor_threat_report()
-                    outcome = f"Analyzed {res.get('total_monitored', 0)} competitors"
-
-                elif tool_name == "get_tiktok_trends":
-                    res = get_tiktok_trends(category=params.get("category"))
-                    outcome = f"Loaded {res.get('trends_count', 0)} TikTok trends"
-
-                else:
-
-                    outcome = f"Unknown tool: {tool_name}"
-                    status = "FAILED"
-
-            except Exception as e:
-                logger.error(f"Execution error on tool {tool_name}: {e}")
-                outcome = f"Error: {str(e)}"
-                status = "FAILED"
-                self.tool_failure_count += 1
 
             # Determine linked campaign
             c_id = params.get("campaign_id")
             camp_obj = Campaign.objects.filter(id=c_id).first() if c_id else None
 
-            # Always audit every action in AgentActionLog
+            # Always record every suggestion for human review with full audit details
             log_entry = AgentActionLog.objects.create(
                 agent_cycle_id=self.cycle_id,
                 reasoning_text=reasoning,
                 tool_name=tool_name,
                 campaign=camp_obj,
-                action_taken=f"{tool_name.upper()} ({status})",
-                outcome=outcome,
-                cost_impact=cost_impact if status == "SUCCESS" else Decimal('0.00'),
-                status=status,
+                action_taken=rec_title,
+                outcome="Pending Human Review (Advisory Suggestion)",
+                cost_impact=cost_impact,
+                status="NEEDS_APPROVAL",
                 tool_params=params
             )
 
             action_results.append({
                 "tool": tool_name,
-                "status": status,
+                "status": "NEEDS_APPROVAL",
                 "log_id": log_entry.id,
-                "outcome": outcome
+                "message": "Suggestion staged for owner review.",
+                "reasoning": reasoning
             })
+
+        return action_results
 
         return action_results
 
@@ -527,18 +473,32 @@ def chat_with_agent(user_message: str) -> str:
 
     if api_key:
         try:
-            from openai import OpenAI
-            client = OpenAI(api_key=api_key)
-            res = client.chat.completions.create(
-                model="gpt-4o-mini",
+            from apps.marketing.services.ai_router import _execute_openai_compat_http, get_ai_route_for_operation, DEFAULT_BASE_URLS
+            base_url = "https://api.openai.com/v1"
+            model_name = "gpt-4o-mini"
+            route = get_ai_route_for_operation("AGENT_BRAIN")
+            if route and route.provider and route.provider.is_active:
+                prov_key = route.provider.get_api_key()
+                if prov_key:
+                    api_key = prov_key
+                    base_url = route.provider.base_url or DEFAULT_BASE_URLS.get(route.provider.provider_type, "https://api.openai.com/v1")
+                    model_name = route.model_name or route.provider.default_model
+
+            data = _execute_openai_compat_http(
+                base_url=base_url,
+                api_key=api_key,
+                model=model_name,
                 messages=[
                     {"role": "system", "content": AGENT_CHAT_SYSTEM_PROMPT},
                     {"role": "user", "content": context_prompt}
                 ],
-                max_tokens=400,
-                temperature=0.5
+                max_tokens=450,
+                temperature=0.5,
+                timeout=30
             )
-            return res.choices[0].message.content.strip()
+            choices = data.get("choices", [])
+            if choices:
+                return choices[0].get("message", {}).get("content", "").strip()
         except Exception as e:
             logger.error(f"Error in chat_with_agent: {e}")
 
