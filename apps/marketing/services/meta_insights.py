@@ -50,8 +50,12 @@ def fetch_insights(ad_account: MetaAdAccount, since: str, until: str) -> List[Di
             except (ValueError, TypeError):
                 act_val = 0
 
-            if act_type in ("purchase", "omni_purchase", "offsite_conversion.fb_pixel_purchase"):
-                conversions += act_val
+            # Meta reports purchase under multiple redundant keys ('purchase', 'omni_purchase', 'offsite_conversion.fb_pixel_purchase').
+            # Do not sum them together or it counts the same purchase 3 times!
+            if act_type == "purchase":
+                conversions = max(conversions, act_val)
+            elif act_type in ("omni_purchase", "offsite_conversion.fb_pixel_purchase") and conversions == 0:
+                conversions = act_val
             elif act_type == "landing_page_view":
                 landing_page_views += act_val
             elif act_type in ("onsite_conversion.post_save", "commerce_merchant_settings", "view_content", "onsite_conversion.messaging_user_initiated"):
