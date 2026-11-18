@@ -42,7 +42,7 @@ export const AbandonedCheckoutsPage: React.FC = () => {
   const [total, setTotal] = useState<number>(0);
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(20);
-  const [activeTab, setActiveTab] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<string>("pending");
   const [searchText, setSearchText] = useState<string>("");
   const [kpi, setKpi] = useState<any>({
     total_captured: 0,
@@ -228,15 +228,14 @@ export const AbandonedCheckoutsPage: React.FC = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
-        return <Tag color="gold">Pending Call</Tag>;
       case "called_busy":
-        return <Tag color="orange">Busy / No Answer</Tag>;
       case "called_followup":
-        return <Tag color="blue">Follow-up Needed</Tag>;
+        return <Tag color="gold" style={{ fontWeight: 600 }}>Pending Call</Tag>;
       case "converted":
-        return <Tag color="green">Converted to Order ✓</Tag>;
+        return <Tag color="green" style={{ fontWeight: 600 }}>Converted ✓</Tag>;
       case "declined":
-        return <Tag color="red">Declined</Tag>;
+      case "cancelled":
+        return <Tag color="red" style={{ fontWeight: 600 }}>Declined / Lost</Tag>;
       default:
         return <Tag>{status.toUpperCase()}</Tag>;
     }
@@ -263,6 +262,40 @@ export const AbandonedCheckoutsPage: React.FC = () => {
   };
 
   const columns = [
+    {
+      title: "Date & Time",
+      key: "date_time",
+      width: 145,
+      sorter: (a: AbandonedItem, b: AbandonedItem) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      defaultSortOrder: 'descend' as const,
+      render: (_: any, record: AbandonedItem) => {
+        if (!record.created_at) return <span style={{ color: "var(--text-muted)" }}>—</span>;
+        const d = new Date(record.created_at);
+        const dateStr = d.toLocaleDateString("en-US", {
+          timeZone: "Asia/Dhaka",
+          month: "short",
+          day: "numeric",
+          year: "numeric"
+        });
+        const timeStr = d.toLocaleTimeString("en-US", {
+          timeZone: "Asia/Dhaka",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true
+        });
+        return (
+          <Space direction="vertical" size={2}>
+            <div style={{ display: "flex", alignItems: "center", gap: 5, color: "#ffffff", fontWeight: 700, fontSize: 12 }}>
+              <ClockCircleOutlined style={{ color: "#38bdf8", fontSize: 13 }} />
+              <span>{dateStr}</span>
+            </div>
+            <div style={{ color: "#94a3b8", fontSize: 11, paddingLeft: 18, fontWeight: 500 }}>
+              {timeStr}
+            </div>
+          </Space>
+        );
+      }
+    },
     {
       title: "Customer & Contact",
       key: "customer",
@@ -381,7 +414,7 @@ export const AbandonedCheckoutsPage: React.FC = () => {
           >
             Log Call Note
           </Button>
-          {record.status !== "converted" && (
+          {record.status !== "converted" ? (
             <Popconfirm
               title="Convert to Order"
               description={`Create Cash on Delivery order for ${record.customer_name || record.phone} (৳${Math.round(record.cart_total)})?`}
@@ -398,6 +431,10 @@ export const AbandonedCheckoutsPage: React.FC = () => {
                 Place as COD
               </Button>
             </Popconfirm>
+          ) : (
+            <Tag color="cyan" style={{ width: "100%", textAlign: "center", padding: "4px 0", fontWeight: 700, borderRadius: 4 }}>
+              Order #{record.converted_order_number || record.converted_order_id}
+            </Tag>
           )}
         </Space>
       ),
@@ -426,19 +463,9 @@ export const AbandonedCheckoutsPage: React.FC = () => {
         <Col xs={12} sm={6}>
           <Card size="small" className="glass-card">
             <Statistic
-              title="Recoverable Potential"
-              value={`৳${Math.round(kpi.recoverable_value).toLocaleString()}`}
-              styles={{ content: { color: "#f59e0b", fontWeight: 700 } }}
-              prefix={<DollarOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col xs={12} sm={6}>
-          <Card size="small" className="glass-card">
-            <Statistic
               title="Pending Calls"
               value={kpi.pending_count}
-              styles={{ content: { color: "#e11d48", fontWeight: 700 } }}
+              styles={{ content: { color: "#f59e0b", fontWeight: 700 } }}
               prefix={<PhoneOutlined />}
             />
           </Card>
@@ -446,8 +473,8 @@ export const AbandonedCheckoutsPage: React.FC = () => {
         <Col xs={12} sm={6}>
           <Card size="small" className="glass-card">
             <Statistic
-              title="Recovered Revenue"
-              value={`৳${Math.round(kpi.recovered_value).toLocaleString()}`}
+              title="Converted"
+              value={kpi.converted_count}
               styles={{ content: { color: "#10b981", fontWeight: 700 } }}
               prefix={<CheckCircleOutlined />}
             />
@@ -456,10 +483,20 @@ export const AbandonedCheckoutsPage: React.FC = () => {
         <Col xs={12} sm={6}>
           <Card size="small" className="glass-card">
             <Statistic
-              title="Recovery Conversion"
-              value={`${kpi.conversion_rate}%`}
+              title="Declined / Lost"
+              value={kpi.declined_count}
+              styles={{ content: { color: "#ef4444", fontWeight: 700 } }}
+              prefix={<CloseCircleOutlined />}
+            />
+          </Card>
+        </Col>
+        <Col xs={12} sm={6}>
+          <Card size="small" className="glass-card">
+            <Statistic
+              title="Recovered Revenue"
+              value={`৳${Math.round(kpi.recovered_value).toLocaleString()}`}
               styles={{ content: { color: "#8b5cf6", fontWeight: 700 } }}
-              prefix={<ArrowUpOutlined />}
+              prefix={<DollarOutlined />}
             />
           </Card>
         </Col>
@@ -506,9 +543,8 @@ export const AbandonedCheckoutsPage: React.FC = () => {
             }}
           >
             {[
-              { key: "all", label: "Active Drops", count: kpi.pending_count + kpi.followup_count, color: "#f59e0b" },
               { key: "pending", label: "Pending Call", count: kpi.pending_count, color: "#f59e0b" },
-              { key: "called_followup", label: "Follow-up Needed", count: kpi.followup_count, color: "#3b82f6" },
+              { key: "converted", label: "Converted", count: kpi.converted_count, color: "#10b981" },
               { key: "declined", label: "Declined / Lost", count: kpi.declined_count, color: "#ef4444" },
             ].map(tab => {
               const isActive = activeTab === tab.key;
@@ -562,9 +598,7 @@ export const AbandonedCheckoutsPage: React.FC = () => {
           <Form.Item name="status" label="Recovery Outcome / Status" rules={[{ required: true }]}>
             <Select>
               <Select.Option value="pending">Pending Call</Select.Option>
-              <Select.Option value="called_busy">Called - No Answer / Busy</Select.Option>
-              <Select.Option value="called_followup">Follow-up Needed</Select.Option>
-              <Select.Option value="converted">Converted to Order</Select.Option>
+              <Select.Option value="converted">Converted</Select.Option>
               <Select.Option value="declined">Declined / Lost</Select.Option>
             </Select>
           </Form.Item>

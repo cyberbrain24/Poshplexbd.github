@@ -2260,10 +2260,15 @@ def list_abandoned_checkouts(
     qs = AbandonedCheckout.objects.select_related('assigned_to', 'converted_order').all()
 
     if status and status.lower() != "all":
-        qs = qs.filter(status=status.lower())
+        status_clean = status.lower().strip()
+        if status_clean == "pending":
+            qs = qs.filter(status__in=["pending", "called_busy", "called_followup"])
+        elif status_clean == "declined":
+            qs = qs.filter(status__in=["declined", "cancelled"])
+        else:
+            qs = qs.filter(status=status_clean)
     else:
-        # Default view: hide converted orders so they don't clutter the recovery call list
-        qs = qs.exclude(status="converted")
+        qs = qs.filter(status__in=["pending", "called_busy", "called_followup"])
 
     if search:
         search_term = search.strip()
@@ -2277,10 +2282,10 @@ def list_abandoned_checkouts(
     # Compute high-level recovery metrics
     all_qs = AbandonedCheckout.objects.all()
     total_captured = all_qs.count()
-    pending_count = all_qs.filter(status="pending").count()
+    pending_count = all_qs.filter(status__in=["pending", "called_busy", "called_followup"]).count()
     followup_count = all_qs.filter(status="called_followup").count()
     converted_count = all_qs.filter(status="converted").count()
-    declined_count = all_qs.filter(status="declined").count()
+    declined_count = all_qs.filter(status__in=["declined", "cancelled"]).count()
 
     total_recoverable_value = all_qs.filter(status__in=["pending", "called_followup", "called_busy"]).aggregate(
         val=Sum('cart_total')
