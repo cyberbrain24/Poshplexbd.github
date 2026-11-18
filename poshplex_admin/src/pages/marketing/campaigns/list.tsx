@@ -14,7 +14,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import dayjs from "dayjs";
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 const { RangePicker } = DatePicker;
 
 const SERVER_BASE = import.meta.env.VITE_SERVER_URL || (window.location.hostname === 'admin.poshplexbd.com' ? 'https://poshplexbd.com' : 'http://localhost:8000');
