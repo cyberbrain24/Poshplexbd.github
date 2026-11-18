@@ -357,6 +357,7 @@ export const CampaignList: React.FC = () => {
       key: "budget_amount",
       align: "right",
       width: 80,
+      fixed: "left" as const,
       render: (amount: number, record: any) => (
         <div style={{ textAlign: "right", lineHeight: 1.1 }}>
           <Text strong style={{ fontSize: 11, color: "#f8fafc" }}>
@@ -375,6 +376,7 @@ export const CampaignList: React.FC = () => {
       key: "total_spend",
       align: "right",
       width: 90,
+      fixed: "left" as const,
       render: (spend: number, record: any) => (
         <Text style={{ fontSize: 11, fontWeight: 700, color: Number(spend) > 0 ? "#fca5a5" : "#94a3b8" }}>
           {fmtCurrency(spend, record)}
@@ -404,6 +406,7 @@ export const CampaignList: React.FC = () => {
       key: "cost_per_result",
       align: "right",
       width: 85,
+      fixed: "left" as const,
       render: (cpr: number, record: any) => {
         const val = Number(cpr || 0);
         return (
@@ -968,7 +971,7 @@ export const CampaignList: React.FC = () => {
           }}
           summary={() => (
             <Table.Summary fixed="bottom">
-              <Table.Summary.Row style={{ backgroundColor: "#0c0c10", fontWeight: 800 }}>
+              <Table.Summary.Row style={{ backgroundColor: "#111116", fontWeight: 800 }}>
                 <Table.Summary.Cell index={0} fixed="left">
                   <div style={{ color: "#ffffff", fontSize: 11, textTransform: "uppercase" }}>
                     TOTAL ({campaigns.length} Ads)
@@ -1018,8 +1021,15 @@ export const CampaignList: React.FC = () => {
                     content = summary.lpv > 0 ? `$${(summary.spend / summary.lpv).toFixed(2)}` : "—";
                   }
 
+                  const isStickyCol = ["budget_amount", "total_spend", "cost_per_result"].includes(colKey);
+
                   return (
-                    <Table.Summary.Cell index={idx + 1} key={colKey} align="right">
+                    <Table.Summary.Cell
+                      index={idx + 1}
+                      key={colKey}
+                      align="right"
+                      fixed={isStickyCol ? ("left" as const) : undefined}
+                    >
                       <Text style={{ fontSize: 11, color: colKey === "total_spend" ? "#f87171" : colKey === "results" ? "#34d399" : "#ffffff", fontWeight: 800 }}>
                         {content}
                       </Text>
@@ -1035,6 +1045,36 @@ export const CampaignList: React.FC = () => {
           )}
         />
       </Card>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        /* Opaque solid background for sticky fixed columns to eliminate overlapping text */
+        .meta-dense-campaigns-table .ant-table-cell-fix-left,
+        .meta-dense-campaigns-table .ant-table-cell-fix-right {
+          background-color: #111116 !important;
+          z-index: 3 !important;
+        }
+
+        .meta-dense-campaigns-table .ant-table-thead > tr > th.ant-table-cell-fix-left,
+        .meta-dense-campaigns-table .ant-table-thead > tr > th.ant-table-cell-fix-right {
+          background-color: #181820 !important;
+          z-index: 4 !important;
+        }
+
+        .meta-dense-campaigns-table .ant-table-tbody > tr:hover > td.ant-table-cell-fix-left,
+        .meta-dense-campaigns-table .ant-table-tbody > tr:hover > td.ant-table-cell-fix-right {
+          background-color: #1a1a24 !important;
+        }
+
+        .meta-dense-campaigns-table .ant-table-summary .ant-table-cell-fix-left,
+        .meta-dense-campaigns-table .ant-table-summary .ant-table-cell-fix-right {
+          background-color: #0c0c10 !important;
+          z-index: 5 !important;
+        }
+
+        .meta-dense-campaigns-table .ant-table-cell {
+          padding: 6px 8px !important;
+        }
+      `}} />
 
       {/* Rearrange Columns & Visibility Modal */}
       <Modal

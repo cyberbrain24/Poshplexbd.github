@@ -861,7 +861,51 @@ def list_campaigns(
         d_start = start_date
         d_stop = end_date
 
-    serialized = [_serialize_campaign(c, date_start=d_start, date_stop=d_stop) for c in qs]
+    # Live Meta Insights integration for exact date-range metrics
+    insights_map = {}
+    if d_start and d_stop:
+        from apps.marketing.services.meta_insights import fetch_insights
+        accounts_to_query = MetaAdAccount.objects.filter(is_active=True)
+        if ad_account_id:
+            accounts_to_query = accounts_to_query.filter(id=ad_account_id)
+        for acc in accounts_to_query:
+            try:
+                raw_insights = fetch_insights(acc, d_start, d_stop)
+                for item in raw_insights:
+                    cid = item.get("meta_campaign_id")
+                    if cid:
+                        insights_map[str(cid)] = item
+            except Exception as e:
+                logger.warning(f"Failed to fetch live insights for {acc.meta_account_id} ({d_start} to {d_stop}): {e}")
+
+    serialized = []
+    for c in qs:
+        # Check if live insights available for this campaign in this date window
+        live_data = insights_map.get(str(c.meta_campaign_id))
+        if live_data:
+            s_data = _serialize_campaign(c)
+            # Override metrics with exact live Meta date-range values
+            spend_val = live_data.get("spend", Decimal('0.00'))
+            s_data["total_spend"] = spend_val
+            s_data["results"] = live_data.get("conversions", 0)
+            s_data["impressions"] = live_data.get("impressions", 0)
+            s_data["reach"] = live_data.get("reach", 0)
+            s_data["frequency"] = live_data.get("frequency", 1.0)
+            s_data["cpm"] = live_data.get("cpm", Decimal('0.00'))
+            s_data["shop_clicks"] = live_data.get("shop_clicks", 0)
+            s_data["link_clicks"] = live_data.get("link_clicks", 0)
+            s_data["total_clicks"] = live_data.get("clicks", 0)
+            s_data["cpc"] = live_data.get("cost_per_link_click", Decimal('0.00'))
+            s_data["cpc_all"] = live_data.get("cpc_all", Decimal('0.00'))
+            s_data["ctr_all"] = live_data.get("ctr", 0.0)
+            s_data["landing_page_views"] = live_data.get("landing_page_views", 0)
+            s_data["cost_per_landing_page"] = live_data.get("cost_per_landing_page", Decimal('0.00'))
+            res_count = s_data["results"]
+            s_data["cost_per_result"] = round(spend_val / Decimal(res_count), 2) if res_count > 0 else Decimal('0.00')
+            serialized.append(s_data)
+        else:
+            serialized.append(_serialize_campaign(c, date_start=d_start, date_stop=d_stop))
+
 
     # Sort logic: ACTIVE first, then best performer (descending results, then spend), then newest ID
     def sort_key(item):
