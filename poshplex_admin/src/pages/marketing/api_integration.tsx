@@ -192,7 +192,18 @@ export const ApiIntegrationPage: React.FC = () => {
   };
 
   const handleUpdateRouteField = (operation: string, field: string, value: any) => {
-    setRoutes(prev => prev.map(r => r.operation === operation ? { ...r, [field]: value } : r));
+    setRoutes(prev => prev.map(r => {
+      if (r.operation !== operation) return r;
+      const updated = { ...r, [field]: value };
+      // If provider was changed, auto-suggest the default model if model_name was previously default/empty or mismatched
+      if (field === "provider_id") {
+        const selectedProv = providers.find(p => p.id === value);
+        if (selectedProv && selectedProv.default_model) {
+          updated.model_name = selectedProv.default_model;
+        }
+      }
+      return updated;
+    }));
   };
 
   const handleSaveRoute = async (route: any) => {
