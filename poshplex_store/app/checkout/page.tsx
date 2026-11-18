@@ -881,20 +881,6 @@ if (success) {
                   <h3 className="checkout-section-title">My contact details</h3>
                   <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
                     <div>
-                      <label style={labelStyle}>Full Name *</label>
-                      <input 
-                        ref={nameInputRef}
-                        required 
-                        type="text" 
-                        name="name" 
-                        value={formData.name} 
-                        onChange={handleChange} 
-                        onBlur={() => reEnrichInitiateCheckout(formData)} 
-                        style={inputStyle} 
-                        placeholder="John Doe" 
-                      />
-                    </div>
-                    <div>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                         <label style={{ ...labelStyle, marginBottom: 0 }}>Phone Number *</label>
                         <span style={{ fontSize: 11, fontWeight: 600, color: isPhoneValid ? "#10b981" : (phoneTouched ? "#ef4444" : "var(--text-muted)") }}>
@@ -931,6 +917,20 @@ if (success) {
                           <span>Invalid phone number. Must be 11 digits starting with 01 (e.g. 017XXXXXXXX).</span>
                         </div>
                       )}
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Full Name *</label>
+                      <input 
+                        ref={nameInputRef}
+                        required 
+                        type="text" 
+                        name="name" 
+                        value={formData.name} 
+                        onChange={handleChange} 
+                        onBlur={() => reEnrichInitiateCheckout(formData)} 
+                        style={inputStyle} 
+                        placeholder="John Doe" 
+                      />
                     </div>
                     {/* EMAIL SECTION REMOVED */}
                     <div style={{ zIndex: 20 }} ref={districtRef}>
@@ -1112,7 +1112,7 @@ if (success) {
                         width: "100%", 
                         padding: "16px 20px", 
                         fontSize: 15, 
-                        fontWeight: 800, 
+                        fontWeight: 900, 
                         backgroundColor: "#2f2f2f", 
                         color: "#ffffff", 
                         border: "none", 
@@ -1121,18 +1121,18 @@ if (success) {
                         display: "flex", 
                         justifyContent: "center", 
                         alignItems: "center", 
-                        gap: 8, 
+                        gap: 10, 
                         opacity: loading ? 0.7 : 1,
-                        textTransform: "none",
-                        letterSpacing: "0.02em"
+                        textTransform: "uppercase",
+                        letterSpacing: "0.08em"
                       }}
                     >
                       {loading ? (
-                        "Confirming order..."
+                        "CONFIRMING ORDER..."
                       ) : (
                         <>
-                          <span>Confirm order</span>
-                          <Heart size={16} fill="#ef4444" color="#ef4444" style={{ flexShrink: 0 }} />
+                          <span style={{ letterSpacing: "0.08em" }}>CONFIRM ORDER</span>
+                          <Heart size={18} fill="#ef4444" color="#ef4444" className="confirm-heart-pulse" style={{ flexShrink: 0 }} />
                         </>
                       )}
                     </button>
@@ -1208,9 +1208,32 @@ if (success) {
         }
 
         @keyframes pulse-btn {
-          0% { transform: scale(1); box-shadow: 0 4px 12px rgba(47, 47, 47, 0.2); }
-          50% { transform: scale(1.02); box-shadow: 0 6px 20px rgba(239, 68, 68, 0.35); }
-          100% { transform: scale(1); box-shadow: 0 4px 12px rgba(47, 47, 47, 0.2); }
+          0% { 
+            transform: scale(1); 
+            box-shadow: 0 4px 14px rgba(47, 47, 47, 0.25); 
+          }
+          50% { 
+            transform: scale(1.025); 
+            box-shadow: 0 8px 24px rgba(225, 29, 72, 0.35), 0 0 12px rgba(239, 68, 68, 0.25); 
+          }
+          100% { 
+            transform: scale(1); 
+            box-shadow: 0 4px 14px rgba(47, 47, 47, 0.25); 
+          }
+        }
+
+        @keyframes heart-beat {
+          0%, 100% { transform: scale(1); }
+          14% { transform: scale(1.3); }
+          28% { transform: scale(1); }
+          42% { transform: scale(1.3); }
+          70% { transform: scale(1); }
+        }
+
+        .confirm-heart-pulse {
+          animation: heart-beat 1.6s infinite ease-in-out;
+          display: inline-block;
+          vertical-align: middle;
         }
 
         .place-order-btn {
@@ -1218,20 +1241,20 @@ if (success) {
           color: #ffffff !important;
           border-radius: 8px !important;
           border: none !important;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
-          transition: all 0.2s ease !important;
-          animation: none !important;
+          box-shadow: 0 4px 14px rgba(0,0,0,0.2) !important;
+          transition: all 0.25s ease !important;
+          animation: pulse-btn 2.2s infinite ease-in-out !important;
         }
         
         .place-order-btn:hover {
           background-color: #1a1a1a !important;
           color: #ffffff !important;
-          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2) !important;
-          transform: translateY(-1px) !important;
+          box-shadow: 0 8px 25px rgba(225, 29, 72, 0.3) !important;
+          transform: translateY(-2px) scale(1.01) !important;
         }
         
         .place-order-btn:active {
-          transform: translateY(1px) !important;
+          transform: translateY(1px) scale(0.99) !important;
         }
 
         .custom-scrollbar::-webkit-scrollbar {
