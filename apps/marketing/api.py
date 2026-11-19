@@ -5,6 +5,7 @@ import logging
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from django.db.models import Q, Sum, Count, Avg
 
 logger = logging.getLogger(__name__)
 
@@ -1762,12 +1763,13 @@ def get_attribution_summary(
         impressions = snaps.aggregate(i=Sum('impressions'))['i'] or 0
         link_clicks = snaps.aggregate(c=Sum('link_clicks'))['c'] or 0
 
-        # Touchpoints for this campaign
+        # Touchpoints for this campaign (match either touchpoint creation or order creation in date range)
         touchpoints = OrderAttributionTouchpoint.objects.filter(
-            campaign=camp,
-            created_at__gte=start_dt,
-            created_at__lte=end_dt
-        ).select_related('session')
+            campaign=camp
+        ).filter(
+            Q(created_at__gte=start_dt, created_at__lte=end_dt) |
+            Q(order_id__in=Order.objects.filter(created_at__gte=start_dt, created_at__lte=end_dt).values_list('id', flat=True))
+        ).distinct().select_related('session')
 
         # Model-weighted counts and values
         placed_orders = Decimal('0.00')
@@ -1829,6 +1831,7 @@ def get_attribution_summary(
             "name": camp.name,
             "meta_campaign_id": camp.meta_campaign_id or "",
             "status": camp.status,
+            "spend": float(spend_usd),
             "spend_usd": float(spend_usd),
             "spend_bdt": float(spend_bdt),
             "impressions": impressions,
@@ -1836,14 +1839,19 @@ def get_attribution_summary(
             "placed_orders": round(float(placed_orders), 2),
             "delivered_orders": round(float(delivered_orders), 2),
             "returned_orders": round(float(returned_orders), 2),
+            "delivery_rate": delivery_rate,
             "delivery_success_rate": delivery_rate,
             "placed_revenue": float(placed_rev),
             "delivered_revenue": float(deliv_rev),
             "gross_margin": float(gross_margin),
             "return_loss": float(return_loss),
+            "net_profit": float(net_profit),
             "net_ad_profit": float(net_profit),
             "roas": roas,
         })
+
+    # Sort campaigns: active campaigns and campaigns with spend/orders first
+    campaigns_data.sort(key=lambda c: (1 if c["status"] == "ACTIVE" else 0, c["spend_usd"], c["placed_orders"]), reverse=True)
 
     tot_finished = tot_delivered_orders + tot_returned_orders
     tot_delivery_rate = round(float(tot_delivered_orders / tot_finished * 100), 1) if tot_finished > 0 else 0.0
@@ -1854,6 +1862,7 @@ def get_attribution_summary(
         "date_from": start_dt.strftime("%Y-%m-%d"),
         "date_to": end_dt.strftime("%Y-%m-%d"),
         "overview": {
+            "total_spend": float(tot_spend_bdt),
             "total_spend_usd": float(tot_spend_usd),
             "total_spend_bdt": float(tot_spend_bdt),
             "total_impressions": tot_impressions,
@@ -1861,12 +1870,15 @@ def get_attribution_summary(
             "total_placed_orders": round(float(tot_placed_orders), 2),
             "total_delivered_orders": round(float(tot_delivered_orders), 2),
             "total_returned_orders": round(float(tot_returned_orders), 2),
+            "delivery_rate": tot_delivery_rate,
             "delivery_success_rate": tot_delivery_rate,
             "total_placed_revenue": float(tot_placed_revenue),
             "total_delivered_revenue": float(tot_delivered_revenue),
             "total_gross_margin": float(tot_gross_margin),
             "total_return_loss": float(tot_return_loss),
+            "net_profit": float(tot_net_ad_profit),
             "total_net_ad_profit": float(tot_net_ad_profit),
+            "roas": tot_roas,
             "roas_delivered": tot_roas,
         },
         "campaigns": campaigns_data

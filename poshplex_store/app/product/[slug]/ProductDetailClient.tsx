@@ -12,6 +12,7 @@ import { toast } from 'react-hot-toast';
 import { fetchWithAuth } from "../../utils/fetchWithAuth";
 import { useCart } from "../../../context/CartContext";
 import ProductCard from "../../components/ProductCard";
+import CommunityReviewsSection from "../../components/CommunityReviewsSection";
 import BuyMoreAndSave from "./BuyMoreAndSave";
 import SizeChartModal from "./SizeChartModal";
 // [TEMPORARY DISCONNECT] AI Fit Check module temporarily disconnected
@@ -1160,35 +1161,6 @@ export default function ProductDetailClient({
                     {/* Size Guide table */}
                     {key === "sizeGuide" && (
                       <div className="size-guide-container" style={{ width: "100%", display: "flex", flexDirection: "column", gap: 14 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-                          <span style={{ fontSize: 12, color: "#666", fontWeight: 600 }}>
-                            {product.size_guide?.name || "Size Guide"}
-                          </span>
-                          <button
-                            type="button"
-                            aria-label="View Full Size Chart"
-                            onClick={() => setShowSizeChartModal(true)}
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 6,
-                              backgroundColor: "#ffffff",
-                              border: "1px solid #111111",
-                              borderRadius: "4px",
-                              minHeight: 38,
-                              padding: "8px 12px",
-                              fontSize: "11px",
-                              fontWeight: 700,
-                              color: "#111111",
-                              cursor: "pointer",
-                              textTransform: "uppercase",
-                              lineHeight: 1.2,
-                            }}
-                          >
-                            <Ruler size={13} strokeWidth={2.2} /> View Full Chart
-                          </button>
-                        </div>
-
                         {(product.size_guide?.tables && product.size_guide.tables.length > 0) ? (
                           product.size_guide.tables.map((table: any, tIdx: number) => (
                             <div key={tIdx} style={{ width: "100%", overflowX: "auto" }}>
@@ -1287,6 +1259,12 @@ export default function ProductDetailClient({
           <p style={{ fontSize: 13, color: "#888", textAlign: "center", padding: "20px 0" }}>No related products found</p>
         )}
       </div>
+
+      {/* ── Community Reviews ── */}
+      <CommunityReviewsSection
+        currentProductSlug={product.slug}
+        onImageClick={(url) => setLightboxUrl(url)}
+      />
 
       {/* ── Lightbox ── */}
       {lightboxUrl && (
