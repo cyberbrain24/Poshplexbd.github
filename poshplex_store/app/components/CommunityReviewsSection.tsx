@@ -40,13 +40,19 @@ export default function CommunityReviewsSection({
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data) && isMounted) {
-            // Filter reviews that have images first or take approved reviews
-            const sorted = data.sort((a: any, b: any) => {
+            // Randomize reviews on every page load with Fisher-Yates shuffle
+            const shuffled = [...data];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            // Keep reviews with photos prioritized among the randomized list
+            shuffled.sort((a: any, b: any) => {
               const aHasImg = (a.images && a.images.length > 0) ? 1 : 0;
               const bHasImg = (b.images && b.images.length > 0) ? 1 : 0;
               return bHasImg - aHasImg;
             });
-            setReviews(sorted);
+            setReviews(shuffled);
           }
         }
       } catch (err) {

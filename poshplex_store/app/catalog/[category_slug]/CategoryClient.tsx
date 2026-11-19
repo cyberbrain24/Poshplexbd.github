@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Heart, SlidersHorizontal, ChevronDown, X, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { Heart, SlidersHorizontal, ChevronDown, X, Star, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import ProductCard from "../../components/ProductCard";
 
 /* ─── helpers ─────────────────────────────────────────────────────── */
@@ -460,7 +460,8 @@ export default function CategoryClient({
   const [isLoading, setIsLoading] = useState(initialProducts.length === 0 && initialCategoryTree.length === 0);
   const [filterOpen, setFilterOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState<"newest" | "asc" | "desc">("newest");
-  const [visibleCount, setVisibleCount] = useState(16);
+  const [visibleCount, setVisibleCount] = useState(12);
+  const observerTargetRef = useRef<HTMLDivElement>(null);
   const [filters, setFilters] = useState<FilterState>({
     colors: [],
     sizes: [],
@@ -610,6 +611,31 @@ export default function CategoryClient({
 
   const visible = sorted.slice(0, visibleCount);
   const hasMore = visibleCount < sorted.length;
+
+  // Infinite scroll observer: auto loads 12 products per scroll for category & subcategory pages
+  useEffect(() => {
+    const target = observerTargetRef.current;
+    if (!target) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((prev) => {
+            if (prev < sorted.length) {
+              return prev + 12;
+            }
+            return prev;
+          });
+        }
+      },
+      { rootMargin: "350px" }
+    );
+
+    observer.observe(target);
+    return () => {
+      observer.disconnect();
+    };
+  }, [sorted.length]);
 
   const activeFilterCount =
     filters.colors.length + filters.sizes.length + filters.priceBuckets.length;
@@ -897,34 +923,16 @@ export default function CategoryClient({
               ))}
             </div>
 
-            {/* Load More */}
+            {/* Infinite Scroll Trigger & Load More */}
             {hasMore && (
-              <div style={{ textAlign: "center", marginTop: 56 }}>
-                <button
-                  onClick={() => setVisibleCount((n) => n + 16)}
-                  style={{
-                    padding: "14px 48px",
-                    border: "1px solid #ccc",
-                    background: "#fff",
-                    fontSize: 13,
-                    fontWeight: 500,
-                    cursor: "pointer",
-                    borderRadius: 4,
-                    color: "#111",
-                    letterSpacing: "0.3px",
-                    transition: "all 0.2s",
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.target as HTMLButtonElement).style.background = "#111";
-                    (e.target as HTMLButtonElement).style.color = "#fff";
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.target as HTMLButtonElement).style.background = "#fff";
-                    (e.target as HTMLButtonElement).style.color = "#111";
-                  }}
-                >
-                  Load More ({sorted.length - visibleCount} remaining)
-                </button>
+              <div
+                ref={observerTargetRef}
+                style={{ textAlign: "center", marginTop: 40, padding: "20px 0" }}
+              >
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "#666", fontSize: 13, fontWeight: 600 }}>
+                  <Loader2 size={18} className="animate-spin" />
+                  <span>Loading more drops... ({sorted.length - visibleCount} remaining)</span>
+                </div>
               </div>
             )}
           </>

@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, X } from "lucide-react";
+import { Search, X, Loader2 } from "lucide-react";
 import ProductCard from "../components/ProductCard";
 
 const formatBDT = (n: string | number) => `৳${Math.round(Number(n))}`;
@@ -44,7 +44,8 @@ export default function CatalogPage() {
     return "";
   });
   const [sortBy, setSortBy] = useState("featured");
-  const [visibleCount, setVisibleCount] = useState(16);
+  const [visibleCount, setVisibleCount] = useState(12);
+  const observerTargetRef = useRef<HTMLDivElement>(null);
 
   /* load categories */
   useEffect(() => {
@@ -177,6 +178,31 @@ export default function CatalogPage() {
     if (sortBy === "newest") return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
     return 0;
   });
+
+  // Infinite Scroll Observer: auto loads 12 products per scroll
+  useEffect(() => {
+    const target = observerTargetRef.current;
+    if (!target) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((prev) => {
+            if (prev < sortedProducts.length) {
+              return prev + 12;
+            }
+            return prev;
+          });
+        }
+      },
+      { rootMargin: "350px" }
+    );
+
+    observer.observe(target);
+    return () => {
+      observer.disconnect();
+    };
+  }, [sortedProducts.length]);
 
   return (
     <div style={{ background: "#fff", minHeight: "100vh", paddingTop: 40, paddingBottom: 100 }}>
@@ -398,35 +424,16 @@ export default function CatalogPage() {
                   ))}
                 </div>
 
-                {/* Load More */}
+                {/* Infinite Scroll Trigger & Load More */}
                 {visibleCount < sortedProducts.length && (
-                  <div style={{ textAlign: "center", marginTop: 56 }}>
-                    <button
-                      onClick={() => setVisibleCount((n) => n + 16)}
-                      style={{
-                        padding: "14px 48px",
-                        border: "1px solid #ccc",
-                        background: "#fff",
-                        fontSize: 13,
-                        fontWeight: 700,
-                        textTransform: "uppercase",
-                        letterSpacing: "1px",
-                        cursor: "pointer",
-                        transition: "all 0.2s"
-                      }}
-                      onMouseEnter={e => {
-                        e.currentTarget.style.background = "#111";
-                        e.currentTarget.style.color = "#fff";
-                        e.currentTarget.style.borderColor = "#111";
-                      }}
-                      onMouseLeave={e => {
-                        e.currentTarget.style.background = "#fff";
-                        e.currentTarget.style.color = "#111";
-                        e.currentTarget.style.borderColor = "#ccc";
-                      }}
-                    >
-                      Load More ({sortedProducts.length - visibleCount} remaining)
-                    </button>
+                  <div
+                    ref={observerTargetRef}
+                    style={{ textAlign: "center", marginTop: 40, padding: "20px 0" }}
+                  >
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "#666", fontSize: 13, fontWeight: 600 }}>
+                      <Loader2 size={18} className="animate-spin" />
+                      <span>Loading more drops... ({sortedProducts.length - visibleCount} remaining)</span>
+                    </div>
                   </div>
                 )}
               </>
