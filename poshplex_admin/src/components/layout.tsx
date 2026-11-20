@@ -99,10 +99,10 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
       label: "Meta Engine",
       module: "marketing",
       children: [
-        { key: "/marketing/attribution", icon: <AimOutlined style={{ color: "#10b981" }} />, label: "Customer Data & Attribution", module: "marketing" },
+        { key: "/marketing/campaigns", icon: <RocketOutlined />, label: "Meta Campaigns", module: "marketing" },
+        { key: "/marketing/attribution", icon: <AimOutlined style={{ color: "#10b981" }} />, label: "Customer Data & Attribution Platform", module: "marketing" },
         { key: "/marketing/competitor", icon: <EyeOutlined />, label: "Competitor Spy", module: "marketing" },
         { key: "/marketing/api-integration", icon: <ApiOutlined />, label: "API Integration", module: "marketing" },
-        { key: "/marketing/campaigns", icon: <RocketOutlined />, label: "Meta Campaigns", module: "marketing" },
         { key: "/marketing/rules", icon: <CheckSquareOutlined />, label: "Ad Automation Rules", module: "marketing" },
         { key: "/marketing/accounts", icon: <SettingOutlined />, label: "Meta Ad Accounts", module: "marketing" },
       ],
