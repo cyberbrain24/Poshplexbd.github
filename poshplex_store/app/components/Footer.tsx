@@ -41,7 +41,7 @@ export default function Footer() {
                 BE POSH WITH POSHPLEX
               </p>
               <p style={{ fontSize: 12, lineHeight: 1.5, color: "rgba(255, 255, 255, 0.5)", marginTop: 16, marginBottom: 0, maxWidth: "90%" }}>
-                Poshplex is a premium streetwear e-commerce platform. Users can create accounts using Google Login to track orders, manage wishlists, and securely checkout.
+                POSHPLEX is more than a clothing label. It’s a celebration of refined elegance and distinctive design, crafted for discerning people worldwide who value timeless style with modern, authentic sophistication.
               </p>
             </div>
             
@@ -136,7 +136,7 @@ export default function Footer() {
               BE POSH WITH POSHPLEX
             </p>
             <p style={{ fontSize: 12, lineHeight: 1.5, color: "rgba(255, 255, 255, 0.5)", marginTop: 0, marginBottom: 24, maxWidth: "100%" }}>
-              Poshplex is a premium streetwear e-commerce platform. Users can create accounts using Google Login to track orders, manage wishlists, and securely checkout.
+              POSHPLEX is more than a clothing label. It’s a celebration of refined elegance and distinctive design, crafted for discerning people worldwide who value timeless style with modern, authentic sophistication.
             </p>
             <h3 style={{ fontSize: 11, fontWeight: 700, color: "#fff", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 10 }}>
               JOIN THE MOVEMENT
