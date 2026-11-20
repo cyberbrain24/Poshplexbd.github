@@ -136,6 +136,18 @@ def create_order(
     except Exception:
         pass
 
+    # Asynchronously query and persist Steadfast Delivery Risk & Merchant Reports for new placed order
+    try:
+        from apps.orders.tasks import fetch_and_store_steadfast_delivery_risk_task
+        fetch_and_store_steadfast_delivery_risk_task.delay(order.id)
+    except Exception:
+        # Fallback to direct thread/sync execution if Celery broker is temporarily unreachable
+        try:
+            from apps.orders.tasks import fetch_and_store_steadfast_delivery_risk_task
+            fetch_and_store_steadfast_delivery_risk_task(order.id)
+        except Exception:
+            pass
+
     return order
 
 @transaction.atomic
@@ -470,7 +482,8 @@ def check_steadfast_delivery_risk(phone: str) -> dict:
 def check_steadfast_delivery_risk_batch(phones: list) -> dict:
     """
     Check Steadfast delivery risk and fraud scores for multiple customer phone numbers
-    in a single batch call. Results are cached in Redis/cache and returned as a phone-keyed map.
+    in a single batch call. Results are checked in DB (placed orders) & Redis/cache first
+    to prevent exhausting Steadfast external rate limits.
     """
     import re
     import concurrent.futures
@@ -481,6 +494,7 @@ def check_steadfast_delivery_risk_batch(phones: list) -> dict:
     results = {}
     missing_phones = []
 
+    # 1. First check Redis cache
     for raw_phone in phones:
         if not raw_phone:
             continue
@@ -500,6 +514,23 @@ def check_steadfast_delivery_risk_batch(phones: list) -> dict:
             if cleaned not in missing_phones:
                 missing_phones.append(cleaned)
 
+    # 2. Check Database for already stored reports in placed orders before calling live API
+    if missing_phones:
+        from apps.orders.models import Order
+        still_missing = []
+        for ph in missing_phones:
+            db_order = Order.objects.filter(
+                status='placed',
+                shipping_phone__icontains=ph,
+                delivery_risk_data__isnull=False
+            ).first()
+            if db_order and db_order.delivery_risk_data:
+                results[ph] = db_order.delivery_risk_data
+                cache.set(f"steadfast_risk_score_{ph}", db_order.delivery_risk_data, timeout=7200)
+            else:
+                still_missing.append(ph)
+        missing_phones = still_missing
+
     if missing_phones:
         # Fetch misses concurrently (up to 5 workers)
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
@@ -512,12 +543,28 @@ def check_steadfast_delivery_risk_batch(phones: list) -> dict:
                 try:
                     res = future.result()
                     results[phone] = res
+                    # Also back-fill placed order in DB if present
+                    if res and res.get("success"):
+                        from apps.orders.models import Order
+                        Order.objects.filter(
+                            status='placed',
+                            shipping_phone__icontains=phone,
+                            delivery_risk_data__isnull=True
+                        ).update(delivery_risk_data=res)
                 except Exception as e:
                     logger.error(f"Error fetching batch delivery risk for {phone}: {e}")
                     results[phone] = {
                         "success": False,
                         "phone": phone,
                         "error": str(e),
+                        "delivery_ratio": None,
+                        "cancellation_ratio": None,
+                        "delivered_count": 0,
+                        "cancelled_count": 0,
+                        "total_parcels": 0,
+                        "total_reports": 0,
+                    }
+    return results
                         "delivery_ratio": None,
                         "cancellation_ratio": None,
                         "delivered_count": 0,

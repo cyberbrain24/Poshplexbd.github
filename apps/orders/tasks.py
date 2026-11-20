@@ -171,3 +171,36 @@ def generate_invoice_pdf_task(self, order_id: int):
     except Exception as exc:
         logger.error(f"Failed to generate PDF for order {order_id}: {exc}")
         raise self.retry(exc=exc)
+
+@shared_task(bind=True, max_retries=2, default_retry_delay=60)
+def fetch_and_store_steadfast_delivery_risk_task(self, order_id: int):
+    """
+    Background task to query Steadfast delivery risk & merchant report once
+    for a newly placed order and store it in order.delivery_risk_data.
+    Strictly restricted to orders with status='placed'.
+    """
+    from apps.orders.models import Order
+    from apps.orders.services import check_steadfast_delivery_risk
+
+    try:
+        order = Order.objects.get(id=order_id)
+        if order.status != 'placed':
+            return "Order is not in placed status; skipped."
+
+        phone = order.shipping_phone or (order.user.crm_profile.phone if hasattr(order.user, 'crm_profile') else "")
+        if not phone:
+            return "No phone found for order; skipped."
+
+        risk_data = check_steadfast_delivery_risk(phone)
+        if risk_data and risk_data.get("success"):
+            order.delivery_risk_data = risk_data
+            order.save(update_fields=['delivery_risk_data'])
+            logger.info(f"[Steadfast Risk] Saved delivery risk for Order #{order.id} ({phone}).")
+            return f"Saved risk data for Order #{order.id}"
+        return "Steadfast API call unsuccessful or empty."
+    except Order.DoesNotExist:
+        logger.warning(f"Order {order_id} not found for Steadfast risk check.")
+        return "Order does not exist."
+    except Exception as exc:
+        logger.error(f"Error fetching Steadfast risk for order {order_id}: {exc}")
+        return str(exc)

@@ -160,6 +160,7 @@ class OrderResponseSchema(Schema):
     
     risk_level: str
     risk_reasons: List[str]
+    delivery_risk_data: Optional[Dict[str, Any]] = None
     
     items: List[OrderItemSchema]
     payments: List[PaymentSchema] = []
@@ -345,6 +346,7 @@ def compile_order_response(order: Order, sku_to_details: dict = None) -> dict:
         "is_delayed": is_delayed,
         "risk_level": order.risk_level,
         "risk_reasons": order.risk_reasons or [],
+        "delivery_risk_data": order.delivery_risk_data if order.status == 'placed' else None,
         "items": items,
         "payments": payments,
         "returns": returns,

@@ -21,7 +21,6 @@ export default function Header({
   const [isOpen, setIsOpen] = useState(false);
   const [hoveredCategory, setHoveredCategory] = useState<number | null>(null);
 
-  // Dynamic Header Announcement Bar settings from Site Settings
   const [headerSettings, setHeaderSettings] = useState<{
     tagline: string;
     animType: string;
@@ -35,6 +34,11 @@ export default function Header({
     speedTablet: initialSettings?.header_speed_tablet != null ? Number(initialSettings.header_speed_tablet) : 10,
     speedMobile: initialSettings?.header_speed_mobile != null ? Number(initialSettings.header_speed_mobile) : 8,
   });
+
+  const isCheckoutPage = pathname === "/checkout" || pathname?.startsWith("/checkout");
+  const displayTagline = isCheckoutPage
+    ? "FAST DELIVERY ALL OVER BANGLADESH"
+    : headerSettings.tagline;
 
   useEffect(() => {
     let isMounted = true;
@@ -240,17 +244,17 @@ export default function Header({
         >
           {headerSettings.animType === "ticker" ? (
             <div style={{ display: "inline-flex", alignItems: "center", gap: 32, paddingRight: 32 }}>
-              <span>{headerSettings.tagline}</span>
+              <span>{displayTagline}</span>
               <span style={{ opacity: 0.5 }}>•</span>
-              <span>{headerSettings.tagline}</span>
+              <span>{displayTagline}</span>
               <span style={{ opacity: 0.5 }}>•</span>
-              <span>{headerSettings.tagline}</span>
+              <span>{displayTagline}</span>
               <span style={{ opacity: 0.5 }}>•</span>
-              <span>{headerSettings.tagline}</span>
+              <span>{displayTagline}</span>
               <span style={{ opacity: 0.5 }}>•</span>
             </div>
           ) : (
-            <span>{headerSettings.tagline}</span>
+            <span>{displayTagline}</span>
           )}
         </div>
       </div>

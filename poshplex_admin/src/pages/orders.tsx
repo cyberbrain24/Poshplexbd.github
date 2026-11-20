@@ -197,7 +197,10 @@ export const Orders: React.FC = () => {
   useEffect(() => {
     if (!orders || orders.length === 0) return;
 
+    // First, populate deliveryRiskMap directly from order.delivery_risk_data stored in database
+    const initialMap: Record<string, any> = {};
     const phonesToFetch: string[] = [];
+
     orders.forEach((o: any) => {
       // Steadfast delivery risk is only shown and queried for 'placed' status orders
       if (String(o.status || "").toLowerCase() !== "placed") return;
@@ -205,10 +208,19 @@ export const Orders: React.FC = () => {
       let ph = (o.shipping_phone || o.customer_phone || "").replace(/\D/g, "");
       if (ph.startsWith("8801") && ph.length === 13) ph = ph.slice(2);
       else if (ph.startsWith("008801") && ph.length === 15) ph = ph.slice(4);
-      if (ph.length >= 10 && !deliveryRiskMap[ph] && !phonesToFetch.includes(ph)) {
+      if (ph.length < 10) return;
+
+      // If database already has the stored risk report for this placed order, use it directly (0 API calls)
+      if (o.delivery_risk_data && o.delivery_risk_data.success) {
+        initialMap[ph] = o.delivery_risk_data;
+      } else if (!deliveryRiskMap[ph] && !phonesToFetch.includes(ph)) {
         phonesToFetch.push(ph);
       }
     });
+
+    if (Object.keys(initialMap).length > 0) {
+      setDeliveryRiskMap(prev => ({ ...prev, ...initialMap }));
+    }
 
     if (phonesToFetch.length === 0) return;
 

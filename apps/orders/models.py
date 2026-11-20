@@ -68,6 +68,11 @@ class Order(AuditedModelMixin):
     # Risk flags
     risk_level = models.CharField(max_length=20, default='low')
     risk_reasons = models.JSONField(default=list, blank=True)
+    delivery_risk_data = models.JSONField(
+        null=True, 
+        blank=True, 
+        help_text="Cached Steadfast delivery risk and fraud report data. Strictly kept while status='placed' and automatically purged when status changes."
+    )
     
     # OrderPulse Analytics & Root Causes
     delay_reason = models.CharField(max_length=100, blank=True, null=True)
@@ -86,6 +91,14 @@ class Order(AuditedModelMixin):
         ]
 
     def save(self, *args, **kwargs):
+        # Auto-purge delivery_risk_data when order status leaves 'placed'
+        if self.status != 'placed' and self.delivery_risk_data:
+            self.delivery_risk_data = None
+            if 'update_fields' in kwargs and kwargs['update_fields'] is not None:
+                update_fields = set(kwargs['update_fields'])
+                update_fields.add('delivery_risk_data')
+                kwargs['update_fields'] = list(update_fields)
+
         # Auto-generate custom PO invoice code
         is_new = self.id is None
         super().save(*args, **kwargs)
