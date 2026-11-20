@@ -71,6 +71,16 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [isLooping]);
 
   useEffect(() => {
+    let timer: NodeJS.Timeout;
+
+    const startTimer = () => {
+      // Defer music configuration & tracks fetching by 7 seconds on initial page load
+      // so primary page resources, hero images, and critical scripts load first
+      timer = setTimeout(() => {
+        fetchTracks();
+      }, 7000);
+    };
+
     const fetchTracks = async () => {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 4000);
@@ -116,7 +126,23 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setTracks([]);
       }
     };
-    fetchTracks();
+
+    if (typeof window !== "undefined") {
+      if (document.readyState === "complete") {
+        startTimer();
+      } else {
+        window.addEventListener("load", startTimer);
+      }
+    } else {
+      fetchTracks();
+    }
+
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("load", startTimer);
+      }
+      if (timer) clearTimeout(timer);
+    };
   }, []);
 
   useEffect(() => {

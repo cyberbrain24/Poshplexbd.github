@@ -37,8 +37,8 @@ export const FloatingPlayer: React.FC = () => {
     let timer: NodeJS.Timeout;
     
     const startTimer = () => {
-      // 6 seconds delay on all devices for faster perceived load
-      const delay = 6000;
+      // 7 seconds delay on page load for faster perceived load & performance
+      const delay = 7000;
       timer = setTimeout(() => setIsReady(true), delay);
     };
 

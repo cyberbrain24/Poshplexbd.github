@@ -22,6 +22,30 @@ export default function BottomNav() {
   const isFitCheckActive = false;
   // const [isGlobalFitModalOpen, setIsGlobalFitModalOpen] = useState(false);
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
+  const [isMusicReady, setIsMusicReady] = useState(false);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    const startTimer = () => {
+      // 7 seconds delay on mobile view for music player button to appear
+      timer = setTimeout(() => setIsMusicReady(true), 7000);
+    };
+
+    if (typeof window !== "undefined") {
+      if (document.readyState === "complete") {
+        startTimer();
+      } else {
+        window.addEventListener("load", startTimer);
+      }
+    }
+
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("load", startTimer);
+      }
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
 
   useEffect(() => {
     const handleMenuState = (e: any) => {
@@ -80,7 +104,7 @@ export default function BottomNav() {
           </Link>
 
           {/* Music Play / Pause / Expand Controller */}
-          {isMusicActive && (
+          {isMusicActive && isMusicReady && (
             <div style={{ flex: 1, display: "flex", justifyContent: "center", position: "relative", height: "100%" }}>
               <button 
                 id="mobile-music-btn"
