@@ -105,7 +105,9 @@ export const ReportsPage: React.FC = () => {
 
   useEffect(() => {
     if (data?.status_report) {
-      setActiveStatuses(Object.keys(data.status_report));
+      // By default, exclude 'cancelled' and 'manually_cancelled' so net sales and profit reflect non-cancelled orders
+      const defaultExcluded = ["cancelled", "manually_cancelled"];
+      setActiveStatuses(Object.keys(data.status_report).filter(k => !defaultExcluded.includes(k)));
     }
   }, [data]);
 

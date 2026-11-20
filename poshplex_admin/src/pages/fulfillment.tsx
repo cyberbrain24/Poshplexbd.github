@@ -71,6 +71,28 @@ export const Fulfillment: React.FC = () => {
   const [codForm] = Form.useForm();
   const [trackingForm] = Form.useForm();
 
+  // Summary statistics for Fulfillment queue header
+  const summaryStats = React.useMemo(() => {
+    let urgent = 0;
+    let ready = 0;
+    let notReady = 0;
+    let delayedInReview = 0;
+
+    orders.forEach((o: any) => {
+      if (o.is_urgent) urgent++;
+      if (o.is_ready) ready++;
+      else notReady++;
+
+      // Delayed or stalled in review
+      const isReviewDelayed = o.status === 'review' && (o.is_delayed || (o.notes && o.notes.toLowerCase().includes('delay')));
+      if (o.is_delayed || isReviewDelayed) {
+        delayedInReview++;
+      }
+    });
+
+    return { urgent, ready, notReady, delayedInReview };
+  }, [orders]);
+
   // Load active orders from the queue endpoint
   const fetchFulfillmentQueue = async () => {
     setLoading(true);
@@ -344,6 +366,68 @@ export const Fulfillment: React.FC = () => {
               Order Fulfillment <span style={{ fontSize: 13, fontWeight: 'normal', color: '#888' }}>{orders.length}</span>
             </h1>
             <p style={{ margin: 0, color: "var(--text-muted)", fontSize: 12 }}>Pack & prepare orders before courier</p>
+          </div>
+        </div>
+
+        {/* Mini Summary Report Bar - Minimal Space & Responsive */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 8,
+          background: 'rgba(255, 255, 255, 0.04)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: 8,
+          padding: '4px 10px'
+        }}>
+          {/* Urgent Orders */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 6px' }}>
+            <span style={{ fontSize: 14 }}>⚡</span>
+            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
+              <span style={{ fontSize: 10, color: '#ff4d4f', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px' }}>Urgent</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: summaryStats.urgent > 0 ? '#ff4d4f' : 'var(--text-main)' }}>
+                {summaryStats.urgent}
+              </span>
+            </div>
+          </div>
+
+          <div style={{ width: 1, height: 20, background: 'rgba(255, 255, 255, 0.1)' }} />
+
+          {/* Ready Parcels */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 6px' }}>
+            <span style={{ fontSize: 14 }}>📦</span>
+            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
+              <span style={{ fontSize: 10, color: '#10b981', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px' }}>Ready</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: '#10b981' }}>
+                {summaryStats.ready}
+              </span>
+            </div>
+          </div>
+
+          <div style={{ width: 1, height: 20, background: 'rgba(255, 255, 255, 0.1)' }} />
+
+          {/* Not Ready Parcels */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 6px' }}>
+            <span style={{ fontSize: 14 }}>⏳</span>
+            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
+              <span style={{ fontSize: 10, color: '#f59e0b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px' }}>Not Ready</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: '#f59e0b' }}>
+                {summaryStats.notReady}
+              </span>
+            </div>
+          </div>
+
+          <div style={{ width: 1, height: 20, background: 'rgba(255, 255, 255, 0.1)' }} />
+
+          {/* Delayed in Review */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 6px' }}>
+            <span style={{ fontSize: 14 }}>⚠️</span>
+            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
+              <span style={{ fontSize: 10, color: '#a855f7', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px' }}>Delayed Review</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: summaryStats.delayedInReview > 0 ? '#a855f7' : 'var(--text-main)' }}>
+                {summaryStats.delayedInReview}
+              </span>
+            </div>
           </div>
         </div>
 
