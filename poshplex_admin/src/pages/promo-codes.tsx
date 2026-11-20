@@ -13,6 +13,7 @@ const SERVER_BASE = import.meta.env.VITE_SERVER_URL || (window.location.hostname
 const API_URL = `${SERVER_BASE}/api/v1/marketing/promos`;
 const COMBOS_API = `${SERVER_BASE}/api/v1/marketing/admin/combos`;
 const CRM_URL = `${SERVER_BASE}/api/v1/crm`;
+const CATALOG_API = `${SERVER_BASE}/api/v1/catalog`;
 
 export const PromoCodes: React.FC = () => {
   // --- Promo Codes State ---
@@ -21,6 +22,8 @@ export const PromoCodes: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPromo, setSelectedPromo] = useState<any>(null);
   const [tiers, setTiers] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [form] = Form.useForm();
 
   // --- Combo Offers State ---
@@ -73,6 +76,34 @@ export const PromoCodes: React.FC = () => {
       } catch (err) { console.error("Failed to fetch CRM tiers", err); }
     };
     fetchTiers();
+
+    // Fetch categories and products for promo targeting
+    const fetchCatalogData = async () => {
+      try {
+        const token = localStorage.getItem("poshplex_access_token");
+        const [catRes, prodRes] = await Promise.all([
+          axios.get(`${CATALOG_API}/categories/tree?admin=true`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${CATALOG_API}/products?limit=100`, { headers: { Authorization: `Bearer ${token}` } })
+        ]);
+        
+        // Flatten category tree for simple multi-select
+        const flattenCategories = (nodes: any[]): any[] => {
+          let list: any[] = [];
+          (nodes || []).forEach(node => {
+            list.push({ id: node.id, name: node.name, slug: node.slug });
+            if (node.children && node.children.length > 0) {
+              list = list.concat(flattenCategories(node.children));
+            }
+          });
+          return list;
+        };
+        setCategories(flattenCategories(catRes.data || []));
+        setProducts(prodRes.data?.results || []);
+      } catch (err) {
+        console.error("Failed to load catalog targeting metadata", err);
+      }
+    };
+    fetchCatalogData();
   }, []);
 
   // Save / Edit campaign promo
@@ -433,6 +464,39 @@ export const PromoCodes: React.FC = () => {
               { title: "Reward Type", dataIndex: "reward_type", render: (t) => getRewardTypeTag(t) },
               { title: "Value", dataIndex: "discount_value", render: (val, record) => record.reward_type === "percent" ? `${val}%` : `৳${Math.round(val)}` },
               { title: "Min Spend", dataIndex: "min_order_amount", render: (val) => `৳${Math.round(val)}` },
+              {
+                title: "Targeting Rules",
+                key: "targeting",
+                render: (_, record) => {
+                  const hasCats = record.applicable_category_ids && record.applicable_category_ids.length > 0;
+                  const hasInc = record.included_product_ids && record.included_product_ids.length > 0;
+                  const hasExc = record.excluded_product_ids && record.excluded_product_ids.length > 0;
+
+                  if (!hasCats && !hasInc && !hasExc) {
+                    return <Tag color="default">All Catalog (Storewide)</Tag>;
+                  }
+
+                  return (
+                    <Space direction="vertical" size={2}>
+                      {hasCats && (
+                        <Tag color="cyan">
+                          📁 {record.applicable_category_ids.length} Categor{record.applicable_category_ids.length > 1 ? "ies" : "y"}
+                        </Tag>
+                      )}
+                      {hasInc && (
+                        <Tag color="purple">
+                          🎯 {record.included_product_ids.length} Included Prod{record.included_product_ids.length > 1 ? "s" : ""}
+                        </Tag>
+                      )}
+                      {hasExc && (
+                        <Tag color="red">
+                          🚫 {record.excluded_product_ids.length} Excluded
+                        </Tag>
+                      )}
+                    </Space>
+                  );
+                }
+              },
               { title: "Total Redemptions", dataIndex: "usage_count", render: (count, record) => `${count} / ${record.total_usage_limit || "∞"}` },
               { title: "Validity Dates", render: (_, record) => (
                 <span style={{ fontSize: 12 }}>
@@ -451,7 +515,10 @@ export const PromoCodes: React.FC = () => {
                         ...record,
                         starts_at: record.starts_at ? dayjs(record.starts_at) : null,
                         expires_at: record.expires_at ? dayjs(record.expires_at) : null,
-                        is_single_use: record.total_usage_limit === 1 && record.per_customer_limit === 1
+                        is_single_use: record.total_usage_limit === 1 && record.per_customer_limit === 1,
+                        applicable_category_ids: record.applicable_category_ids || [],
+                        included_product_ids: record.included_product_ids || [],
+                        excluded_product_ids: record.excluded_product_ids || []
                       });
                       setIsModalOpen(true);
                     }}>
@@ -604,6 +671,80 @@ export const PromoCodes: React.FC = () => {
               <Form.Item name="membership_tier" label="Membership Tier Grant (optional)">
                 <Select placeholder="Choose membership tier" allowClear>
                   {tiers.map(t => <Select.Option key={t.id} value={t.name}>{t.name}</Select.Option>)}
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Divider orientation="left">Targeting & Category / Product Restrictions</Divider>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
+            Optionally restrict this coupon to specific categories or products. If left empty, this promo code applies to all store items.
+          </div>
+
+          <Row gutter={16}>
+            <Col span={24}>
+              <Form.Item 
+                name="applicable_category_ids" 
+                label="Applicable Categories (Includes all subcategories)"
+              >
+                <Select
+                  mode="multiple"
+                  placeholder="Select categories (leave empty for All Categories)"
+                  allowClear
+                  showSearch
+                  optionFilterProp="children"
+                  style={{ width: "100%" }}
+                >
+                  {categories.map(c => (
+                    <Select.Option key={c.id} value={c.id}>
+                      {c.name}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item 
+                name="included_product_ids" 
+                label="Specific Products Included (Only these qualify)"
+              >
+                <Select
+                  mode="multiple"
+                  placeholder="Select qualifying products"
+                  allowClear
+                  showSearch
+                  optionFilterProp="children"
+                  style={{ width: "100%" }}
+                >
+                  {products.map(p => (
+                    <Select.Option key={p.id} value={p.id}>
+                      {p.name} {p.sku ? `(${p.sku})` : ''}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item 
+                name="excluded_product_ids" 
+                label="Specific Products Excluded (Strictly block promo)"
+              >
+                <Select
+                  mode="multiple"
+                  placeholder="Select products to exclude"
+                  allowClear
+                  showSearch
+                  optionFilterProp="children"
+                  style={{ width: "100%" }}
+                >
+                  {products.map(p => (
+                    <Select.Option key={p.id} value={p.id}>
+                      {p.name} {p.sku ? `(${p.sku})` : ''}
+                    </Select.Option>
+                  ))}
                 </Select>
               </Form.Item>
             </Col>

@@ -15,6 +15,7 @@ from ninja.errors import HttpError
 from apps.orders.models import Order, OrderItem, OrderStatusHistory, District, Thana, AbandonedCheckout
 
 from apps.marketing.models import PromoCode, PromoUsageHistory
+from apps.marketing.services.promo_targeting import evaluate_promo_code_for_items
 from apps.orders.services import (
     create_order, record_order_payment, process_return,
 )
@@ -1227,29 +1228,16 @@ def customer_checkout_endpoint(request, data: OrderCreateInputSchema):
             if data.promo_code:
                 try:
                     promo = PromoCode.objects.get(code=data.promo_code.upper().strip(), is_active=True)
-                    from django.utils import timezone
-                    now = timezone.now()
-                    is_valid = True
-                    
-                    if promo.starts_at and now < promo.starts_at: is_valid = False
-                    if promo.expires_at and now > promo.expires_at: is_valid = False
-                    if subtotal < promo.min_order_amount: is_valid = False
-                    if promo.total_usage_limit and promo.usage_count >= promo.total_usage_limit: is_valid = False
-                    
-                    # Check customer limit
-                    if final_phone:
-                        usage_count = PromoUsageHistory.objects.filter(promo_code=promo, customer_phone=final_phone).count()
-                        if usage_count >= promo.per_customer_limit: is_valid = False
-                        
+                    items_dicts = [item.dict() for item in data.items]
+                    is_valid, promo_disc, _ = evaluate_promo_code_for_items(
+                        promo=promo,
+                        items=items_dicts,
+                        subtotal=subtotal,
+                        customer_phone=final_phone,
+                        shipping_cost=final_shipping_cost
+                    )
                     if is_valid:
-                        if promo.reward_type == 'percent':
-                            final_discount_amount = subtotal * (promo.discount_value / Decimal('100.00'))
-                            if promo.max_discount_amount and final_discount_amount > promo.max_discount_amount:
-                                final_discount_amount = promo.max_discount_amount
-                        elif promo.reward_type == 'fixed':
-                            final_discount_amount = promo.discount_value
-                        elif promo.reward_type == 'freeship':
-                            final_discount_amount = final_shipping_cost
+                        final_discount_amount = promo_disc
                         applied_promo = promo
                 except PromoCode.DoesNotExist:
                     pass

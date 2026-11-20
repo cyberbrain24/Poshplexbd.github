@@ -9,28 +9,40 @@ def get_variant_details_by_sku(sku: str) -> Optional[dict]:
     """
     # 1. Try explicit ProductVariant first
     try:
-        variant = ProductVariant.objects.select_related('product').get(sku=sku)
+        variant = ProductVariant.objects.select_related('product__category').prefetch_related('product__categories').get(sku=sku)
+        cat_ids = set()
+        if variant.product.category_id:
+            cat_ids.add(variant.product.category_id)
+        for c in variant.product.categories.all():
+            cat_ids.add(c.id)
         return {
             "sku": variant.sku,
             "price": variant.price if variant.price is not None else variant.selling_price,
             "purchase_price": variant.purchase_price,
             "product_id": variant.product.id,
             "product_name": variant.product.name,
-            "attributes": variant.attributes
+            "attributes": variant.attributes,
+            "category_ids": list(cat_ids)
         }
     except ProductVariant.DoesNotExist:
         pass
 
     # 2. Try Base Product (Simple Product)
     try:
-        product = Product.objects.get(sku=sku)
+        product = Product.objects.select_related('category').prefetch_related('categories').get(sku=sku)
+        cat_ids = set()
+        if product.category_id:
+            cat_ids.add(product.category_id)
+        for c in product.categories.all():
+            cat_ids.add(c.id)
         return {
             "sku": product.sku,
             "price": product.base_price or 0,
             "purchase_price": product.purchase_price,
             "product_id": product.id,
             "product_name": product.name,
-            "attributes": {}
+            "attributes": {},
+            "category_ids": list(cat_ids)
         }
     except Product.DoesNotExist:
         pass
@@ -40,13 +52,19 @@ def get_variant_details_by_sku(sku: str) -> Optional[dict]:
         product_id_str = sku.replace("PROD-", "")
         if product_id_str.isdigit():
             try:
-                product = Product.objects.get(id=int(product_id_str))
+                product = Product.objects.select_related('category').prefetch_related('categories').get(id=int(product_id_str))
+                cat_ids = set()
+                if product.category_id:
+                    cat_ids.add(product.category_id)
+                for c in product.categories.all():
+                    cat_ids.add(c.id)
                 return {
                     "sku": sku,
                     "price": product.base_price or 0,
                     "product_id": product.id,
                     "product_name": product.name,
-                    "attributes": {}
+                    "attributes": {},
+                    "category_ids": list(cat_ids)
                 }
             except Product.DoesNotExist:
                 pass

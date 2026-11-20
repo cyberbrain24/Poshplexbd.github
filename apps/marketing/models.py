@@ -47,6 +47,26 @@ class PromoCode(models.Model):
     banner_url = models.CharField(max_length=255, blank=True, null=True)
     banner_active = models.BooleanField(default=False)
 
+    # Category & Product Targeting (Inclusion / Exclusion)
+    applicable_categories = models.ManyToManyField(
+        'catalog.Category', 
+        blank=True, 
+        related_name='promo_codes',
+        help_text="If selected, only products in these categories qualify for the discount."
+    )
+    included_products = models.ManyToManyField(
+        'catalog.Product', 
+        blank=True, 
+        related_name='targeted_promo_codes',
+        help_text="If selected, only these specific products qualify for the discount."
+    )
+    excluded_products = models.ManyToManyField(
+        'catalog.Product', 
+        blank=True, 
+        related_name='excluded_from_promo_codes',
+        help_text="These products are strictly excluded from receiving promo discounts."
+    )
+
     def save(self, *args, **kwargs):
         if self.code:
             self.code = self.code.upper().strip()

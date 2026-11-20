@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 from ninja import Router, Schema
 from ninja.errors import HttpError
 from apps.marketing.models import PromoCode, PromoUsageHistory, ComboOffer
+from apps.marketing.services.promo_targeting import evaluate_promo_code_for_items
 from apps.core.api import BearerAuth, enforce_permission, enforce_superuser
 
 router = Router()
@@ -33,6 +34,9 @@ class PromoCodeInputSchema(Schema):
     is_active: Optional[bool] = True
     banner_url: Optional[str] = ""
     banner_active: Optional[bool] = False
+    applicable_category_ids: Optional[List[int]] = []
+    included_product_ids: Optional[List[int]] = []
+    excluded_product_ids: Optional[List[int]] = []
 
 class PromoCodeResponseSchema(Schema):
     id: int
@@ -51,11 +55,33 @@ class PromoCodeResponseSchema(Schema):
     is_active: bool
     banner_url: Optional[str] = None
     banner_active: bool
+    applicable_category_ids: List[int] = []
+    included_product_ids: List[int] = []
+    excluded_product_ids: List[int] = []
+
+    @staticmethod
+    def resolve_applicable_category_ids(obj):
+        return list(obj.applicable_categories.values_list('id', flat=True))
+
+    @staticmethod
+    def resolve_included_product_ids(obj):
+        return list(obj.included_products.values_list('id', flat=True))
+
+    @staticmethod
+    def resolve_excluded_product_ids(obj):
+        return list(obj.excluded_products.values_list('id', flat=True))
+
+class PromoValidateItemSchema(Schema):
+    sku: Optional[str] = ""
+    product_id: Optional[int] = None
+    quantity: Optional[int] = 1
+    price: Optional[Decimal] = Decimal('0.00')
 
 class ValidateCouponResponseSchema(Schema):
     valid: bool
     reward_type: Optional[str] = None
     discount_value: Optional[Decimal] = None
+    discount_amount: Optional[Decimal] = None
     max_discount_amount: Optional[Decimal] = None
     membership_tier: Optional[str] = None
     error_message: Optional[str] = None
@@ -86,42 +112,62 @@ class ComboOfferInputSchema(Schema):
 
 # --- Endpoints ---
 
-@router.get("/validate", response=ValidateCouponResponseSchema)
-def validate_coupon_endpoint(request, code: str, subtotal: Decimal, phone: str = ""):
-    """Public checkout endpoint to validate campaign coupon codes against usage limits and validity dates."""
+@router.post("/validate", response=ValidateCouponResponseSchema)
+def validate_coupon_endpoint(request, data: Dict[str, Any]):
+    """Public checkout endpoint to validate campaign coupon codes against usage limits, validity dates, categories and products."""
+    code = data.get("code", "")
+    subtotal = Decimal(str(data.get("subtotal") or 0))
+    phone = data.get("phone", "")
+    items = data.get("items", [])
+    shipping_cost = Decimal(str(data.get("shipping_cost") or 0))
+    
     code_clean = code.upper().strip()
     promo = PromoCode.objects.filter(code=code_clean).first()
     
     if not promo:
         return {"valid": False, "error_message": "Coupon code not found."}
         
-    if not promo.is_active:
-        return {"valid": False, "error_message": "Coupon is currently paused/inactive."}
-        
-    now = timezone.now()
-    if promo.starts_at and now < promo.starts_at:
-        return {"valid": False, "error_message": "Coupon campaign has not started yet."}
-        
-    if promo.expires_at and now > promo.expires_at:
-        return {"valid": False, "error_message": "Coupon code has expired."}
-        
-    if subtotal < promo.min_order_amount:
-        return {"valid": False, "error_message": f"Minimum subtotal of ৳{round(promo.min_order_amount)} required."}
-        
-    if promo.total_usage_limit is not None and promo.usage_count >= promo.total_usage_limit:
-        return {"valid": False, "error_message": "Coupon total limit has been fully redeemed."}
-        
-    if phone:
-        # Enforce per-customer limits by tracking customer phone number
-        phone_clean = phone.strip()
-        usage_count = PromoUsageHistory.objects.filter(promo_code=promo, customer_phone=phone_clean).count()
-        if usage_count >= promo.per_customer_limit:
-            return {"valid": False, "error_message": "You have reached the redemption limit for this coupon."}
+    is_valid, discount, err_msg = evaluate_promo_code_for_items(
+        promo=promo,
+        items=items,
+        subtotal=subtotal,
+        customer_phone=phone,
+        shipping_cost=shipping_cost
+    )
+    
+    if not is_valid:
+        return {"valid": False, "error_message": err_msg or "Invalid coupon code."}
             
     return {
         "valid": True,
         "reward_type": promo.reward_type,
         "discount_value": promo.discount_value,
+        "discount_amount": discount,
+        "max_discount_amount": promo.max_discount_amount,
+        "membership_tier": promo.membership_tier
+    }
+
+# Backward compatible GET endpoint for legacy clients
+@router.get("/validate", response=ValidateCouponResponseSchema)
+def validate_coupon_get_endpoint(request, code: str, subtotal: Decimal, phone: str = ""):
+    """Public checkout GET fallback for simple validations."""
+    code_clean = code.upper().strip()
+    promo = PromoCode.objects.filter(code=code_clean).first()
+    if not promo:
+        return {"valid": False, "error_message": "Coupon code not found."}
+    is_valid, discount, err_msg = evaluate_promo_code_for_items(
+        promo=promo,
+        items=[],
+        subtotal=subtotal,
+        customer_phone=phone
+    )
+    if not is_valid:
+        return {"valid": False, "error_message": err_msg or "Invalid coupon code."}
+    return {
+        "valid": True,
+        "reward_type": promo.reward_type,
+        "discount_value": promo.discount_value,
+        "discount_amount": discount,
         "max_discount_amount": promo.max_discount_amount,
         "membership_tier": promo.membership_tier
     }
@@ -158,6 +204,15 @@ def create_promo(request, data: PromoCodeInputSchema):
             banner_url=data.banner_url,
             banner_active=data.banner_active
         )
+        
+        # Set ManyToMany Targeting Relationships
+        if data.applicable_category_ids is not None:
+            p.applicable_categories.set(data.applicable_category_ids)
+        if data.included_product_ids is not None:
+            p.included_products.set(data.included_product_ids)
+        if data.excluded_product_ids is not None:
+            p.excluded_products.set(data.excluded_product_ids)
+            
         return p
     except Exception as e:
         raise HttpError(400, str(e))
@@ -186,6 +241,15 @@ def update_promo(request, promo_id: int, data: PromoCodeInputSchema):
         p.banner_url = data.banner_url
         p.banner_active = data.banner_active
         p.save()
+        
+        # Update ManyToMany Targeting Relationships
+        if data.applicable_category_ids is not None:
+            p.applicable_categories.set(data.applicable_category_ids)
+        if data.included_product_ids is not None:
+            p.included_products.set(data.included_product_ids)
+        if data.excluded_product_ids is not None:
+            p.excluded_products.set(data.excluded_product_ids)
+
         return p
     except Exception as e:
         raise HttpError(400, str(e))
@@ -207,6 +271,7 @@ class PromoValidateRequestSchema(Schema):
     code: str
     order_amount: Decimal
     customer_phone: Optional[str] = ""
+    items: Optional[List[Dict[str, Any]]] = []
 
 class PromoValidateResponseSchema(Schema):
     valid: bool
@@ -222,34 +287,15 @@ def validate_promo_endpoint(request, data: PromoValidateRequestSchema):
     except PromoCode.DoesNotExist:
         return {"valid": False, "discount_amount": Decimal('0.00'), "message": "Invalid or expired promo code."}
 
-    now = timezone.now()
-    if promo.starts_at and now < promo.starts_at:
-        return {"valid": False, "discount_amount": Decimal('0.00'), "message": "Promo code is not active yet."}
-    if promo.expires_at and now > promo.expires_at:
-        return {"valid": False, "discount_amount": Decimal('0.00'), "message": "Promo code has expired."}
-    
-    if data.order_amount < promo.min_order_amount:
-        return {"valid": False, "discount_amount": Decimal('0.00'), "message": f"Minimum order amount is ৳{promo.min_order_amount}."}
+    is_valid, discount, err_msg = evaluate_promo_code_for_items(
+        promo=promo,
+        items=data.items or [],
+        subtotal=data.order_amount,
+        customer_phone=data.customer_phone or ""
+    )
 
-    if promo.total_usage_limit and promo.usage_count >= promo.total_usage_limit:
-        return {"valid": False, "discount_amount": Decimal('0.00'), "message": "Promo code usage limit reached."}
-        
-    if data.customer_phone:
-        usage_count = PromoUsageHistory.objects.filter(promo_code=promo, customer_phone=data.customer_phone.strip()).count()
-        if usage_count >= promo.per_customer_limit:
-            return {"valid": False, "discount_amount": Decimal('0.00'), "message": "Customer has reached the redemption limit for this coupon."}
-
-    discount = Decimal('0.00')
-    if promo.reward_type == 'fixed':
-        discount = promo.discount_value
-    elif promo.reward_type == 'percent':
-        discount = data.order_amount * (promo.discount_value / Decimal('100.00'))
-    elif promo.reward_type == 'freeship':
-        # Assuming we just pass valid flag back and front end handles free ship
-        discount = Decimal('0.00')
-    
-    if promo.max_discount_amount and discount > promo.max_discount_amount:
-        discount = promo.max_discount_amount
+    if not is_valid:
+        return {"valid": False, "discount_amount": Decimal('0.00'), "message": err_msg or "Invalid promo code."}
 
     return {
         "valid": True,

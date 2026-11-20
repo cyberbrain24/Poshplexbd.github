@@ -534,17 +534,34 @@ export default function CheckoutPage() {
     setIsCheckingPromo(true);
     setPromoError("");
     try {
-      const url = new URL(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/marketing/validate`);
-      url.searchParams.append("code", promoCode);
-      url.searchParams.append("subtotal", cartTotal.toString());
-      if (formData.phone) url.searchParams.append("phone", formData.phone);
+      const endpoint = `${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/marketing/validate`;
+      
+      const itemsPayload = cart.map((item: any) => ({
+        sku: item.sku || item.product_sku || "",
+        product_id: typeof item.product_id === "number" ? item.product_id : undefined,
+        quantity: item.quantity || 1,
+        price: item.price || 0
+      }));
 
-      const res = await fetch(url.toString());
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: promoCode,
+          subtotal: cartTotal,
+          phone: formData.phone || "",
+          shipping_cost: shippingCost,
+          items: itemsPayload
+        })
+      });
+
       const data = await res.json();
 
       if (data.valid) {
         let discount = 0;
-        if (data.reward_type === "percent") {
+        if (typeof data.discount_amount === "number") {
+          discount = data.discount_amount;
+        } else if (data.reward_type === "percent") {
           discount = (cartTotal * Number(data.discount_value)) / 100;
           if (data.max_discount_amount && discount > Number(data.max_discount_amount)) {
             discount = Number(data.max_discount_amount);
