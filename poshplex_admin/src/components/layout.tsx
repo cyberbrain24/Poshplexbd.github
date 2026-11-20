@@ -100,8 +100,6 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
       module: "marketing",
       children: [
         { key: "/marketing/attribution", icon: <AimOutlined style={{ color: "#10b981" }} />, label: "Customer Data & Attribution", module: "marketing" },
-        { key: "/marketing/dashboard", icon: <DashboardOutlined />, label: "Meta Ads Optimization Engine", module: "marketing" },
-        { key: "/marketing/agent", icon: <RobotOutlined />, label: "AI Agent", module: "marketing" },
         { key: "/marketing/competitor", icon: <EyeOutlined />, label: "Competitor Spy", module: "marketing" },
         { key: "/marketing/api-integration", icon: <ApiOutlined />, label: "API Integration", module: "marketing" },
         { key: "/marketing/campaigns", icon: <RocketOutlined />, label: "Meta Campaigns", module: "marketing" },

@@ -29,13 +29,11 @@ const ReportsPage = React.lazy(() => import("./pages/reports"));
 
 // Meta Engine Module Pages
 const AttributionPlatformPage = React.lazy(() => import("./pages/marketing").then(m => ({ default: m.AttributionPlatformPage })));
-const MarketingDashboard = React.lazy(() => import("./pages/marketing").then(m => ({ default: m.MarketingDashboard })));
 const CampaignList = React.lazy(() => import("./pages/marketing").then(m => ({ default: m.CampaignList })));
 const CampaignCreateWizard = React.lazy(() => import("./pages/marketing").then(m => ({ default: m.CampaignCreateWizard })));
 const CampaignShow = React.lazy(() => import("./pages/marketing").then(m => ({ default: m.CampaignShow })));
 const AutomationRulesPage = React.lazy(() => import("./pages/marketing").then(m => ({ default: m.AutomationRulesPage })));
 const MetaAccountsPage = React.lazy(() => import("./pages/marketing").then(m => ({ default: m.MetaAccountsPage })));
-const MetaAgentPage = React.lazy(() => import("./pages/marketing").then(m => ({ default: m.MetaAgentPage })));
 const CompetitorSpyPage = React.lazy(() => import("./pages/marketing").then(m => ({ default: m.CompetitorSpyPage })));
 const ApiIntegrationPage = React.lazy(() => import("./pages/marketing").then(m => ({ default: m.ApiIntegrationPage })));
 // [TEMPORARY DISCONNECT] AI Fit Check module temporarily disconnected
@@ -91,11 +89,6 @@ export const App: React.FC = () => {
                 meta: { label: "Customer Data & Attribution" },
               },
               {
-                name: "meta-engine",
-                list: "/marketing/dashboard",
-                meta: { label: "Meta Engine" },
-              },
-              {
                 name: "meta-rules",
                 list: "/marketing/rules",
                 meta: { label: "Automation Rules" },
@@ -104,11 +97,6 @@ export const App: React.FC = () => {
                 name: "meta-accounts",
                 list: "/marketing/accounts",
                 meta: { label: "Meta Accounts" },
-              },
-              {
-                name: "meta-agent",
-                list: "/marketing/agent",
-                meta: { label: "AI Agent" },
               },
               {
                 name: "meta-competitor",
@@ -168,8 +156,6 @@ export const App: React.FC = () => {
 
                   {/* Meta Engine Routes */}
                   <Route path="/marketing/attribution" element={<AttributionPlatformPage />} />
-                  <Route path="/marketing/dashboard" element={<MarketingDashboard />} />
-                  <Route path="/marketing/agent" element={<MetaAgentPage />} />
                   <Route path="/marketing/competitor" element={<CompetitorSpyPage />} />
                   <Route path="/marketing/api-integration" element={<ApiIntegrationPage />} />
                   <Route path="/marketing/campaigns" element={<CampaignList />} />
