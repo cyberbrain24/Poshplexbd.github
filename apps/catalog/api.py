@@ -259,9 +259,16 @@ def list_products(
         qs = qs.filter(categories__id=category_id)
     if category_slug:
         clean_slug = category_slug.strip()
+        from django.utils.text import slugify
+        slugified_param = slugify(clean_slug)
         from apps.catalog.models import Category
         try:
-            cat = Category.objects.filter(Q(slug__iexact=clean_slug) | Q(slug__iexact=category_slug)).first()
+            cat = Category.objects.filter(
+                Q(slug__iexact=clean_slug) |
+                Q(slug__iexact=category_slug) |
+                Q(slug__iexact=slugified_param) |
+                Q(name__iexact=clean_slug)
+            ).first()
             if not cat:
                 raise Category.DoesNotExist()
             child_ids = list(Category.objects.filter(parent=cat).values_list('id', flat=True))
