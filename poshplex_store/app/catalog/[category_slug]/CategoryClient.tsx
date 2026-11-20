@@ -518,9 +518,18 @@ export default function CategoryClient({
   const findCategory = useCallback(
     (tree: Category[], s: string): Category | null => {
       const cleanTarget = (s || "").trim().toLowerCase();
+      const slugifiedTarget = cleanTarget.replace(/\s+/g, "-");
       for (const cat of tree) {
         const catSlug = (cat.slug || "").trim().toLowerCase();
-        if (catSlug === cleanTarget || cat.slug?.toLowerCase() === s.toLowerCase()) return cat;
+        const catName = (cat.name || "").trim().toLowerCase();
+        if (
+          catSlug === cleanTarget ||
+          catSlug === slugifiedTarget ||
+          catSlug.replace(/-/g, " ") === cleanTarget.replace(/-/g, " ") ||
+          catName === cleanTarget
+        ) {
+          return cat;
+        }
         const found = findCategory(cat.children, s);
         if (found) return found;
       }
@@ -530,39 +539,51 @@ export default function CategoryClient({
   );
 
   const cleanSlug = (slug || "").trim().toLowerCase();
+  const slugifiedSlug = cleanSlug.replace(/\s+/g, "-");
   const currentCat = findCategory(categoryTree, slug);
   // Find parent to get siblings as subcategory nav
   const parentCat = categoryTree.find(
     (c) =>
       (c.slug || "").trim().toLowerCase() === cleanSlug ||
-      c.slug.toLowerCase() === slug.toLowerCase() ||
+      (c.slug || "").trim().toLowerCase() === slugifiedSlug ||
+      (c.slug || "").trim().toLowerCase().replace(/-/g, " ") === cleanSlug.replace(/-/g, " ") ||
       c.children.some(
         (ch) =>
           (ch.slug || "").trim().toLowerCase() === cleanSlug ||
-          ch.slug.toLowerCase() === slug.toLowerCase()
+          (ch.slug || "").trim().toLowerCase() === slugifiedSlug ||
+          (ch.slug || "").trim().toLowerCase().replace(/-/g, " ") === cleanSlug.replace(/-/g, " ")
       )
   );
   const subcategories =
     parentCat?.children?.length ? parentCat.children : currentCat?.children || [];
 
   // Filter products to this category (and subcategories)
-  const collectSlugs = (cat: Category): string[] => [
-    (cat.slug || "").trim().toLowerCase(),
-    cat.slug.toLowerCase(),
-    ...cat.children.flatMap(collectSlugs),
-  ];
+  const collectSlugs = (cat: Category): string[] => {
+    const s = (cat.slug || "").trim().toLowerCase();
+    return [
+      s,
+      s.replace(/-/g, " "),
+      s.replace(/\s+/g, "-"),
+      (cat.name || "").trim().toLowerCase(),
+      ...cat.children.flatMap(collectSlugs),
+    ];
+  };
   const validSlugs = currentCat
     ? Array.from(new Set(collectSlugs(currentCat)))
-    : Array.from(new Set([cleanSlug, slug.toLowerCase()]));
+    : Array.from(new Set([cleanSlug, slugifiedSlug, cleanSlug.replace(/-/g, " ")]));
 
   const categoryProducts = allProducts.filter((p) => {
     const cats: string[] = [
       ...(p.categories || []).flatMap((c: any) => [
         (c.slug || "").trim().toLowerCase(),
-        c.slug?.toLowerCase(),
+        (c.slug || "").trim().toLowerCase().replace(/-/g, " "),
+        (c.slug || "").trim().toLowerCase().replace(/\s+/g, "-"),
+        (c.name || "").trim().toLowerCase(),
       ]),
       (p.category?.slug || "").trim().toLowerCase(),
-      p.category?.slug?.toLowerCase(),
+      (p.category?.slug || "").trim().toLowerCase().replace(/-/g, " "),
+      (p.category?.slug || "").trim().toLowerCase().replace(/\s+/g, "-"),
+      (p.category?.name || "").trim().toLowerCase(),
     ].filter(Boolean);
     return cats.some((cs) => validSlugs.includes(cs));
   });
