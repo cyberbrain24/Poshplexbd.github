@@ -745,6 +745,279 @@ def get_order_timestamp_analytics(
         "status_breakdown": status_counts
     }
 
+@router.get("/analytics/products", auth=BearerAuth())
+def get_product_analytics(
+    request,
+    preset: str = "lifetime",
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    status: Optional[str] = None,
+    category_id: Optional[int] = None,
+):
+    """
+    Advanced Product Intelligence & Market Research Analytics (Admin only).
+    Calculates:
+    - Best-selling & top revenue-generating products
+    - Most ordered & high-volume items (units sold, order frequency)
+    - Variant / Size demand distribution (e.g. M vs L vs XL preferences)
+    - Category sales performance & revenue shares
+    - Product Return & Cancellation risk rates per item
+    - Stock inventory velocity & actionable design/production decision insights
+    """
+    enforce_permission(request, "orders", "view_orders")
+
+    import zoneinfo
+    from datetime import datetime, time as dtime
+    from decimal import Decimal
+    from apps.catalog.models import Product, ProductVariant
+
+    dhaka_tz = zoneinfo.ZoneInfo("Asia/Dhaka")
+    now_dhaka = timezone.now().astimezone(dhaka_tz)
+
+    order_qs = Order.objects.all()
+
+    # Filter out cancelled / test orders unless explicitly requested
+    if status and status.lower() != "all":
+        order_qs = order_qs.filter(status=status.lower())
+    else:
+        # Default: exclude cancelled / manually_cancelled for sales demand metrics
+        # but keep track of them for return / cancellation rate calculations
+        pass
+
+    selected_preset = preset.lower() if preset else "lifetime"
+    period_label = "Lifetime (All Time)"
+
+    if selected_preset == "today":
+        start_dt = now_dhaka.replace(hour=0, minute=0, second=0, microsecond=0)
+        order_qs = order_qs.filter(created_at__gte=start_dt)
+        period_label = "Today"
+    elif selected_preset == "yesterday":
+        yesterday_dhaka = now_dhaka - timedelta(days=1)
+        start_dt = yesterday_dhaka.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_dt = yesterday_dhaka.replace(hour=23, minute=59, second=59, microsecond=999999)
+        order_qs = order_qs.filter(created_at__gte=start_dt, created_at__lte=end_dt)
+        period_label = "Yesterday"
+    elif selected_preset == "7d":
+        start_dt = now_dhaka - timedelta(days=7)
+        order_qs = order_qs.filter(created_at__gte=start_dt)
+        period_label = "Last 7 Days"
+    elif selected_preset == "30d":
+        start_dt = now_dhaka - timedelta(days=30)
+        order_qs = order_qs.filter(created_at__gte=start_dt)
+        period_label = "Last 30 Days"
+    elif selected_preset == "this_month":
+        start_dt = now_dhaka.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        order_qs = order_qs.filter(created_at__gte=start_dt)
+        period_label = "This Month"
+    elif selected_preset == "last_month":
+        first_this_month = now_dhaka.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        last_day_prev_month = first_this_month - timedelta(days=1)
+        start_dt = last_day_prev_month.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        end_dt = last_day_prev_month.replace(hour=23, minute=59, second=59, microsecond=999999)
+        order_qs = order_qs.filter(created_at__gte=start_dt, created_at__lte=end_dt)
+        period_label = "Last Month"
+    elif selected_preset == "custom" and start_date and end_date:
+        try:
+            s_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+            e_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+            start_dt = datetime.combine(s_date, dtime.min).replace(tzinfo=dhaka_tz)
+            end_dt = datetime.combine(e_date, dtime.max).replace(tzinfo=dhaka_tz)
+            order_qs = order_qs.filter(created_at__gte=start_dt, created_at__lte=end_dt)
+            period_label = f"{start_date} to {end_date}"
+        except Exception:
+            pass
+
+    # Filter OrderItems belonging to filtered orders
+    item_qs = OrderItem.objects.filter(order__in=order_qs).select_related("order")
+
+    # Prefetch product & variant lookup tables into memory to make execution fast (O(1))
+    variant_lookup = {}
+    for v in ProductVariant.objects.select_related("product", "product__category").all():
+        variant_lookup[v.sku] = v
+
+    product_lookup = {}
+    for p in Product.objects.select_related("category").prefetch_related("images").all():
+        product_lookup[p.id] = p
+        if p.sku:
+            product_lookup[p.sku] = p
+
+    # Aggregations
+    product_stats = {}  # keyed by product_id or fallback SKU
+    size_distribution = {}  # e.g., {'M': 42, 'L': 65, 'XL': 38}
+    category_stats = {}  # keyed by category_name
+    total_units_sold = 0
+    total_product_revenue = Decimal("0.00")
+    total_items_count = 0
+
+    for item in item_qs:
+        total_items_count += 1
+        sku = item.sku
+        qty = item.quantity or 0
+        price = item.price or Decimal("0.00")
+        line_rev = Decimal(qty) * Decimal(str(price))
+        is_order_cancelled = item.order.status in ["cancelled", "manually_cancelled"]
+        is_order_returned = item.order.status in ["returned", "rto"] or item.returned_quantity > 0
+
+        # Resolve variant and product
+        v = variant_lookup.get(sku)
+        p = v.product if v else None
+        if not p:
+            # Fallback to direct product SKU or PROD-<id>
+            p = product_lookup.get(sku)
+            if not p and sku.startswith("PROD-"):
+                try:
+                    pid = int(sku.replace("PROD-", ""))
+                    p = product_lookup.get(pid)
+                except Exception:
+                    pass
+
+        # Category filter check
+        if category_id:
+            p_cat_id = (p.category_id if p else None)
+            if p_cat_id != category_id:
+                continue
+
+        p_id = p.id if p else f"SKU-{sku}"
+        p_name = p.name if p else f"Unknown ({sku})"
+        p_slug = p.slug if p else ""
+        p_cat_name = (p.category.name if (p and p.category) else "Uncategorized")
+        
+        # Primary image URL
+        p_img = ""
+        if p:
+            if hasattr(p, "images") and p.images.exists():
+                first_img = p.images.first()
+                p_img = first_img.image.url if first_img and first_img.image else ""
+            elif getattr(p, "primary_image", None):
+                p_img = p.primary_image
+
+        if p_id not in product_stats:
+            product_stats[p_id] = {
+                "product_id": p_id,
+                "name": p_name,
+                "slug": p_slug,
+                "category": p_cat_name,
+                "image": p_img,
+                "base_price": float(p.base_price or price) if p else float(price),
+                "total_units_ordered": 0,
+                "total_units_delivered": 0,
+                "order_count": 0,
+                "revenue": Decimal("0.00"),
+                "cancelled_units": 0,
+                "returned_units": 0,
+                "variants": {},
+            }
+
+        prod_record = product_stats[p_id]
+        prod_record["total_units_ordered"] += qty
+        prod_record["order_count"] += 1
+        prod_record["revenue"] += line_rev
+
+        if is_order_cancelled:
+            prod_record["cancelled_units"] += qty
+        elif is_order_returned:
+            prod_record["returned_units"] += (item.returned_quantity or qty)
+        else:
+            prod_record["total_units_delivered"] += (qty - (item.returned_quantity or 0))
+
+        if not is_order_cancelled:
+            total_units_sold += qty
+            total_product_revenue += line_rev
+
+        # Extract size / variant attribute
+        attrs = v.attributes if (v and isinstance(v.attributes, dict)) else {}
+        size_label = attrs.get("size") or attrs.get("Size") or "Standard"
+        color_label = attrs.get("color") or attrs.get("Color") or ""
+        var_key = f"{size_label} - {color_label}".strip(" -") or sku
+
+        if var_key not in prod_record["variants"]:
+            prod_record["variants"][var_key] = {"sku": sku, "units": 0, "size": size_label}
+        prod_record["variants"][var_key]["units"] += qty
+
+        if not is_order_cancelled:
+            size_distribution[size_label] = size_distribution.get(size_label, 0) + qty
+
+            # Category aggregation
+            if p_cat_name not in category_stats:
+                category_stats[p_cat_name] = {"category": p_cat_name, "units": 0, "revenue": Decimal("0.00")}
+            category_stats[p_cat_name]["units"] += qty
+            category_stats[p_cat_name]["revenue"] += line_rev
+
+    # Transform product stats to sorted list
+    product_list = []
+    for p_id, d in product_stats.items():
+        ordered = d["total_units_ordered"]
+        cancelled = d["cancelled_units"]
+        returned = d["returned_units"]
+        return_rate = round((returned / ordered) * 100, 1) if ordered > 0 else 0.0
+        cancellation_rate = round((cancelled / ordered) * 100, 1) if ordered > 0 else 0.0
+        
+        # Sort internal variants
+        var_list = sorted(d["variants"].values(), key=lambda x: x["units"], reverse=True)
+        top_size = var_list[0]["size"] if var_list else "Standard"
+
+        product_list.append({
+            "product_id": d["product_id"],
+            "name": d["name"],
+            "slug": d["slug"],
+            "category": d["category"],
+            "image": d["image"],
+            "base_price": d["base_price"],
+            "total_units_ordered": ordered,
+            "total_units_delivered": d["total_units_delivered"],
+            "order_count": d["order_count"],
+            "revenue": round(float(d["revenue"]), 2),
+            "cancelled_units": cancelled,
+            "returned_units": returned,
+            "return_rate": return_rate,
+            "cancellation_rate": cancellation_rate,
+            "top_size": top_size,
+            "variants": var_list,
+        })
+
+    # Sort variations
+    best_sellers_by_revenue = sorted(product_list, key=lambda x: x["revenue"], reverse=True)
+    most_ordered_by_units = sorted(product_list, key=lambda x: x["total_units_ordered"], reverse=True)
+    highest_returned_items = sorted([p for p in product_list if p["returned_units"] > 0], key=lambda x: x["return_rate"], reverse=True)
+
+    # Size breakdown formatted
+    formatted_sizes = [
+        {"size": k, "units": v, "share": round((v / total_units_sold) * 100, 1) if total_units_sold > 0 else 0.0}
+        for k, v in sorted(size_distribution.items(), key=lambda x: x[1], reverse=True)
+    ]
+
+    # Category breakdown formatted
+    formatted_categories = [
+        {
+            "category": v["category"],
+            "units": v["units"],
+            "revenue": round(float(v["revenue"]), 2),
+            "share": round((v["units"] / total_units_sold) * 100, 1) if total_units_sold > 0 else 0.0,
+        }
+        for v in sorted(category_stats.values(), key=lambda x: x["revenue"], reverse=True)
+    ]
+
+    return {
+        "period": {
+            "preset": selected_preset,
+            "label": period_label,
+            "timezone": "Asia/Dhaka (UTC+6)"
+        },
+        "kpi": {
+            "total_products_tracked": len(product_list),
+            "total_units_sold": total_units_sold,
+            "total_product_revenue": round(float(total_product_revenue), 2),
+            "top_performer": best_sellers_by_revenue[0]["name"] if best_sellers_by_revenue else "N/A",
+            "most_popular_size": formatted_sizes[0]["size"] if formatted_sizes else "N/A",
+        },
+        "best_sellers": best_sellers_by_revenue[:20],
+        "most_ordered": most_ordered_by_units[:20],
+        "high_return_alerts": highest_returned_items[:10],
+        "size_distribution": formatted_sizes,
+        "category_performance": formatted_categories,
+        "all_products": product_list,
+    }
+
 @router.get("", response=PaginatedOrdersResponse, auth=BearerAuth())
 def list_orders(
     request,

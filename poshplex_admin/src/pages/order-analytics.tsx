@@ -28,6 +28,7 @@ import {
 } from "../components/OrderPulseTag";
 import { PartialSplitModal } from "../components/PartialSplitModal";
 import { OrderTimestampAnalytics } from "../components/OrderTimestampAnalytics";
+import { ProductAnalyticsTab } from "../components/ProductAnalyticsTab";
 
 const { Title, Text } = Typography;
 
@@ -35,6 +36,7 @@ const API_BASE = (import.meta.env.VITE_SERVER_URL || (window.location.hostname =
 const ORDERS_API_URL = `${API_BASE}/orders`;
 
 export const OrderAnalyticsPage: React.FC = () => {
+  const [mainTab, setMainTab] = useState("orderpulse");
   const [loading, setLoading] = useState(false);
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("overview");
@@ -303,57 +305,93 @@ export const OrderAnalyticsPage: React.FC = () => {
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <ThunderboltOutlined style={{ color: "#a855f7", fontSize: 26 }} />
             <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: "var(--text-main)" }}>
-              OrderPulse Analytics &amp; Bottleneck Engine
+              Business Analytics
             </h1>
           </div>
           <p style={{ margin: "4px 0 0", color: "var(--text-muted)", fontSize: 13 }}>
-            Dedicated diagnostics module tracking Internal Hub Delays (&gt;24h), Full Cancellations, and Partially Delivered Split Items.
+            Unified intelligence suite encompassing OrderPulse fulfillment diagnostics, bottleneck tracking, and deep Product market research.
           </p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <Tooltip title="Steadfast sync runs automatically every 1 hour (24 times a day) in the background via Celery Beat and live timers. You can also click to sync immediately.">
-            <Tag
-              color="cyan"
-              style={{
-                fontSize: 11,
-                padding: "3px 8px",
-                borderRadius: 4,
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 5,
-                cursor: "pointer"
-              }}
-            >
-              <ClockCircleOutlined /> Auto-Sync: 1h (24x/day)
-              {lastSyncTime && <span style={{ opacity: 0.85 }}>· Last: {lastSyncTime}</span>}
-            </Tag>
-          </Tooltip>
+          {mainTab === "orderpulse" && (
+            <>
+              <Tooltip title="Steadfast sync runs automatically every 1 hour (24 times a day) in the background via Celery Beat and live timers. You can also click to sync immediately.">
+                <Tag
+                  color="cyan"
+                  style={{
+                    fontSize: 11,
+                    padding: "3px 8px",
+                    borderRadius: 4,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                    cursor: "pointer"
+                  }}
+                >
+                  <ClockCircleOutlined /> Auto-Sync: 1h (24x/day)
+                  {lastSyncTime && <span style={{ opacity: 0.85 }}>· Last: {lastSyncTime}</span>}
+                </Tag>
+              </Tooltip>
 
-          <Button 
-            icon={<SyncOutlined spin={syncingCouriers} />} 
-            onClick={() => handleSyncAllCouriers(false)} 
-            loading={syncingCouriers}
-            style={{ borderRadius: 6, whiteSpace: 'nowrap' }}
-          >
-            Sync Steadfast
-          </Button>
+              <Button 
+                icon={<SyncOutlined spin={syncingCouriers} />} 
+                onClick={() => handleSyncAllCouriers(false)} 
+                loading={syncingCouriers}
+                style={{ borderRadius: 6, whiteSpace: 'nowrap' }}
+              >
+                Sync Steadfast
+              </Button>
 
-          <Button
-            type="primary"
-            icon={<SyncOutlined />}
-            onClick={() => {
-              fetchAnalytics();
-              fetchTabOrders(activeTab, currentPage);
-            }}
-            loading={loading}
-            style={{ borderRadius: 6, backgroundColor: "#6366f1", borderColor: "#4f46e5" }}
-          >
-            Refresh Analytics
-          </Button>
+              <Button
+                type="primary"
+                icon={<SyncOutlined />}
+                onClick={() => {
+                  fetchAnalytics();
+                  fetchTabOrders(activeTab, currentPage);
+                }}
+                loading={loading}
+                style={{ borderRadius: 6, backgroundColor: "#6366f1", borderColor: "#4f46e5" }}
+              >
+                Refresh Analytics
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Top 5 KPI Cards */}
+      {/* Main Mode Tabs: OrderPulse vs Products Analytics */}
+      <Tabs
+        activeKey={mainTab}
+        onChange={setMainTab}
+        type="card"
+        style={{ marginBottom: -8 }}
+        items={[
+          {
+            key: "orderpulse",
+            label: (
+              <span style={{ fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 7, padding: "2px 4px" }}>
+                <ThunderboltOutlined style={{ color: "#a855f7" }} />
+                OrderPulse Analytics &amp; Bottleneck Engine
+              </span>
+            ),
+          },
+          {
+            key: "products",
+            label: (
+              <span style={{ fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 7, padding: "2px 4px" }}>
+                <AppstoreOutlined style={{ color: "#38bdf8" }} />
+                Products Analytics
+              </span>
+            ),
+          },
+        ]}
+      />
+
+      {mainTab === "products" ? (
+        <ProductAnalyticsTab apiUrl={ORDERS_API_URL} />
+      ) : (
+        <>
+          {/* Top 5 KPI Cards */}
       <Row gutter={[10, 10]}>
         <Col xs={12} sm={8} md={4}>
           <Card styles={{ body: { padding: 14 } }} style={{ backgroundColor: "#111116", borderColor: "#27272a" }}>
@@ -690,6 +728,8 @@ export const OrderAnalyticsPage: React.FC = () => {
           ]}
         />
       </Card>
+      </>
+      )}
 
       {/* Partial Delivery Split Modal */}
       <PartialSplitModal
