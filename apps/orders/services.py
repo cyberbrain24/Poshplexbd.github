@@ -565,13 +565,4 @@ def check_steadfast_delivery_risk_batch(phones: list) -> dict:
                         "total_reports": 0,
                     }
     return results
-                        "delivery_ratio": None,
-                        "cancellation_ratio": None,
-                        "delivered_count": 0,
-                        "cancelled_count": 0,
-                        "total_parcels": 0,
-                        "total_reports": 0
-                    }
-
-    return results
 

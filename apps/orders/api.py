@@ -1,6 +1,6 @@
 # pyright: reportAttributeAccessIssue=false, reportCallIssue=false, reportGeneralTypeIssues=false, reportOperatorIssue=false, reportArgumentType=false
 import re
-from typing import List, Any, Optional
+from typing import List, Any, Optional, Dict
 from decimal import Decimal
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError
