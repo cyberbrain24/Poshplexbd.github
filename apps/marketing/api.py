@@ -77,6 +77,13 @@ class PromoValidateItemSchema(Schema):
     quantity: Optional[int] = 1
     price: Optional[Decimal] = Decimal('0.00')
 
+class ValidateCouponPayloadSchema(Schema):
+    code: str
+    subtotal: Decimal
+    phone: Optional[str] = ""
+    shipping_cost: Optional[Decimal] = Decimal('0.00')
+    items: Optional[List[PromoValidateItemSchema]] = []
+
 class ValidateCouponResponseSchema(Schema):
     valid: bool
     reward_type: Optional[str] = None
@@ -113,13 +120,13 @@ class ComboOfferInputSchema(Schema):
 # --- Endpoints ---
 
 @router.post("/validate", response=ValidateCouponResponseSchema)
-def validate_coupon_endpoint(request, data: Dict[str, Any]):
+def validate_coupon_endpoint(request, data: ValidateCouponPayloadSchema):
     """Public checkout endpoint to validate campaign coupon codes against usage limits, validity dates, categories and products."""
-    code = data.get("code", "")
-    subtotal = Decimal(str(data.get("subtotal") or 0))
-    phone = data.get("phone", "")
-    items = data.get("items", [])
-    shipping_cost = Decimal(str(data.get("shipping_cost") or 0))
+    code = data.code
+    subtotal = data.subtotal
+    phone = data.phone or ""
+    items = [item.dict() for item in data.items] if data.items else []
+    shipping_cost = data.shipping_cost or Decimal('0.00')
     
     code_clean = code.upper().strip()
     promo = PromoCode.objects.filter(code=code_clean).first()
