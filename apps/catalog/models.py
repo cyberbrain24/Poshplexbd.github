@@ -72,9 +72,10 @@ class Category(models.Model):
         ]
 
     def save(self, *args, **kwargs):
+        if self.name:
+            self.name = self.name.strip()
         if self.slug:
-            from django.utils.text import slugify
-            self.slug = slugify(self.slug)
+            self.slug = self.slug.strip()
         super().save(*args, **kwargs)
         cache.delete("category_tree")
         cache.delete("category_tree_all")

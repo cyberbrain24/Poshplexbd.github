@@ -5,7 +5,8 @@ import CategoryClient from "./CategoryClient";
 export const revalidate = 60;
 
 export async function generateMetadata({ params }: { params: { category_slug: string } }): Promise<Metadata> {
-  const slug = decodeURIComponent(params.category_slug);
+  const rawSlug = decodeURIComponent(params.category_slug);
+  const slug = rawSlug.trim();
   try {
     const API_URL = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
     const catRes = await fetch(`${API_URL}/api/v1/catalog/categories/tree`, { next: { revalidate: 60 } });
@@ -14,7 +15,8 @@ export async function generateMetadata({ params }: { params: { category_slug: st
       let category: any = null;
       const findCat = (nodes: any[]) => {
         for (const n of nodes) {
-          if (n.slug === slug) category = n;
+          const nSlug = (n.slug || "").trim().toLowerCase();
+          if (nSlug === slug.toLowerCase() || nSlug === rawSlug.toLowerCase()) category = n;
           else if (n.children) findCat(n.children);
         }
       };
@@ -41,7 +43,8 @@ export default async function CategoryPage({
 }: {
   params: { category_slug: string };
 }) {
-  const slug = decodeURIComponent(params.category_slug);
+  const rawSlug = decodeURIComponent(params.category_slug);
+  const slug = rawSlug.trim();
 
   let initialProducts: any[] = [];
   let initialCategoryTree: any[] = [];
@@ -49,7 +52,7 @@ export default async function CategoryPage({
   try {
     const API_URL = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
     const [prodRes, catRes] = await Promise.all([
-      fetch(`${API_URL}/api/v1/catalog/products?category_slug=${slug}&limit=100`, { next: { revalidate: 60 } }),
+      fetch(`${API_URL}/api/v1/catalog/products?category_slug=${encodeURIComponent(slug)}&limit=100`, { next: { revalidate: 60 } }),
       fetch(`${API_URL}/api/v1/catalog/categories/tree`, { next: { revalidate: 60 } }),
     ]);
 

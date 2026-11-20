@@ -258,9 +258,12 @@ def list_products(
     if category_id:
         qs = qs.filter(categories__id=category_id)
     if category_slug:
+        clean_slug = category_slug.strip()
         from apps.catalog.models import Category
         try:
-            cat = Category.objects.get(slug__iexact=category_slug)
+            cat = Category.objects.filter(Q(slug__iexact=clean_slug) | Q(slug__iexact=category_slug)).first()
+            if not cat:
+                raise Category.DoesNotExist()
             child_ids = list(Category.objects.filter(parent=cat).values_list('id', flat=True))
             grandchild_ids = list(Category.objects.filter(parent__id__in=child_ids).values_list('id', flat=True))
             all_cat_ids = [cat.id] + child_ids + grandchild_ids
@@ -1093,11 +1096,12 @@ def reorder_categories(request, data: CategoryReorderSchema):
 @router.post("/categories", auth=BearerAuth())
 def create_category(request, data: CategoryInputSchema):
     enforce_permission(request, "catalog", "edit_catalog")
-    from django.utils.text import slugify
-    slug = slugify(data.slug or data.name)
+    name_clean = data.name.strip()
+    slug_raw = (data.slug or data.name).strip()
+    slug = slugify(slug_raw) if slug_raw else slugify(name_clean)
     try:
         cat = Category.objects.create(
-            name=data.name,
+            name=name_clean,
             slug=slug,
             parent_id=data.parent_id,
             is_active=data.is_active,
@@ -1119,10 +1123,11 @@ def update_category(request, cat_id: int, data: CategoryInputSchema):
     cat = get_object_or_404(Category, id=cat_id)
     if data.parent_id and data.parent_id == cat.id:
         raise HttpError(400, "A category cannot be its own parent.")
-    from django.utils.text import slugify
-    slug = slugify(data.slug or data.name)
+    name_clean = data.name.strip()
+    slug_raw = (data.slug or data.name).strip()
+    slug = slugify(slug_raw) if slug_raw else slugify(name_clean)
     try:
-        cat.name = data.name
+        cat.name = name_clean
         cat.slug = slug
         cat.parent_id = data.parent_id
         cat.is_active = data.is_active

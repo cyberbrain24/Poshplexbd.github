@@ -494,8 +494,9 @@ export default function CategoryClient({
       try {
         setIsLoading(true);
         const API_URL = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const cleanSlug = (slug || "").trim();
         const [prodRes, catRes] = await Promise.all([
-          fetch(`${API_URL}/api/v1/catalog/products?category_slug=${slug}&limit=100`, { cache: 'no-store' }),
+          fetch(`${API_URL}/api/v1/catalog/products?category_slug=${encodeURIComponent(cleanSlug)}&limit=100`, { cache: 'no-store' }),
           fetch(`${API_URL}/api/v1/catalog/categories/tree`, { cache: 'no-store' }),
         ]);
         if (prodRes.ok) {
@@ -516,8 +517,10 @@ export default function CategoryClient({
   // Find current category & its parent
   const findCategory = useCallback(
     (tree: Category[], s: string): Category | null => {
+      const cleanTarget = (s || "").trim().toLowerCase();
       for (const cat of tree) {
-        if (cat.slug.toLowerCase() === s.toLowerCase()) return cat;
+        const catSlug = (cat.slug || "").trim().toLowerCase();
+        if (catSlug === cleanTarget || cat.slug?.toLowerCase() === s.toLowerCase()) return cat;
         const found = findCategory(cat.children, s);
         if (found) return found;
       }
@@ -526,26 +529,39 @@ export default function CategoryClient({
     []
   );
 
+  const cleanSlug = (slug || "").trim().toLowerCase();
   const currentCat = findCategory(categoryTree, slug);
   // Find parent to get siblings as subcategory nav
   const parentCat = categoryTree.find(
     (c) =>
+      (c.slug || "").trim().toLowerCase() === cleanSlug ||
       c.slug.toLowerCase() === slug.toLowerCase() ||
-      c.children.some((ch) => ch.slug.toLowerCase() === slug.toLowerCase())
+      c.children.some(
+        (ch) =>
+          (ch.slug || "").trim().toLowerCase() === cleanSlug ||
+          ch.slug.toLowerCase() === slug.toLowerCase()
+      )
   );
   const subcategories =
     parentCat?.children?.length ? parentCat.children : currentCat?.children || [];
 
   // Filter products to this category (and subcategories)
   const collectSlugs = (cat: Category): string[] => [
+    (cat.slug || "").trim().toLowerCase(),
     cat.slug.toLowerCase(),
     ...cat.children.flatMap(collectSlugs),
   ];
-  const validSlugs = currentCat ? collectSlugs(currentCat) : [slug.toLowerCase()];
+  const validSlugs = currentCat
+    ? Array.from(new Set(collectSlugs(currentCat)))
+    : Array.from(new Set([cleanSlug, slug.toLowerCase()]));
 
   const categoryProducts = allProducts.filter((p) => {
     const cats: string[] = [
-      ...(p.categories || []).map((c: any) => c.slug?.toLowerCase()),
+      ...(p.categories || []).flatMap((c: any) => [
+        (c.slug || "").trim().toLowerCase(),
+        c.slug?.toLowerCase(),
+      ]),
+      (p.category?.slug || "").trim().toLowerCase(),
       p.category?.slug?.toLowerCase(),
     ].filter(Boolean);
     return cats.some((cs) => validSlugs.includes(cs));
