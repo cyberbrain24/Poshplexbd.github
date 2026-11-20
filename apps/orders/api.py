@@ -1504,7 +1504,7 @@ def customer_checkout_endpoint(request, data: OrderCreateInputSchema):
                 try:
                     promo = PromoCode.objects.get(code=data.promo_code.upper().strip(), is_active=True)
                     items_dicts = [item.dict() for item in data.items]
-                    is_valid, promo_disc, _ = evaluate_promo_code_for_items(
+                    is_valid, promo_disc, _, _ = evaluate_promo_code_for_items(
                         promo=promo,
                         items=items_dicts,
                         subtotal=subtotal,

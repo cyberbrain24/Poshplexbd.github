@@ -92,6 +92,7 @@ class ValidateCouponResponseSchema(Schema):
     max_discount_amount: Optional[Decimal] = None
     membership_tier: Optional[str] = None
     error_message: Optional[str] = None
+    applied_items: Optional[List[Dict[str, Any]]] = []
 
 class ComboOfferResponseSchema(Schema):
     id: int
@@ -134,7 +135,7 @@ def validate_coupon_endpoint(request, data: ValidateCouponPayloadSchema):
     if not promo:
         return {"valid": False, "error_message": "Coupon code not found."}
         
-    is_valid, discount, err_msg = evaluate_promo_code_for_items(
+    is_valid, discount, err_msg, applied_items = evaluate_promo_code_for_items(
         promo=promo,
         items=items,
         subtotal=subtotal,
@@ -151,7 +152,8 @@ def validate_coupon_endpoint(request, data: ValidateCouponPayloadSchema):
         "discount_value": promo.discount_value,
         "discount_amount": discount,
         "max_discount_amount": promo.max_discount_amount,
-        "membership_tier": promo.membership_tier
+        "membership_tier": promo.membership_tier,
+        "applied_items": applied_items
     }
 
 # Backward compatible GET endpoint for legacy clients
@@ -162,7 +164,7 @@ def validate_coupon_get_endpoint(request, code: str, subtotal: Decimal, phone: s
     promo = PromoCode.objects.filter(code=code_clean).first()
     if not promo:
         return {"valid": False, "error_message": "Coupon code not found."}
-    is_valid, discount, err_msg = evaluate_promo_code_for_items(
+    is_valid, discount, err_msg, applied_items = evaluate_promo_code_for_items(
         promo=promo,
         items=[],
         subtotal=subtotal,
@@ -176,7 +178,8 @@ def validate_coupon_get_endpoint(request, code: str, subtotal: Decimal, phone: s
         "discount_value": promo.discount_value,
         "discount_amount": discount,
         "max_discount_amount": promo.max_discount_amount,
-        "membership_tier": promo.membership_tier
+        "membership_tier": promo.membership_tier,
+        "applied_items": applied_items
     }
 
 # Admin CRUD Routes
@@ -294,7 +297,7 @@ def validate_promo_endpoint(request, data: PromoValidateRequestSchema):
     except PromoCode.DoesNotExist:
         return {"valid": False, "discount_amount": Decimal('0.00'), "message": "Invalid or expired promo code."}
 
-    is_valid, discount, err_msg = evaluate_promo_code_for_items(
+    is_valid, discount, err_msg, applied_items = evaluate_promo_code_for_items(
         promo=promo,
         items=data.items or [],
         subtotal=data.order_amount,

@@ -172,6 +172,7 @@ export default function CheckoutPage() {
   const [promoError, setPromoError] = useState("");
   const [discountAmount, setDiscountAmount] = useState(0);
   const [appliedPromo, setAppliedPromo] = useState("");
+  const [promoAppliedItems, setPromoAppliedItems] = useState<any[]>([]);
   const [isCheckingPromo, setIsCheckingPromo] = useState(false);
   const [showPromoInput, setShowPromoInput] = useState(false);
   const checkoutSessionToken = useRef<string>("");
@@ -573,11 +574,13 @@ export default function CheckoutPage() {
         }
         setDiscountAmount(discount);
         setAppliedPromo(promoCode.toUpperCase());
+        setPromoAppliedItems(Array.isArray(data.applied_items) ? data.applied_items : []);
         setPromoCode("");
       } else {
         setPromoError(data.error_message || "Invalid promo code.");
         setDiscountAmount(0);
         setAppliedPromo("");
+        setPromoAppliedItems([]);
       }
     } catch (err) {
       setPromoError("Error validating promo code.");
@@ -1022,25 +1025,61 @@ if (success) {
                 <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 20, color: "#111111", borderBottom: "1px solid rgba(0,0,0,0.1)", paddingBottom: 16, textTransform: "uppercase" }}>Order Summary</h3>
                 
                 <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 24, maxHeight: 380, overflowY: "auto", paddingRight: 6 }} className="custom-scrollbar summary-items-list">
-                  {cart.map((item, i) => (
-                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                        <div className="summary-item-thumb" style={{ width: 56, height: 56, position: "relative", backgroundColor: "#f5f5f5", borderRadius: 6, overflow: "hidden", border: "1px solid rgba(0,0,0,0.05)", flexShrink: 0 }}>
-                          {item.image && <Image unoptimized={true} src={item.image} alt={item.name} fill sizes="56px" priority={i < 4} style={{ objectFit: "cover" }} />}
-                        </div>
-                        <div>
-                          <div className="summary-item-name" style={{ fontSize: 14, fontWeight: 700, color: "#111111", marginBottom: 2 }}>{item.name}</div>
-                          {item.attributes && Object.keys(item.attributes).length > 0 && (
-                            <div className="summary-item-attr" style={{ fontSize: 11, color: "#777777", fontWeight: 600, marginBottom: 2, textTransform: "capitalize" }}>
-                              {Object.entries(item.attributes).map(([k, v]) => `${k}: ${v}`).join(" | ")}
+                  {cart.map((item, i) => {
+                    const matchedApplied = promoAppliedItems.find((p: any) => 
+                      p.sku === item.sku || 
+                      (item.product_sku && p.sku === item.product_sku) || 
+                      (p.product_name && item.name && p.product_name.toLowerCase() === item.name.toLowerCase())
+                    );
+                    const originalLinePrice = item.price * item.quantity;
+                    const discountedLinePrice = matchedApplied ? (matchedApplied.discounted_price * item.quantity) : originalLinePrice;
+                    const isPromoOnThisItem = Boolean(matchedApplied && matchedApplied.item_discount > 0);
+
+                    return (
+                      <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                          <div className="summary-item-thumb" style={{ width: 56, height: 56, position: "relative", backgroundColor: "#f5f5f5", borderRadius: 6, overflow: "hidden", border: "1px solid rgba(0,0,0,0.05)", flexShrink: 0 }}>
+                            {item.image && <Image unoptimized={true} src={item.image} alt={item.name} fill sizes="56px" priority={i < 4} style={{ objectFit: "cover" }} />}
+                          </div>
+                          <div>
+                            <div className="summary-item-name" style={{ fontSize: 14, fontWeight: 700, color: "#111111", marginBottom: 2 }}>{item.name}</div>
+                            {item.attributes && Object.keys(item.attributes).length > 0 && (
+                              <div className="summary-item-attr" style={{ fontSize: 11, color: "#777777", fontWeight: 600, marginBottom: 2, textTransform: "capitalize" }}>
+                                {Object.entries(item.attributes).map(([k, v]) => `${k}: ${v}`).join(" | ")}
+                              </div>
+                            )}
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <span className="summary-item-qty" style={{ fontSize: 12, color: "#555555", fontWeight: 500 }}>Qty: {item.quantity}</span>
+                              {isPromoOnThisItem && (
+                                <span style={{ fontSize: 10, fontWeight: 700, color: "#10b981", backgroundColor: "rgba(16, 185, 129, 0.1)", padding: "1px 6px", borderRadius: 4, textTransform: "uppercase", letterSpacing: "0.3px" }}>
+                                  Promo applied
+                                </span>
+                              )}
                             </div>
+                          </div>
+                        </div>
+                        <div className="summary-item-price" style={{ textAlign: "right", flexShrink: 0, paddingLeft: 8 }}>
+                          {isPromoOnThisItem ? (
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+                              <span style={{ fontSize: 12, color: "#9ca3af", textDecoration: "line-through", fontWeight: 600 }}>
+                                ৳{originalLinePrice.toFixed(2)}
+                              </span>
+                              <span style={{ fontSize: 14, fontWeight: 800, color: "#10b981" }}>
+                                ৳{discountedLinePrice.toFixed(2)}
+                              </span>
+                              <span style={{ fontSize: 9.5, color: "#10b981", fontWeight: 700, textTransform: "uppercase" }}>
+                                promo applied
+                              </span>
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: 14, fontWeight: 800, color: "#111111" }}>
+                              ৳{originalLinePrice.toFixed(2)}
+                            </span>
                           )}
-                          <div className="summary-item-qty" style={{ fontSize: 12, color: "#555555", fontWeight: 500 }}>Qty: {item.quantity}</div>
                         </div>
                       </div>
-                      <div className="summary-item-price" style={{ fontSize: 14, fontWeight: 800, color: "#111111", flexShrink: 0, paddingLeft: 8 }}>৳{(item.price * item.quantity).toFixed(2)}</div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <div style={{ borderTop: "1px solid rgba(0,0,0,0.1)", paddingTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
@@ -1088,7 +1127,29 @@ if (success) {
                           </div>
                         )}
                         {promoError && <div style={{ color: "#e11d48", fontSize: 11, marginTop: 6, fontWeight: 600 }}>{promoError}</div>}
-                        {appliedPromo && <div style={{ color: "#10b981", fontSize: 12, marginTop: 4, fontWeight: 700 }}>✓ Promo {appliedPromo} applied!</div>}
+                        {appliedPromo && (
+                          <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 3 }}>
+                            <div style={{ color: "#10b981", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+                              <span>✓ Promo {appliedPromo} applied!</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setAppliedPromo("");
+                                  setDiscountAmount(0);
+                                  setPromoAppliedItems([]);
+                                }}
+                                style={{ background: "none", border: "none", color: "#9ca3af", fontSize: 10, cursor: "pointer", textDecoration: "underline", padding: 0 }}
+                              >
+                                (Remove)
+                              </button>
+                            </div>
+                            {promoAppliedItems.length > 0 && (
+                              <div style={{ fontSize: 11, color: "#059669", fontWeight: 600, lineHeight: 1.4, backgroundColor: "rgba(16, 185, 129, 0.08)", padding: "6px 8px", borderRadius: 4, marginTop: 4 }}>
+                                Applied on: {promoAppliedItems.map((p: any) => p.product_name || p.sku).join(", ")}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
