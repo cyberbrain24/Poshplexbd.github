@@ -1215,14 +1215,17 @@ def get_analytics_overview(request, range: str = "7d", campaign_id: Optional[int
     }
 
 @router.get("/analytics/timeseries/", response=List[TimeseriesDataPointSchema], auth=BearerAuth())
-def get_analytics_timeseries(request, range: str = "30d", campaign_id: Optional[int] = None):
+def get_analytics_timeseries(request, time_range: Optional[str] = None, campaign_id: Optional[int] = None):
     """Timeseries metric breakdown formatted for Recharts dual-axis charts."""
     enforce_permission(request, "marketing", "view")
+    
+    # Check both time_range and query param 'range' without shadowing Python builtin range
+    raw_range = time_range or request.GET.get("range") or "30d"
     now = timezone.now()
     days = 30
-    if range == "7d":
+    if raw_range == "7d":
         days = 7
-    elif range == "90d":
+    elif raw_range == "90d":
         days = 90
 
     # Build chronological daily buckets
@@ -2038,9 +2041,27 @@ def get_attribution_diagnostics(request):
         'visitor_id', 'phone', 'email', 'source', 'confidence_score', 'created_at'
     ))
 
-    recent_capi_logs = list(MetaCapiLog.objects.order_by('-created_at')[:20].values(
-        'order_id', 'event_name', 'event_id', 'status', 'status_code', 'age_at_send_hours', 'created_at'
+    raw_capi_logs = list(MetaCapiLog.objects.order_by('-created_at')[:20].values(
+        'order_id', 'event_name', 'event_id', 'status', 'http_status', 'event_time', 'created_at'
     ))
+    recent_capi_logs = []
+    now_ts = timezone.now()
+    for log in raw_capi_logs:
+        ev_time = log.get('event_time') or log.get('created_at')
+        age_hours = 0.0
+        if ev_time and log.get('created_at'):
+            diff = (log['created_at'] - ev_time).total_seconds()
+            age_hours = max(0.0, round(diff / 3600.0, 1))
+        recent_capi_logs.append({
+            'order_id': log.get('order_id'),
+            'event_name': log.get('event_name'),
+            'event_id': log.get('event_id'),
+            'status': log.get('status'),
+            'status_code': log.get('http_status'),
+            'http_status': log.get('http_status'),
+            'age_at_send_hours': age_hours,
+            'created_at': log.get('created_at'),
+        })
 
     return {
         "summary": {
