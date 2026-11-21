@@ -560,8 +560,8 @@ export default function CheckoutPage() {
 
       if (data.valid) {
         let discount = 0;
-        if (typeof data.discount_amount === "number") {
-          discount = data.discount_amount;
+        if (data.discount_amount !== undefined && data.discount_amount !== null && !isNaN(Number(data.discount_amount))) {
+          discount = Number(data.discount_amount);
         } else if (data.reward_type === "percent") {
           discount = (cartTotal * Number(data.discount_value)) / 100;
           if (data.max_discount_amount && discount > Number(data.max_discount_amount)) {
