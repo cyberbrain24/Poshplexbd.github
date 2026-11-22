@@ -39,6 +39,16 @@ body {
 .btn-primary:hover { filter: brightness(1.1); }
 .ant-layout { background: var(--bg-primary) !important; min-width: 0; }
 .ant-layout-sider { background: var(--bg-secondary) !important; border-right: 1px solid var(--border-glass); }
+.ant-layout-sider.desktop-sider {
+  position: sticky !important;
+  top: 0 !important;
+  height: 100vh !important;
+  z-index: 100 !important;
+  flex: 0 0 260px !important;
+  max-width: 260px !important;
+  min-width: 260px !important;
+  width: 260px !important;
+}
 .ant-layout-sider-children { height: 100% !important; display: flex !important; flex-direction: column !important; }
 .sider-logout-btn { transition: all 0.2s ease !important; }
 .sider-logout-btn:hover { background: rgba(244, 63, 94, 0.15) !important; color: #fb7185 !important; }

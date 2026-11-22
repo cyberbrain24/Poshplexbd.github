@@ -264,6 +264,7 @@ export const CustomLayout: React.FC<{ children: React.ReactNode }> = ({ children
           left: 0,
           zIndex: 101,
           overflow: "hidden",
+          flexShrink: 0,
         }}
       >
         <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>

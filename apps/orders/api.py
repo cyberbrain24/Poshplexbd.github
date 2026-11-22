@@ -428,27 +428,44 @@ def get_orderpulse_analytics(request):
     partial_qs = Order.objects.filter(status='partially_delivered')
     partial_count = partial_qs.count()
     
-    returned_items_qs = OrderItem.objects.filter(returned_quantity__gt=0)
+    returned_items_qs = OrderItem.objects.filter(
+        Q(returned_quantity__gt=0) | Q(order__status__in=['returned', 'rto', 'partially_delivered'])
+    )
     
     partial_return_reasons = {}
     for row in returned_items_qs.values('return_reason').annotate(count=Sum('returned_quantity')).order_by('-count'):
         key = row['return_reason'] or 'unassigned'
         partial_return_reasons[key] = row['count'] or 0
         
-    # Top returned SKUs
+    # Top returned SKUs for Catalog R&D Matrix
     top_returned_skus = []
     top_skus_raw = (
         returned_items_qs.values('sku')
-        .annotate(total_returned=Sum('returned_quantity'))
-        .order_by('-total_returned')[:10]
+        .annotate(
+            total_returned=Sum('returned_quantity'),
+            total_qty=Sum('quantity')
+        )
+        .order_by('-total_qty')[:15]
     )
     
-    from apps.catalog.models import ProductVariant
+    from apps.catalog.models import ProductVariant, Product
     for row in top_skus_raw:
         sku = row['sku']
-        v = ProductVariant.objects.filter(sku=sku).select_related('product').first()
-        prod_title = v.product.title if v and v.product else sku
-        img = v.images[0] if (v and v.images) else (v.product.primary_image if (v and v.product) else "")
+        returned_units = row['total_returned'] if row['total_returned'] and row['total_returned'] > 0 else row['total_qty']
+        
+        v = ProductVariant.objects.filter(sku=sku).select_related('product', 'image').first()
+        prod = v.product if v else Product.objects.filter(sku=sku).first()
+        prod_title = prod.name if prod else sku
+        
+        img = ""
+        if v and v.image and v.image.image:
+            img = v.image.image.url
+        elif prod:
+            if hasattr(prod, 'images') and prod.images.exists():
+                first_img = prod.images.first()
+                img = first_img.image.url if first_img and first_img.image else ""
+            elif getattr(prod, 'primary_image', None):
+                img = prod.primary_image
         
         primary_reason_row = (
             returned_items_qs.filter(sku=sku)
@@ -463,7 +480,7 @@ def get_orderpulse_analytics(request):
             "sku": sku,
             "product_name": prod_title,
             "image": img,
-            "returned_count": row['total_returned'],
+            "returned_count": returned_units,
             "primary_reason": primary_reason
         })
         
