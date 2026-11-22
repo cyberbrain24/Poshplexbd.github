@@ -113,6 +113,10 @@ def create_order(
     # grand_total = subtotal + shipping - discount
     order.total_amount = max(Decimal('0.00'), subtotal + shipping_cost - discount_amount)
     
+    # Auto-trigger Urgent Parcel if order value exceeds 2500 BDT
+    if order.total_amount > Decimal('2500.00'):
+        order.is_urgent = True
+    
     # Calculate Risk Flags
     risk_level, risk_reasons = calculate_order_risk(order)
     order.risk_level = risk_level

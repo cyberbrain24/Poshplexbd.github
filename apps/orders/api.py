@@ -1808,6 +1808,10 @@ def update_order_endpoint(request, order_id: int, data: OrderCreateInputSchema):
             order.subtotal = subtotal
             order.total_amount = max(Decimal('0.00'), subtotal + order.shipping_cost - order.discount_amount)
             
+            # Auto-trigger Urgent Parcel if updated order value exceeds 2500 BDT
+            if order.total_amount > Decimal('2500.00'):
+                order.is_urgent = True
+
             # Log edit action in history
             OrderStatusHistory.objects.create(
                 order=order,
