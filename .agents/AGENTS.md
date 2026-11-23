@@ -103,3 +103,26 @@ The following two modules are **temporarily disconnected** across the Backend, S
    - **Storefront (`poshplex_store`):** Disabled `useFitCheckConfig` in `app/hooks/useFitCheckConfig.ts` (`isFitCheckActive: false`, skipping `/api/v1/fit-check/config/public` calls), and commented out `VirtualTryOnModal` & AI Fit Check / AI Character triggers in `app/components/BottomNav.tsx`, `app/product/[slug]/ProductDetailClient.tsx`, and `app/profile/page.tsx` (preserving `app/components/VirtualTryOnModal.tsx`).
    - **Admin (`poshplex_admin`):** Commented out `/fit-check` resource, route, and sidebar item in `src/App.tsx` and `src/components/layout.tsx` (preserving `src/pages/fit-check.tsx`).
 
+## VPS Coexistence & Strict Isolation Rules (Ecom Ventures)
+The production VPS (`185.227.134.236`) co-hosts an isolated multi-tenant e-commerce system called **Ecom Ventures** (Go API + Next.js). To protect both platforms, all Poshplex agents MUST strictly obey the following isolation boundaries:
+
+1. **Filesystem Isolation:**
+   - **Poshplex Territory:** `/root/poshplex_store/` (strictly owned by `root`).
+   - **Ecom Ventures Territory:** `/home/ecom/` (owned by Linux user `ecom`).
+   - **STRICT RULE:** Poshplex agents MUST NEVER read, inspect, modify, kill, or delete any files, directories, processes, or configurations inside `/home/ecom/` or belonging to user `ecom`.
+
+2. **Port Allocations (Never Bind or Conflict):**
+   - **Poshplex Ports:** `:3000` (Storefront), `:3001` (Admin), `:8000` (Django REST API), `:8080` (Internal Nginx), `:5432` (Postgres container), `:6379` (Redis container).
+   - **Ecom Ventures Reserved Ports:** `:5000` (Go API Kernel), `:5100` (Ecom Storefront), `:5200` (Ecom Admins).
+   - **STRICT RULE:** Poshplex agents must NEVER bind to, probe, or terminate processes on ports `5000`, `5100`, or `5200`.
+
+3. **Database Scoping (PostgreSQL 16):**
+   - **Poshplex Database:** `poshplex` (user: `poshplex_user`).
+   - **Ecom Ventures Databases:** `ecom_platform_main`, `ecom_store_template`, and tenant databases matching `store_*` (user: `ecom_user`).
+   - **STRICT RULE:** Never drop, alter, migrate, or query any database starting with `ecom_` or `store_`. Never alter the credentials or privileges of `ecom_user`.
+
+4. **Redis Cache Scoping:**
+   - **Redis DB Index 1:** Exclusively dedicated to Poshplex Django cache and Celery queue.
+   - **Redis DB Index 0:** Dedicated to Ecom Ventures. Poshplex agents must NEVER run `FLUSHALL` or flush DB 0.
+
+
