@@ -12,11 +12,15 @@ export default function MembershipDirectory() {
   // Load public membership tiers
   const fetchTiers = async () => {
     try {
-      const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/crm/tiers`);
+      const res = await fetch(`${process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/crm/tiers`);
       if (res.ok) {
         const data = await res.json();
-        // Only show active public tiers
-        setTiers(data.filter((t: any) => t.is_active && t.show_on_public));
+        // Only show active tiers that are explicitly allowed (Elite & Posh Crown) and not Standard
+        const eligibleTiers = data.filter((t: any) => {
+          const name = (t.name || "").trim().toLowerCase();
+          return t.is_active && t.show_on_public && !name.includes("standard") && (name.includes("elite") || name.includes("posh crown") || name.includes("crown"));
+        });
+        setTiers(eligibleTiers);
       }
     } catch (e) {
       console.error(e);
@@ -27,14 +31,19 @@ export default function MembershipDirectory() {
   const fetchMembers = async () => {
     setLoading(true);
     try {
-      let url = `${process.env.INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/crm/public-members`;
+      let url = `${process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/crm/public-members`;
       if (selectedTierId) {
         url += `?tier_id=${selectedTierId}`;
       }
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        setMembers(data);
+        // Never show Standard members on this page — only Elite & Posh Crown members
+        const filteredMembers = data.filter((m: any) => {
+          const tierName = (m.tier_name || "").trim().toLowerCase();
+          return !tierName.includes("standard") && (tierName.includes("elite") || tierName.includes("posh crown") || tierName.includes("crown"));
+        });
+        setMembers(filteredMembers);
       }
     } catch (e) {
       console.error(e);

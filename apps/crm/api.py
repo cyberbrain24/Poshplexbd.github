@@ -505,14 +505,21 @@ class PublicMemberSchema(Schema):
 
 @router.get("/public-members", response=List[PublicMemberSchema])
 def list_public_members(request, tier_id: Optional[int] = None):
-    """Public membership directory list (no auth required)."""
-    qs = CustomerProfile.objects.filter(membership_tier__show_on_public=True, is_active=True).select_related('user', 'membership_tier')
+    """Public membership directory list (no auth required). Excludes Standard tier members."""
+    qs = CustomerProfile.objects.filter(
+        membership_tier__show_on_public=True,
+        membership_tier__is_active=True,
+        is_active=True
+    ).exclude(
+        membership_tier__name__icontains="standard"
+    ).select_related('user', 'membership_tier')
+    
     if tier_id:
         qs = qs.filter(membership_tier_id=tier_id)
         
     return [{
-        "username": c.user.username,
-        "tier_name": c.membership_tier.name,
+        "username": c.user.username if c.user else f"Customer #{c.id}",
+        "tier_name": c.membership_tier.name.strip(),
         "show_member_since": c.membership_tier.show_member_since,
         "tier_assigned_at": c.tier_assigned_at
     } for c in qs]
