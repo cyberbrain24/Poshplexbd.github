@@ -279,29 +279,31 @@ const inferGenderFromNameServer = (name?: string): "m" | "f" | undefined => {
  * Check if an IP address belongs to private, loopback, or reserved subnets
  */
 const isPrivateOrReservedIP = (ip: string): boolean => {
+  const clean = ip.trim().toLowerCase().replace(/^::ffff:/, "");
   if (
-    ip === "0.0.0.0" ||
-    ip === "127.0.0.1" ||
-    ip.startsWith("127.") ||
-    ip.startsWith("10.") ||
-    ip.startsWith("192.168.") ||
-    ip.startsWith("169.254.")
+    clean === "0.0.0.0" ||
+    clean === "1.2.3.4" ||
+    clean === "127.0.0.1" ||
+    clean.startsWith("127.") ||
+    clean.startsWith("10.") ||
+    clean.startsWith("192.168.") ||
+    clean.startsWith("169.254.")
   ) {
     return true;
   }
-  if (ip.startsWith("172.")) {
-    const parts = ip.split(".");
+  if (clean.startsWith("172.")) {
+    const parts = clean.split(".");
     if (parts.length > 1) {
       const secondOctet = parseInt(parts[1], 10);
       if (secondOctet >= 16 && secondOctet <= 31) return true;
     }
   }
   if (
-    ip === "::1" ||
-    ip === "::" ||
-    ip.toLowerCase().startsWith("fc") ||
-    ip.toLowerCase().startsWith("fd") ||
-    ip.toLowerCase().startsWith("fe80")
+    clean === "::1" ||
+    clean === "::" ||
+    clean.startsWith("fc") ||
+    clean.startsWith("fd") ||
+    clean.startsWith("fe80")
   ) {
     return true;
   }
@@ -313,7 +315,15 @@ const isPrivateOrReservedIP = (ip: string): boolean => {
  */
 const isValidPublicIP = (ip: string | undefined): boolean => {
   if (!ip) return false;
-  const clean = ip.trim().replace(/^::ffff:/, "");
+  // Strip IPv4-mapped IPv6 prefix, brackets from IPv6, and trailing port
+  let clean = ip.trim().replace(/^::ffff:/i, "");
+  if (clean.startsWith("[") && clean.includes("]")) {
+    clean = clean.replace(/^\[/, "").replace(/\].*$/, "");
+  } else if (clean.includes(":") && clean.split(":").length === 2 && !clean.includes("::")) {
+    // IPv4 with port (e.g. 103.145.240.15:443)
+    clean = clean.replace(/:\d+$/, "");
+  }
+  
   const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
   const isIPv4 = ipv4Regex.test(clean);
   const isIPv6 = clean.includes(":") && clean.length >= 2 && clean.length <= 45;
@@ -323,25 +333,38 @@ const isValidPublicIP = (ip: string | undefined): boolean => {
 };
 
 /**
+ * Clean and normalize a valid public IP string for Meta CAPI
+ */
+const sanitizePublicIP = (ip: string): string => {
+  let clean = ip.trim().replace(/^::ffff:/i, "");
+  if (clean.startsWith("[") && clean.includes("]")) {
+    clean = clean.replace(/^\[/, "").replace(/\].*$/, "");
+  } else if (clean.includes(":") && clean.split(":").length === 2 && !clean.includes("::")) {
+    clean = clean.replace(/:\d+$/, "");
+  }
+  return clean;
+};
+
+/**
  * Extract the true client public IP in a Cloudflare / Reverse-Proxy architecture
  */
-const extractClientIP = (req: Request): string | undefined => {
+const extractClientIP = (req: Request, fallbackCandidate?: string): string | undefined => {
   // 1. Cloudflare raw visitor IP (highest priority)
   const cfConnectingIp = req.headers.get("cf-connecting-ip")?.trim();
   if (cfConnectingIp && isValidPublicIP(cfConnectingIp)) {
-    return cfConnectingIp.replace(/^::ffff:/, "");
+    return sanitizePublicIP(cfConnectingIp);
   }
 
   // 2. Akamai / Cloudflare Enterprise
   const trueClientIp = req.headers.get("true-client-ip")?.trim();
   if (trueClientIp && isValidPublicIP(trueClientIp)) {
-    return trueClientIp.replace(/^::ffff:/, "");
+    return sanitizePublicIP(trueClientIp);
   }
 
   // 3. X-Real-IP (populated by Nginx with real client IP)
   const xRealIp = req.headers.get("x-real-ip")?.trim();
   if (xRealIp && isValidPublicIP(xRealIp)) {
-    return xRealIp.replace(/^::ffff:/, "");
+    return sanitizePublicIP(xRealIp);
   }
 
   // 4. X-Forwarded-For (comma-separated chain: client, proxy1, proxy2...)
@@ -349,9 +372,8 @@ const extractClientIP = (req: Request): string | undefined => {
   if (xForwardedFor) {
     const ips = xForwardedFor.split(",").map((p) => p.trim());
     for (const rawIp of ips) {
-      const ip = rawIp.replace(/:\d+$/, "").replace(/^::ffff:/, "");
-      if (isValidPublicIP(ip)) {
-        return ip;
+      if (isValidPublicIP(rawIp)) {
+        return sanitizePublicIP(rawIp);
       }
     }
   }
@@ -359,10 +381,16 @@ const extractClientIP = (req: Request): string | undefined => {
   // 5. X-Client-IP
   const xClientIp = req.headers.get("x-client-ip")?.trim();
   if (xClientIp && isValidPublicIP(xClientIp)) {
-    return xClientIp.replace(/^::ffff:/, "");
+    return sanitizePublicIP(xClientIp);
   }
 
-  // Do not send dummy "0.0.0.0" or private IPs to Meta. Return undefined so it is omitted cleanly.
+  // 6. Optional explicit client hint (validated)
+  if (fallbackCandidate && isValidPublicIP(fallbackCandidate)) {
+    return sanitizePublicIP(fallbackCandidate);
+  }
+
+  // Meta strictly rejects dummy/placeholder IPs (e.g. 0.0.0.0 or 1.2.3.4).
+  // Return undefined so the parameter is cleanly omitted from user_data when absent.
   return undefined;
 };
 
@@ -448,8 +476,8 @@ export async function POST(req: Request) {
     }
 
     // 3. Get validated client IP and User Agent
-    const clientIp = extractClientIP(req);
-    const userAgent = req.headers.get("user-agent")?.trim() || undefined;
+    const clientIp = extractClientIP(req, userData?.client_ip_address);
+    const userAgent = req.headers.get("user-agent")?.trim() || userData?.client_user_agent || undefined;
 
     // 4. Smart Name Resolution (Fixes Surname missing issue for single & multi-part names)
     let rawFn = userData?.fn;

@@ -378,13 +378,15 @@ def send_meta_capi_lifecycle_event_task(order_id: int, event_type: str):
         logger.info(f"Skipping CAPI dispatch for Order #{order_id}: credentials not fully configured.")
         return {"status": "skipped", "reason": "no_credentials"}
 
-    # Fetch fbc / fbp from session touchpoints
+    # Fetch fbc / fbp / client_ip from session touchpoints
     fbc = None
     fbp = None
+    client_ip = None
     tp = OrderAttributionTouchpoint.objects.filter(order_id=order_id).select_related('session').first()
     if tp and tp.session:
         fbc = tp.session.fbc or None
         fbp = tp.session.fbp or None
+        client_ip = getattr(tp.session, 'ip_address', None) or None
 
     return send_capi_lifecycle_event(
         pixel_id=pixel_id,
@@ -396,6 +398,7 @@ def send_meta_capi_lifecycle_event_task(order_id: int, event_type: str):
         email=getattr(order.user, 'email', None) if order.user else None,
         fbc=fbc,
         fbp=fbp,
+        client_ip=client_ip,
         event_time=real_event_time
     )
 

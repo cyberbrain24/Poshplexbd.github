@@ -215,6 +215,7 @@ def send_capi_lifecycle_event(
     email: Optional[str] = None,
     fbc: Optional[str] = None,
     fbp: Optional[str] = None,
+    client_ip: Optional[str] = None,
     event_time: Optional[Any] = None,
     event_source_url: str = "https://poshplexbd.com"
 ) -> Dict[str, Any]:
@@ -278,6 +279,12 @@ def send_capi_lifecycle_event(
         user_data["fbc"] = fbc.strip()
     if fbp:
         user_data["fbp"] = fbp.strip()
+
+    # Pass client_ip_address unhashed only if it is a valid non-dummy public IP
+    if client_ip:
+        clean_ip = str(client_ip).strip().replace('::ffff:', '')
+        if clean_ip not in ('0.0.0.0', '127.0.0.1', '1.2.3.4') and not clean_ip.startswith(('10.', '192.168.', '172.', '127.')):
+            user_data["client_ip_address"] = clean_ip
 
     custom_event_id = f"posh_order_{order_id}_{event_name.lower()}"
     event_payload = {
